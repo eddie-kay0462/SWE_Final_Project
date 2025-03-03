@@ -1,3 +1,15 @@
+/**
+ * This program simply prints the contents from the tables that have RLS
+ * policies like:
+ * 
+ *  CREATE POLICY "Allow all users to read data"
+    ON public.attendance
+    FOR SELECT
+    USING (true);
+ * 
+ */
+
+
 // Import the Supabase client creator function
 import { createClient } from '@/utils/supabase/server';
 
@@ -6,7 +18,7 @@ export default async function TableDisplay() {
   // Initialize Supabase client
   const supabase = await createClient();
   
-  const tableName = "attendance";
+  const tableName = "users";
 
   // Fetch all records from the specified table
   const { data: records, error } = await supabase.from(tableName).select();
