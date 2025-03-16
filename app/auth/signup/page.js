@@ -64,8 +64,8 @@ export default function Signup() {
       </Head>
 
       {/* Header */}
-      <header className="px-2 py-2 bg-white shadow-sm">
-        <div className="container mx-auto flex justify-between items-center">
+      <header className="px-2 py-2 bg-white shadow-sm sticky top-0 z-10">
+        <div className="container mx-auto flex justify-between items-center ">
           <div className="flex items-center">
             <span className="text-base font-bold text-purple-600">CSOFT</span>
           </div>
