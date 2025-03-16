@@ -65,18 +65,18 @@ export default function Login() {
         <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
           <div className="flex flex-col md:flex-row">
             {/* Left Side - Login Form */}
-            <div className="w-full md:w-1/2 p-4">
-              <div className="mb-3">
+            <div className="w-full md:w-1/2 p-3">
+              <div className="mb-2">
                 <h2 className="text-xl font-bold mb-1">Welcome Back 👋</h2>
                 <p className="text-gray-500 text-xs">Please enter your details to access your account</p>
               </div>
               {error && (
-                <div className="mb-3 p-2 bg-red-100 border border-red-400 text-red-700 rounded text-xs">
+                <div className="mb-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded text-xs">
                   {error}
                 </div>
               )}
               
-              <form onSubmit={handleSubmit} className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-2">
                 <div>
                   <label className="block text-gray-700 text-xs font-medium mb-1" htmlFor="email">
                     Email
@@ -116,13 +116,13 @@ export default function Login() {
                 </button>
               </form>
               
-              <p className="text-center text-xs text-gray-500 mt-3">
+              <p className="text-center text-xs text-gray-500 mt-2">
                 Don't have an account yet? <Link href="/auth/signup" className="text-orange-500 hover:text-orange-600">Sign up</Link>
               </p>
             </div>
             
             {/* Right Side - Image */}
-            <div className="hidden md:block w-1/2 relative h-[350px]">
+            <div className="hidden md:block w-1/2 relative h-[300px]">
               <Image 
                 src="https://images.unsplash.com/photo-1543269664-56d93c1b41a6?auto=format&fit=crop"
                 alt="Professional person smiling"
