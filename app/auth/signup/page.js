@@ -79,7 +79,7 @@ export default function Signup() {
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto p-2 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+        <div className="bg-white rounded-lg shadow-xl max-w-xl w-full">
           <div className="flex flex-col md:flex-row">
             {/* Left Side - Signup Form */}
             <div className="w-full md:w-1/2 p-3">
@@ -179,7 +179,7 @@ export default function Signup() {
                 </button>
               </form>
               
-              <p className="text-center text-xs text-gray-500 mt-1.5">
+             <p className="text-center text-xs text-gray-500 mt-1.5">
                 Already have an account? <Link href="/auth/login" className="text-orange-500 hover:text-orange-600">Sign in</Link>
               </p>
             </div>
