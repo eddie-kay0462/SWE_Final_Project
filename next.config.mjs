@@ -5,7 +5,6 @@ const nextConfig = {
     return config;
   },
   images: {
-    domains: ['images.unsplash.com'], // Add any external image domains you need
     remotePatterns: [
       {
         protocol: 'https',
