@@ -1,4 +1,7 @@
+"use client"
+
 import { Hero } from "@/components/hero"
+import { useRouter } from "next/navigation"
 import { Features } from "@/components/features"
 import Link from "next/link"
 import { GraduationCap } from "lucide-react" 
@@ -15,7 +18,7 @@ export default function LandingPage() {
               <span className="font-serif font-normal italic">seamlessly </span>
               <span className="font-serif font-normal">connected</span>
             </div>
-            <div className="font-serif font-normal">at your fingertips</div>
+            <div className="font-serif font-normal">on your fingertips</div>
           </>
         }
         subtitle="CSOFT brings your career development, internship requests, and attendance tracking together in one place"
