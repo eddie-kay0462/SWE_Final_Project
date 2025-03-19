@@ -58,6 +58,7 @@
   }
 }
 
+/* Animations */
 @keyframes appear {
   0% {
     opacity: 0;
@@ -69,10 +70,82 @@
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .animate-appear {
   animation: appear 0.6s cubic-bezier(0.2, 0.85, 0.45, 1) forwards;
 }
 
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.4s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.5s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s ease-out forwards;
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.5s ease-out forwards;
+}
+
+/* Animation delays */
 .delay-100 {
   animation-delay: 100ms;
 }
@@ -95,4 +168,52 @@
 
 .delay-700 {
   animation-delay: 700ms;
+}
+
+/* Custom transitions */
+.transition-sidebar {
+  transition: width 0.3s ease, transform 0.3s ease;
+}
+
+.transition-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.transition-all-slow {
+  transition: all 0.5s ease;
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.hover-grow {
+  transition: transform 0.3s ease;
+}
+
+.hover-grow:hover {
+  transform: scale(1.02);
+}
+
+/* Sidebar resize styles */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: ew-resize;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.resize-handle:hover,
+.resize-active {
+  background-color: rgba(169, 24, 39, 0.3);
 }
