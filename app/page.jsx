@@ -4,11 +4,35 @@ import { Hero } from "@/components/hero"
 import { useRouter } from "next/navigation"
 import { Features } from "@/components/features"
 import Link from "next/link"
-import { GraduationCap } from "lucide-react" 
+import { GraduationCap, MoveRight } from "lucide-react" 
+// import { Navbar } from "@/components/navbar"
 
 export default function LandingPage() {
   return (
+
+    
     <main className="min-h-screen flex flex-col bg-[#f3f1ea]">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <GraduationCap className="h-6 w-6 text-[#A91827]" />
+            <span className="text-xl font-bold">CSOFT</span>
+          </Link>
+          <nav className="hidden md:flex gap-6">
+            <Link href="/" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+              Home
+            </Link>
+            <Link href="#features" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+              Services
+            </Link>
+            <Link href="#benefits" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+              About Us
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+
       <Hero
         eyebrow="INTRODUCING CSOFT"
         title={
@@ -22,17 +46,17 @@ export default function LandingPage() {
           </>
         }
         subtitle="CSOFT brings your career development, internship requests, and attendance tracking together in one place"
-        ctaText="Get Started"
-        ctaLink="/signup"
+        // ctaText="Get Started"
+        ctaLink="/auth/signup"
         mockupImage={{
-          src: "/placeholder.svg?height=800&width=1200",
+          src: "https://miro.medium.com/v2/resize:fit:2000/format:webp/1*8LkGdFNtXDE-owr2-U0I8Q.jpeg", 
           alt: "CSOFT Dashboard Interface",
           width: 1200,
           height: 800,
         }}
       />
 
-      <Features
+      <Features 
         id="features"
         title="Everything you need for career success"
         subtitle="Streamline your career development journey with powerful tools designed for students and career advisors"
@@ -103,17 +127,18 @@ export default function LandingPage() {
           <p className="text-xl md:text-2xl text-[#000000]/70 max-w-3xl mx-auto mb-10 animate-appear opacity-0 delay-100">
             Join CSOFT today and experience the future of career development management
           </p>
-      <Link href="/signup">
-        <div className="inline-flex items-center bg-[#A91827] text-[#ffffff] rounded-[10px] hover:bg-[#A91827]/90 transition-colors w-[227px] h-[49px] animate-appear opacity-0 delay-200 mx-auto">
-          <div className="flex items-center justify-between w-full pl-[22px] pr-[17px]">
-            <span className="text-[19px] whitespace-nowrap">Get Started</span>
-            <div className="flex items-center gap-[14px]">
+          <Link href="/auth/signup">
+            <div className="inline-flex items-center bg-[#A91827] text-[#ffffff] rounded-[10px] hover:bg-[#A91827]/90 transition-colors w-[227px] h-[49px] animate-appear opacity-0 delay-200 mx-auto">
+              <div className="flex items-center justify-between w-full pl-[22px] pr-[17px]">
+                <span className="text-[19px] whitespace-nowrap">Get Started</span>
+                <MoveRight className="h-6 w-6 text-[#ffffff]" />
+                <div className="flex items-center gap-[14px]">
+                </div>
+              </div>
             </div>
-          </div>
+          </Link>
         </div>
-      </Link>
-    </div>
-  </section>
+      </section>
 
     <footer className="border-t bg-[#f3f1ea]">
       <div className="container py-8 md:py-12 px-4 max-w-7xl">
