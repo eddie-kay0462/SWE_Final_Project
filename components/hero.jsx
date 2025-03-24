@@ -50,7 +50,8 @@ const Hero = React.forwardRef(({
         </Link>
       )}
 
-      {mockupImage && (
+      {/* Original Image styling for demo video */}
+      {/* {mockupImage && (
         <div className="mt-20 w-full relative animate-appear opacity-0 delay-700">
           <MockupFrame>
             <Mockup type="responsive">
@@ -72,7 +73,37 @@ const Hero = React.forwardRef(({
             }}
           />
         </div>
+      )} */}
+
+      {/* Image styling for mockup video */}
+      {mockupImage && (
+        <div className="mt-20 w-full max-w-screen-2xl mx-auto relative animate-appear opacity-0 delay-700">
+          <MockupFrame className="w-full">
+            <Mockup type="responsive" className="w-full">
+              <Image
+                src={mockupImage.src || "/placeholder.svg"}
+                alt={mockupImage.alt}
+                width={mockupImage.width}
+                height={mockupImage.height}
+                className="w-full h-auto object-cover"
+                priority
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                }}
+              />
+            </Mockup>
+          </MockupFrame>
+          <div
+            className="absolute bottom-0 left-0 right-0 w-full h-[303px]"
+            style={{
+              background: "linear-gradient(to top, #DCD5C1 0%, rgba(217, 217, 217, 0) 100%)",
+              zIndex: 10,
+            }}
+          />
+        </div>
       )}
+
     </div>
   )
 })
