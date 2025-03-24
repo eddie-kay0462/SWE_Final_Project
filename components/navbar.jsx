@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useTheme } from "@/components/theme-provider"
-import { GraduationCap, Menu, X, Home, Calendar, FileText, MessageSquare, User, LogOut, Moon, Sun } from "lucide-react"
+import { GraduationCap, Menu, X, Home, Calendar, FileText, MessageSquare, User, LogOut, Moon, Sun, LayoutDashboard } from "lucide-react"
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme()
@@ -24,18 +24,11 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Navigation */}
+          
           <div className="hidden md:flex items-center space-x-4">
+            
             <Link
-              href="/dashboard"
-              className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Home className="h-4 w-4" />
-                <span>Dashboard</span>
-              </div>
-            </Link>
-            <Link
-              href="/events"
+              href="/main/events"
               className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
             >
               <div className="flex items-center gap-2">
@@ -44,21 +37,12 @@ export default function Navbar() {
               </div>
             </Link>
             <Link
-              href="/resources"
+              href="/main/resources"
               className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
             >
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 <span>Resources</span>
-              </div>
-            </Link>
-            <Link
-              href="/feed"
-              className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                <span>Feed</span>
               </div>
             </Link>
           </div>
@@ -83,14 +67,15 @@ export default function Navbar() {
               <div className="absolute right-0 mt-2 w-48 bg-card rounded-md shadow-lg overflow-hidden z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
                 <div className="py-1">
                   <Link
-                    href="/profile"
+                    href="/dashboard"
                     className="block px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      <span>Profile</span>
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span>Dashboard</span>
                     </div>
                   </Link>
+            
                   <button className="w-full text-left block px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors">
                     <div className="flex items-center gap-2">
                       <LogOut className="h-4 w-4" />
@@ -123,7 +108,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       <div className={`md:hidden ${isOpen ? "block" : "hidden"}`}>
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background border-b border-border">
-          <Link
+          {/* <Link
             href="/dashboard"
             className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
           >
@@ -131,7 +116,7 @@ export default function Navbar() {
               <Home className="h-5 w-5" />
               <span>Dashboard</span>
             </div>
-          </Link>
+          </Link> */}
           <Link
             href="/events"
             className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -150,7 +135,7 @@ export default function Navbar() {
               <span>Resources</span>
             </div>
           </Link>
-          <Link
+          {/* <Link
             href="/feed"
             className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
           >
@@ -158,7 +143,7 @@ export default function Navbar() {
               <MessageSquare className="h-5 w-5" />
               <span>Feed</span>
             </div>
-          </Link>
+          </Link> */}
           <Link
             href="/profile"
             className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
