@@ -143,7 +143,8 @@ const Sidebar = ({ navItems, userRole, userName, userEmail, userAvatar, sidebarO
         <nav className="flex-1 px-2 py-4 overflow-y-auto">
           <ul className="space-y-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href
+              // const isActive = pathname === item.href
+              const isActive = pathname === item.href || item.href !== '/dashboard' && pathname.startsWith(item.href)
               return (
                 <li key={item.name}>
                   <Link
