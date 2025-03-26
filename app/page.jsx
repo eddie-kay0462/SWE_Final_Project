@@ -49,7 +49,20 @@ export default function LandingPage() {
         // ctaText="Get Started"
         ctaLink="/auth/signup"
         mockupImage={{
-          src: "https://miro.medium.com/v2/resize:fit:2000/format:webp/1*8LkGdFNtXDE-owr2-U0I8Q.jpeg", 
+          // src: "https://miro.medium.com/v2/resize:fit:2000/format:webp/1*8LkGdFNtXDE-owr2-U0I8Q.jpeg", 
+          // src: "https://miro.medium.com/v2/resize:fit:2000/format:webp/1*9YRpoHnULRoFmkBgcGqsfg.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:4800/format:webp/1*gW65ZcT2quoQJ1NC_ZLIug.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:2000/format:webp/1*CDNPcCGiLVyXhajKu7_yzA.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:1000/format:webp/1*sBh-ibNZCPuDPaNVjl5Ukw.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:4800/format:webp/1*NXn3uB-5YbDKabhQnJ-Kbg.jpeg",
+          src: "https://miro.medium.com/v2/resize:fit:2000/format:webp/1*rlPoTCOCoM3I--FouRCmsg.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:1000/format:webp/1*zPz-Pr3mF1fOY_PIFYZuwg.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:2000/format:webp/1*K3-xpZ3GbvHUTibpbGcWug.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:1000/format:webp/1*Gr0HGtYaOLY40DZ8XtJJ0g.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:1000/format:webp/1*zy1ioePWRsTeyk7-wJW8dw.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:668/format:webp/1*veQ90fttmMfHURt0sZkxXw.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:1000/format:webp/1*kEnzLIASEPaiwz3FWLVWBw.jpeg",
+          // src: "https://miro.medium.com/v2/resize:fit:4800/format:webp/1*b2MHkiDNJgAwB_c0vKZTog.jpeg",
           alt: "CSOFT Dashboard Interface",
           width: 1200,
           height: 800,

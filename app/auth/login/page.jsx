@@ -49,15 +49,16 @@ export default function Login() {
             <Link href="/" className="text-sm font-medium hover:text-[#A91827] transition-colors">
               Home
             </Link>
-            <Link href="/services" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+            <Link href="/#features" className="text-sm font-medium hover:text-[#A91827] transition-colors">
               Services
             </Link>
-            <Link href="/about" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+            <Link href="/#benefits" className="text-sm font-medium hover:text-[#A91827] transition-colors">
               About Us
             </Link>
           </nav>
         </div>
       </header>
+
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto p-4 md:p-8 flex items-center justify-center">

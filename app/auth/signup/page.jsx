@@ -66,10 +66,10 @@ export default function Signup() {
             <Link href="/" className="text-sm font-medium hover:text-[#A91827] transition-colors">
               Home
             </Link>
-            <Link href="/services" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+            <Link href="/#features" className="text-sm font-medium hover:text-[#A91827] transition-colors">
               Services
             </Link>
-            <Link href="/about" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+            <Link href="/#benefits" className="text-sm font-medium hover:text-[#A91827] transition-colors">
               About Us
             </Link>
           </nav>
