@@ -67,7 +67,7 @@ export default function Navbar() {
               <div className="absolute right-0 mt-2 w-48 bg-card rounded-md shadow-lg overflow-hidden z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
                 <div className="py-1">
                   <Link
-                    href="/dashboard"
+                    href="/dashboard/student"
                     className="block px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
                   >
                     <div className="flex items-center gap-2">
@@ -145,12 +145,12 @@ export default function Navbar() {
             </div>
           </Link> */}
           <Link
-            href="/profile"
+            href="/dashboard/student"
             className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <div className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              <span>Profile</span>
+              <LayoutDashboard className="h-5 w-5" />
+              <span>Dashboard</span>
             </div>
           </Link>
           <button className="w-full text-left block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors">

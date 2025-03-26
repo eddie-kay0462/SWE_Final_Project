@@ -5,14 +5,14 @@ import Dashboard from "@/app/dashboard/page"
 
 // Define the navigation items for student
 const studentNavItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Profile", href: "../../profile", icon: UserPen },
-  { name: "Resume", href: "../../resume", icon: FileUser },
-  { name: "Internship Requests", href: "/dashboard/internships", icon: FileText },
+  { name: "Dashboard", href: "/dashboard/student", icon: LayoutDashboard },
+  { name: "Profile", href: "/dashboard/student/profile", icon: UserPen },
+  { name: "Resume", href: "/dashboard/student/resume", icon: FileUser },
+  { name: "Internship Requests", href: "/dashboard/student/internship-request", icon: FileText },
   // { name: "Career Sessions", href: "/dashboard/sessions", icon: Calendar },
-  { name: "Attendance History", href: "/dashboard/attendance", icon: BarChart3 },
+  { name: "Attendance History", href: "/dashboard/student/attendance-history", icon: BarChart3 },
   // { name: "Career Resources", href: "/dashboard/resources", icon: FileText },
-  { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
+  { name: "Notifications", href: "/dashboard/student/notifications", icon: Bell },
   // { name: "Chat", href: "/dashboard/chat", icon: MessageCircle },
   // { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
@@ -36,3 +36,5 @@ export default StudentSidebar
 // Notifications -- Notified of Current Career Session {30 mins notification}
 ////////////// Chat -- Send and recieve messages from admin { Future Implementation }
 ////////////// Settings
+
+
