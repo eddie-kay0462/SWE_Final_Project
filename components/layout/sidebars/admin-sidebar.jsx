@@ -4,13 +4,13 @@ import Sidebar from "../sidebar"
 
 // Define the navigation items for admin
 const adminNavItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Profile", href: "../../profile", icon: UserPen },
-  { name: "Internship Requests", href: "/dashboard/internships", icon: FileText },
-  { name: "Career Sessions", href: "/dashboard/sessions", icon: Calendar },
-  { name: "Attendance Reports", href: "/dashboard/attendance", icon: BarChart3 },
-  { name: "Student Profiles", href: "/dashboard/students", icon: Users },
-  { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
+  { name: "Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
+  { name: "Profile", href: "/dashboard/admin/profile", icon: UserPen },
+  { name: "Internship Requests", href: "/dashboard/admin/internships", icon: FileText },
+  { name: "Career Sessions", href: "/dashboard/admin/sessions", icon: Calendar },
+  { name: "Attendance Reports", href: "/dashboard/admin/attendance", icon: BarChart3 },
+  { name: "Student Profiles", href: "/dashboard/admin/students", icon: Users },
+  { name: "Notifications", href: "/dashboard/admin/notifications", icon: Bell },
   // { name: "Chat", href: "/dashboard/chat", icon: MessageCircle },
   // { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
