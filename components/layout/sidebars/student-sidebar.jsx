@@ -1,5 +1,5 @@
 "use client"
-import { LayoutDashboard, FileText, Calendar, BarChart3, Bell, Settings, UserPen, MessageCircle, FileUser } from "lucide-react"
+import { LayoutDashboard, FileText, Calendar, BarChart3, Bell, Settings, UserPen, MessageCircle, FileUser, Map } from "lucide-react"
 import Sidebar from "../sidebar"
 import Dashboard from "@/app/dashboard/page"
 
@@ -8,6 +8,7 @@ const studentNavItems = [
   { name: "Dashboard", href: "/dashboard/student", icon: LayoutDashboard },
   { name: "Profile", href: "/dashboard/student/profile", icon: UserPen },
   { name: "Resume", href: "/dashboard/student/resume", icon: FileUser },
+  { name: "Career Roadmap", href: "/dashboard/student/career-roadmap", icon: Map },
   { name: "Internship Requests", href: "/dashboard/student/internship-request", icon: FileText },
   // { name: "Career Sessions", href: "/dashboard/sessions", icon: Calendar },
   { name: "Attendance History", href: "/dashboard/student/attendance-history", icon: BarChart3 },

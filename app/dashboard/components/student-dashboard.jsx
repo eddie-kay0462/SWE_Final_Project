@@ -1,4 +1,5 @@
 import { CheckCircle, Clock, XCircle, Calendar, ArrowUp, FileText } from "lucide-react"
+import Link from "next/link"
 
 const StudentDashboard = ({ mockData, loading }) => {
   return (
@@ -113,10 +114,10 @@ const StudentDashboard = ({ mockData, loading }) => {
             </div>
           </div>
           <div className="mt-6">
-            <button className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center">
+            <Link href="/dashboard/student/career-roadmap" className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center">
               View career roadmap
               <ArrowUp className="h-4 w-4 ml-1 rotate-45" />
-            </button>
+            </Link>
           </div>
         </div>
       </div>
