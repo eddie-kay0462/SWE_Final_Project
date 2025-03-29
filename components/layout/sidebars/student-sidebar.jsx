@@ -1,5 +1,5 @@
 "use client"
-import { LayoutDashboard, FileText, Calendar, BarChart3, Bell, Settings, UserPen, MessageCircle, FileUser } from "lucide-react"
+import { LayoutDashboard, FileText, Calendar, BarChart3, Bell, Settings, UserPen, MessageCircle, FileUser, CalendarCheck } from "lucide-react"
 import Sidebar from "../sidebar"
 import Dashboard from "@/app/dashboard/page"
 
@@ -9,6 +9,7 @@ const studentNavItems = [
   { name: "Profile", href: "/dashboard/student/profile", icon: UserPen },
   { name: "Resume", href: "/dashboard/student/resume", icon: FileUser },
   { name: "Internship Requests", href: "/dashboard/student/internship-request", icon: FileText },
+  { name: "1-on-1 Sessions", href: "/dashboard/student/sessions", icon: CalendarCheck },
   // { name: "Career Sessions", href: "/dashboard/sessions", icon: Calendar },
   { name: "Attendance History", href: "/dashboard/student/attendance-history", icon: BarChart3 },
   // { name: "Career Resources", href: "/dashboard/resources", icon: FileText },
@@ -30,6 +31,7 @@ export default StudentSidebar
 // Profile
 // Resumes -- View, Update and Delete resumes
 // Internship Request Letters -- Submit internship request letter [must meet specific requirements]
+// 1-on-1 Sessions -- Book 1-on-1 Sessions with career advisor
 ////////////// Career Sessions -- View recents career sessions , view past and upcoming as well -- Don't need { Shows on event page }
 // Attendance History -- Track session attendance {Sessions attended and missed}
 ////////////// Career Resources -- View career resources {CV guides, Cover Letter Templates, Career Tips, other advice}
