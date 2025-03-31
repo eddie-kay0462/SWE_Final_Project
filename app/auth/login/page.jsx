@@ -13,7 +13,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { GraduationCap } from "lucide-react"
+import { GraduationCap, AlertTriangle } from "lucide-react"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
@@ -61,7 +61,17 @@ export default function Login() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Invalid email or password')
+        // Enhanced error handling
+        if (response.status === 404) {
+          throw new Error(
+            'User profile not found. This could happen if your account was recently created ' +
+            'but not fully set up. Please try signing up again or contact support.'
+          )
+        } else if (response.status === 401) {
+          throw new Error('Invalid email or password. Please check your credentials and try again.')
+        } else {
+          throw new Error(data.error || 'An error occurred during login. Please try again.')
+        }
       }
 
       // Show page loading before redirect
@@ -120,7 +130,22 @@ export default function Login() {
 
               {error && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 text-[#A91827] rounded-lg animate-appear opacity-0 delay-100">
-                  {error}
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-[#A91827] mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium">{error}</p>
+                      {error.includes('User profile not found') && (
+                        <div className="mt-2 text-sm">
+                          <p>If you're trying to log in for the first time:</p>
+                          <ul className="list-disc ml-5 mt-1 space-y-1">
+                            <li>Make sure you've completed the signup process</li>
+                            <li>Check that you're using the exact email you registered with</li>
+                            <li>Try signing up again if your account was not created properly</li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 

@@ -45,6 +45,21 @@ export async function POST(req) {
       }
     }
 
+    // Check if user already exists in users table
+    const { data: existingUser, error: existingUserError } = await supabase
+      .from('users')
+      .select('id, email')
+      .eq('email', email)
+      .single()
+
+    if (existingUser) {
+      console.log('User already exists in users table:', existingUser)
+      return NextResponse.json(
+        { error: 'An account with this email already exists' },
+        { status: 400 }
+      )
+    }
+
     // Register user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -61,38 +76,60 @@ export async function POST(req) {
     })
 
     if (authError) {
+      console.error('Auth signup error:', authError)
       return NextResponse.json(
         { error: authError.message },
         { status: 400 }
       )
     }
 
+    console.log('User created in Auth:', authData.user.id)
+
     // Create service role client for database operations
     const serviceRoleClient = await createClient(reqCookies, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
+    // Prepare user data for insertion
+    const userData = {
+      id: authData.user.id,
+      email: email,
+      fname: firstName,
+      lname: lastName,
+      student_id: studentId || null,
+      role_id: roleId,
+      password: 'hashed_by_supabase' // The actual password is managed by Supabase Auth
+    }
+
+    console.log('Inserting user into users table:', userData)
+
     // Insert the user into our custom users table using service role client
     // This is because Supabase Auth doesn't store custom fields like student_id in its main users table
-    const { error: insertError } = await serviceRoleClient
+    const { data: insertData, error: insertError } = await serviceRoleClient
       .from('users')
-      .insert({
-        id: authData.user.id,
-        email: email,
-        fname: firstName,
-        lname: lastName,
-        student_id: studentId || null,
-        role_id: roleId,
-        password: 'hashed_by_supabase' // The actual password is managed by Supabase Auth
-      })
+      .insert(userData)
+      .select()
 
     if (insertError) {
-      // If there was an error inserting into our custom table, we should handle it
-      // Ideally we would delete the auth user, but for now just return the error
+      console.error('Error inserting user into users table:', insertError)
+      
+      // Try to clean up the auth user since the database insert failed
+      try {
+        const { error: deleteError } = await serviceRoleClient.auth.admin.deleteUser(authData.user.id)
+        if (deleteError) {
+          console.error('Error cleaning up auth user after failed insert:', deleteError)
+        }
+      } catch (cleanupError) {
+        console.error('Exception cleaning up auth user:', cleanupError)
+      }
+      
+      // Return error to client
       return NextResponse.json(
         { error: 'Error creating user profile: ' + insertError.message },
         { status: 500 }
       )
     }
 
+    console.log('User successfully inserted into users table')
+    
     return NextResponse.json(
       {
         message: 'User created successfully. Please check your email for verification.',
@@ -105,6 +142,7 @@ export async function POST(req) {
       { status: 201 }
     )
   } catch (error) {
+    console.error('Signup process error:', error)
     return NextResponse.json(
       { error: 'Internal server error: ' + error.message },
       { status: 500 }

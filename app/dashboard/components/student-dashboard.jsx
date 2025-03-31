@@ -1,4 +1,5 @@
 import { CheckCircle, Clock, XCircle, Calendar, ArrowUp, FileText } from "lucide-react"
+import Link from "next/link"
 
 const StudentDashboard = ({ mockData, loading }) => {
   return (
