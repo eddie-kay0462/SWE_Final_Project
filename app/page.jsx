@@ -28,17 +28,28 @@ export default function LandingPage() {
           </button>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex gap-6">
-            <Link href="/" className="text-sm font-medium hover:text-[#A91827] transition-colors">
-              Home
-            </Link>
-            <Link href="#features" className="text-sm font-medium hover:text-[#A91827] transition-colors">
-              Services
-            </Link>
-            <Link href="#benefits" className="text-sm font-medium hover:text-[#A91827] transition-colors">
-              About Us
-            </Link>
-          </nav>
+          <div className="hidden md:flex items-center gap-6">
+            <nav className="flex gap-6">
+              <Link href="/" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+                Home
+              </Link>
+              <Link href="#features" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+                Services
+              </Link>
+              <Link href="#benefits" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+                About Us
+              </Link>
+            </nav>
+
+            <div className="flex items-center gap-3 ml-6">
+              <Link href="/auth/login" className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                Sign In
+              </Link>
+              <Link href="/auth/signup" className="text-sm font-medium px-4 py-2 bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors">
+                Get Started
+              </Link>
+            </div>
+          </div>
 
           {/* Mobile Navigation */}
           {mobileMenuOpen && (
@@ -65,6 +76,22 @@ export default function LandingPage() {
                 >
                   About Us
                 </Link>
+                <div className="flex flex-col gap-2 mt-4 pt-4 border-t">
+                  <Link 
+                    href="/auth/login" 
+                    className="py-2 text-sm font-medium text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Sign In
+                  </Link>
+                  <Link 
+                    href="/auth/signup" 
+                    className="py-2 text-sm font-medium text-center bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Get Started
+                  </Link>
+                </div>
               </nav>
             </div>
           )}
