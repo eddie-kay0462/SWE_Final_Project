@@ -14,12 +14,15 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { GraduationCap } from "lucide-react"
+import { LoadingButton } from "@/components/ui/loading-button"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(false)
   const router = useRouter()
 
   /**
@@ -31,14 +34,14 @@ export default function Login() {
    */
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    setIsLoading(true)
     setError(null)
 
     // Validate Ashesi email domain
     const parts = email.split('@')
     if (parts.length !== 2 || (parts[1] !== 'ashesi.edu.gh' && parts[1] !== 'aucampus.onmicrosoft.com')) {
       setError('Only Ashesi email addresses are allowed (ashesi.edu.gh or aucampus.onmicrosoft.com)')
-      setLoading(false)
+      setIsLoading(false)
       return
     }
 
@@ -61,17 +64,25 @@ export default function Login() {
         throw new Error(data.error || 'Invalid email or password')
       }
 
+      // Show page loading before redirect
+      setIsPageLoading(true)
+      
       // Redirect based on user role from the API response
-      router.push(data.redirectPath || '/')
+      setTimeout(() => {
+        router.push(data.redirectPath || '/')
+      }, 500) // Short delay to show the loading state
     } catch (error) {
       setError(error.message)
-    } finally {
-      setLoading(false)
+      setIsLoading(false)
+      setIsPageLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-[#f3f1ea] flex flex-col">
+      {/* Full Page Loading Spinner */}
+      {isPageLoading && <LoadingSpinner fullPage size="large" text="Redirecting to dashboard" />}
+      
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
@@ -126,6 +137,7 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -141,6 +153,7 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                   <div className="flex justify-end mt-2">
                     <Link href="/auth/forgot-password" className="text-[#A91827] hover:underline text-sm">
@@ -150,19 +163,23 @@ export default function Login() {
                 </div>
 
                 <div className="animate-appear opacity-0 delay-400">
-                  <button
+                  <LoadingButton
                     type="submit"
-                    className="w-full bg-[#A91827] hover:bg-[#A91827]/90 text-white font-medium py-3 px-4 rounded-lg transition-all text-lg flex items-center justify-between"
-                    disabled={loading}
+                    isLoading={isLoading}
+                    loadingText="Signing in"
+                    spinnerSize="small"
+                    className="w-full bg-[#A91827] hover:bg-[#A91827]/90 text-white font-medium py-3 px-4 rounded-lg transition-all text-lg"
                   >
-                    <span>{loading ? "Signing in..." : "Sign In"}</span>
-                    <svg width="24" height="10" viewBox="0 0 36 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M35.7071 8.20711C36.0976 7.81658 36.0976 7.18342 35.7071 6.79289L29.3431 0.428932C28.9526 0.0384078 28.3195 0.0384078 27.9289 0.428932C27.5384 0.819457 27.5384 1.45262 27.9289 1.84315L33.5858 7.5L27.9289 13.1569C27.5384 13.5474 27.5384 14.1805 27.9289 14.5711C28.3195 14.9616 28.9526 14.9616 29.3431 14.5711L35.7071 8.20711ZM0 8.5H35V6.5H0V8.5Z"
-                        fill="white"
-                      />
-                    </svg>
-                  </button>
+                    <div className="flex items-center justify-between w-full">
+                      <span>Sign In</span>
+                      <svg width="24" height="10" viewBox="0 0 36 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M35.7071 8.20711C36.0976 7.81658 36.0976 7.18342 35.7071 6.79289L29.3431 0.428932C28.9526 0.0384078 28.3195 0.0384078 27.9289 0.428932C27.5384 0.819457 27.5384 1.45262 27.9289 1.84315L33.5858 7.5L27.9289 13.1569C27.5384 13.5474 27.5384 14.1805 27.9289 14.5711C28.3195 14.9616 28.9526 14.9616 29.3431 14.5711L35.7071 8.20711ZM0 8.5H35V6.5H0V8.5Z"
+                          fill="white"
+                        />
+                      </svg>
+                    </div>
+                  </LoadingButton>
                 </div>
               </form>
 

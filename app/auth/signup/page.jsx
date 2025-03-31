@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { GraduationCap } from "lucide-react"
+import { LoadingButton } from "@/components/ui/loading-button"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default function Signup() {
   const [email, setEmail] = useState("")
@@ -24,7 +26,8 @@ export default function Signup() {
   const [studentId, setStudentId] = useState("")
   const [role, setRole] = useState("student") // Default to student
   const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(false)
   const router = useRouter()
 
   /**
@@ -36,21 +39,21 @@ export default function Signup() {
    */
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    setIsLoading(true)
     setError(null)
 
     // Validate Ashesi email domain
     const parts = email.split('@')
     if (parts.length !== 2 || (parts[1] !== 'ashesi.edu.gh' && parts[1] !== 'aucampus.onmicrosoft.com')) {
       setError('Only Ashesi email addresses are allowed (ashesi.edu.gh or aucampus.onmicrosoft.com)')
-      setLoading(false)
+      setIsLoading(false)
       return
     }
 
     // Validate passwords match
     if (password !== confirmPassword) {
       setError("Passwords don't match")
-      setLoading(false)
+      setIsLoading(false)
       return
     }
 
@@ -58,7 +61,7 @@ export default function Signup() {
     if (role === 'student') {
       if (!studentId) {
         setError('Student ID is required')
-        setLoading(false)
+        setIsLoading(false)
         return
       }
 
@@ -66,7 +69,7 @@ export default function Signup() {
       const studentIdPattern = /^\d{4}20\d{2}$/
       if (!studentIdPattern.test(studentId)) {
         setError('Invalid Student ID format. Expected format: XXXX20XX')
-        setLoading(false)
+        setIsLoading(false)
         return
       }
     }
@@ -94,17 +97,25 @@ export default function Signup() {
         throw new Error(data.error || 'Failed to create account')
       }
 
+      // Show page loading before redirect
+      setIsPageLoading(true)
+      
       // Navigate to success page
-      router.push("/auth/signup-success")
+      setTimeout(() => {
+        router.push("/auth/signup-success")
+      }, 500) // Short delay to show the loading state
     } catch (error) {
       setError(error.message)
-    } finally {
-      setLoading(false)
+      setIsLoading(false)
+      setIsPageLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-[#f3f1ea] flex flex-col">
+      {/* Full Page Loading Spinner */}
+      {isPageLoading && <LoadingSpinner fullPage size="large" text="Creating your account" />}
+      
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
@@ -294,25 +305,29 @@ export default function Signup() {
                   </div>
                 )}
 
-                {/* Submit Button */}
-                <div className="animate-appear opacity-0 delay-800">
-                  <button
+                {/* Form submission button */}
+                <div className="animate-appear opacity-0 delay-700">
+                  <LoadingButton
                     type="submit"
-                    className="w-full bg-[#A91827] hover:bg-[#A91827]/90 text-white font-medium py-3 px-4 rounded-lg transition-all text-lg flex items-center justify-between"
-                    disabled={loading}
+                    isLoading={isLoading}
+                    loadingText="Creating Account"
+                    spinnerSize="small"
+                    className="w-full bg-[#A91827] hover:bg-[#A91827]/90 text-white font-medium py-3 px-4 rounded-lg transition-all text-lg"
                   >
-                    <span>{loading ? "Creating Account..." : "Sign Up"}</span>
-                    <svg width="24" height="10" viewBox="0 0 36 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M35.7071 8.20711C36.0976 7.81658 36.0976 7.18342 35.7071 6.79289L29.3431 0.428932C28.9526 0.0384078 28.3195 0.0384078 27.9289 0.428932C27.5384 0.819457 27.5384 1.45262 27.9289 1.84315L33.5858 7.5L27.9289 13.1569C27.5384 13.5474 27.5384 14.1805 27.9289 14.5711C28.3195 14.9616 28.9526 14.9616 29.3431 14.5711L35.7071 8.20711ZM0 8.5H35V6.5H0V8.5Z"
-                        fill="white"
-                      />
-                    </svg>
-                  </button>
+                    <div className="flex items-center justify-between w-full">
+                      <span>Create Account</span>
+                      <svg width="24" height="10" viewBox="0 0 36 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M35.7071 8.20711C36.0976 7.81658 36.0976 7.18342 35.7071 6.79289L29.3431 0.428932C28.9526 0.0384078 28.3195 0.0384078 27.9289 0.428932C27.5384 0.819457 27.5384 1.45262 27.9289 1.84315L33.5858 7.5L27.9289 13.1569C27.5384 13.5474 27.5384 14.1805 27.9289 14.5711C28.3195 14.9616 28.9526 14.9616 29.3431 14.5711L35.7071 8.20711ZM0 8.5H35V6.5H0V8.5Z"
+                          fill="white"
+                        />
+                      </svg>
+                    </div>
+                  </LoadingButton>
                 </div>
               </form>
 
-              <p className="text-center text-lg text-[#000000]/70 mt-6 animate-appear opacity-0 delay-900">
+              <p className="text-center text-lg text-[#000000]/70 mt-6 animate-appear opacity-0 delay-500">
                 Already have an account?{" "}
                 <Link href="/auth/login" className="text-[#A91827] hover:underline font-medium">
                   Sign in
