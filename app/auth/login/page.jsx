@@ -1,7 +1,15 @@
 "use client"
 
+/**
+ * Login Page
+ * 
+ * Handles user authentication and role-based redirections
+ * Validates Ashesi email domain and manages the login flow
+ * 
+ * @page.jsx Implementation of user login with role-based redirection
+ */
+
 import { useState } from "react"
-import { createBrowserClient } from "@supabase/ssr"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -13,22 +21,48 @@ export default function Login() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
+  /**
+   * Handles form submission for user login
+   * Makes API call to the backend login endpoint
+   * Redirects user based on their role
+   * 
+   * @param {Event} e - Form submit event
+   */
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
+    // Validate Ashesi email domain
+    const parts = email.split('@')
+    if (parts.length !== 2 || (parts[1] !== 'ashesi.edu.gh' && parts[1] !== 'aucampus.onmicrosoft.com')) {
+      setError('Only Ashesi email addresses are allowed (ashesi.edu.gh or aucampus.onmicrosoft.com)')
+      setLoading(false)
+      return
+    }
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Call the backend API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
       })
 
-      if (error) throw error
-      router.push("/")
-      router.refresh()
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Invalid email or password')
+      }
+
+      // Redirect based on user role from the API response
+      router.push(data.redirectPath || '/')
     } catch (error) {
       setError(error.message)
     } finally {
@@ -68,7 +102,7 @@ export default function Login() {
             <div className="w-full md:w-1/2 p-6 md:p-10">
               <div className="mb-6">
                 <h2 className="text-3xl font-serif font-normal mb-2">
-                  Welcome <span className="font-serif italic">back</span> 👋
+                  Welcome <span className="font-serif italic">back</span>
                 </h2>
                 <p className="text-[#000000]/70 text-lg">Please enter your details to access your account</p>
               </div>
@@ -82,13 +116,13 @@ export default function Login() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="animate-appear opacity-0 delay-200">
                   <label className="block text-[#000000]/70 text-lg font-medium mb-2" htmlFor="email">
-                    Email
+                    Ashesi Email
                   </label>
                   <input
                     id="email"
                     type="email"
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
-                    placeholder="yourname@mail.com"
+                    placeholder="yourname@ashesi.edu.gh"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -108,6 +142,11 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
+                  <div className="flex justify-end mt-2">
+                    <Link href="/auth/forgot-password" className="text-[#A91827] hover:underline text-sm">
+                      Forgot password?
+                    </Link>
+                  </div>
                 </div>
 
                 <div className="animate-appear opacity-0 delay-400">

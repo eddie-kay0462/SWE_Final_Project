@@ -1,7 +1,15 @@
 "use client"
 
+/**
+ * Signup Page
+ * 
+ * Handles user registration with role-based fields
+ * Validates Ashesi email domain and student ID format
+ * 
+ * @page.jsx Implementation of user registration with role-specific validation
+ */
+
 import { useState } from "react"
-import { createBrowserClient } from "@supabase/ssr"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -13,15 +21,31 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
+  const [studentId, setStudentId] = useState("")
+  const [role, setRole] = useState("student") // Default to student
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
+  /**
+   * Handles form submission for user registration
+   * Makes API call to the backend signup endpoint
+   * Enforces email and student ID validation
+   * 
+   * @param {Event} e - Form submit event
+   */
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    // Validate Ashesi email domain
+    const parts = email.split('@')
+    if (parts.length !== 2 || (parts[1] !== 'ashesi.edu.gh' && parts[1] !== 'aucampus.onmicrosoft.com')) {
+      setError('Only Ashesi email addresses are allowed (ashesi.edu.gh or aucampus.onmicrosoft.com)')
+      setLoading(false)
+      return
+    }
 
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -30,22 +54,48 @@ export default function Signup() {
       return
     }
 
+    // Validate student ID if role is student
+    if (role === 'student') {
+      if (!studentId) {
+        setError('Student ID is required')
+        setLoading(false)
+        return
+      }
+
+      // Validate student ID format (XXXX20XX)
+      const studentIdPattern = /^\d{4}20\d{2}$/
+      if (!studentIdPattern.test(studentId)) {
+        setError('Invalid Student ID format. Expected format: XXXX20XX')
+        setLoading(false)
+        return
+      }
+    }
+
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-          },
+      // Call the backend API
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email,
+          password,
+          firstName,
+          lastName,
+          studentId: role === 'student' ? studentId : null,
+          role
+        }),
       })
 
-      if (error) throw error
+      const data = await response.json()
 
-      // Navigate to success page or login
-      router.push("/signup-success")
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create account')
+      }
+
+      // Navigate to success page
+      router.push("/auth/signup-success")
     } catch (error) {
       setError(error.message)
     } finally {
@@ -84,7 +134,7 @@ export default function Signup() {
             <div className="w-full md:w-1/2 p-6 md:p-10">
               <div className="mb-6">
                 <h2 className="text-3xl font-serif font-normal mb-2">
-                  Create <span className="font-serif italic">Account</span> 🚀
+                  Create <span className="font-serif italic">Account</span>
                 </h2>
                 <p className="text-[#000000]/70 text-lg">Join our platform to access career services</p>
               </div>
@@ -96,6 +146,44 @@ export default function Signup() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Role selection */}
+                <div className="animate-appear opacity-0 delay-100">
+                  <label className="block text-[#000000]/70 text-lg font-medium mb-2">
+                    I am a:
+                  </label>
+                  <div className="flex gap-4">
+                    <label className={`flex-1 border rounded-lg p-4 cursor-pointer transition-all ${role === 'student' ? 'border-[#A91827] bg-[#A91827]/5' : 'border-gray-200'}`}>
+                      <input
+                        type="radio"
+                        name="role"
+                        value="student"
+                        checked={role === 'student'}
+                        onChange={() => setRole('student')}
+                        className="sr-only"
+                      />
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full border ${role === 'student' ? 'border-[#A91827] bg-[#A91827]' : 'border-gray-400'}`}></div>
+                        <span className="font-medium">Student</span>
+                      </div>
+                    </label>
+                    <label className={`flex-1 border rounded-lg p-4 cursor-pointer transition-all ${role === 'admin' ? 'border-[#A91827] bg-[#A91827]/5' : 'border-gray-200'}`}>
+                      <input
+                        type="radio"
+                        name="role"
+                        value="admin"
+                        checked={role === 'admin'}
+                        onChange={() => setRole('admin')}
+                        className="sr-only"
+                      />
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full border ${role === 'admin' ? 'border-[#A91827] bg-[#A91827]' : 'border-gray-400'}`}></div>
+                        <span className="font-medium">Staff/Admin</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Name fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="animate-appear opacity-0 delay-200">
                     <label className="block text-[#000000]/70 text-lg font-medium mb-2" htmlFor="firstName">
@@ -128,22 +216,43 @@ export default function Signup() {
                   </div>
                 </div>
 
-                <div className="animate-appear opacity-0 delay-400">
+                {/* Student ID (only for students) */}
+                {role === 'student' && (
+                  <div className="animate-appear opacity-0 delay-400">
+                    <label className="block text-[#000000]/70 text-lg font-medium mb-2" htmlFor="studentId">
+                      Student ID
+                    </label>
+                    <input
+                      id="studentId"
+                      type="text"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                      placeholder="12342023"
+                      value={studentId}
+                      onChange={(e) => setStudentId(e.target.value)}
+                      required={role === 'student'}
+                    />
+                    <p className="text-sm text-gray-500 mt-1">Format: XXXX20XX (e.g., 12342023)</p>
+                  </div>
+                )}
+
+                {/* Email */}
+                <div className="animate-appear opacity-0 delay-500">
                   <label className="block text-[#000000]/70 text-lg font-medium mb-2" htmlFor="email">
-                    Email
+                    Ashesi Email
                   </label>
                   <input
                     id="email"
                     type="email"
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
-                    placeholder="yourname@mail.com"
+                    placeholder="yourname@ashesi.edu.gh"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
 
-                <div className="animate-appear opacity-0 delay-500">
+                {/* Password */}
+                <div className="animate-appear opacity-0 delay-600">
                   <label className="block text-[#000000]/70 text-lg font-medium mb-2" htmlFor="password">
                     Password
                   </label>
@@ -158,7 +267,8 @@ export default function Signup() {
                   />
                 </div>
 
-                <div className="animate-appear opacity-0 delay-600">
+                {/* Confirm Password */}
+                <div className="animate-appear opacity-0 delay-700">
                   <label className="block text-[#000000]/70 text-lg font-medium mb-2" htmlFor="confirmPassword">
                     Confirm Password
                   </label>
@@ -173,7 +283,19 @@ export default function Signup() {
                   />
                 </div>
 
-                <div className="animate-appear opacity-0 delay-700">
+                {/* Admin note */}
+                {role === 'admin' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm animate-appear opacity-0 delay-800">
+                    <p className="font-medium text-yellow-800">Admin Registration Notice</p>
+                    <p className="text-yellow-700 mt-1">
+                      For admin accounts, you need to be approved. An email invitation is usually required.
+                      You can continue signing up, but access will be restricted until approved.
+                    </p>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <div className="animate-appear opacity-0 delay-800">
                   <button
                     type="submit"
                     className="w-full bg-[#A91827] hover:bg-[#A91827]/90 text-white font-medium py-3 px-4 rounded-lg transition-all text-lg flex items-center justify-between"
@@ -190,7 +312,7 @@ export default function Signup() {
                 </div>
               </form>
 
-              <p className="text-center text-lg text-[#000000]/70 mt-6 animate-appear opacity-0 delay-800">
+              <p className="text-center text-lg text-[#000000]/70 mt-6 animate-appear opacity-0 delay-900">
                 Already have an account?{" "}
                 <Link href="/auth/login" className="text-[#A91827] hover:underline font-medium">
                   Sign in

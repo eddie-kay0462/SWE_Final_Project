@@ -1,10 +1,17 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export async function createClient(reqCookies = null) {
+/**
+ * Creates a Supabase client for server-side operations
+ * 
+ * @param {Object} reqCookies - Optional cookies object for API routes
+ * @param {string} customKey - Optional custom key for admin operations
+ * @returns {Object} Supabase client instance configured for server-side use
+ */
+export async function createClient(reqCookies = null, customKey = null) {
     return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        customKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         {
             cookies: {
                 get(name) {
