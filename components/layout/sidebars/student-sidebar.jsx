@@ -1,5 +1,5 @@
 "use client"
-import { LayoutDashboard, FileText, Calendar, BarChart3, Bell, Settings, UserPen, MessageCircle, FileUser, Map } from "lucide-react"
+import { LayoutDashboard, FileText, Calendar, BarChart3, Bell, Settings, UserPen, MessageCircle, FileUser } from "lucide-react"
 import Sidebar from "../sidebar"
 import Dashboard from "@/app/dashboard/page"
 
@@ -10,9 +10,8 @@ const studentNavItems = [
   { name: "Resume", href: "/dashboard/student/resume", icon: FileUser },
   { name: "Career Roadmap", href: "/dashboard/student/career-roadmap", icon: Map },
   { name: "Internship Requests", href: "/dashboard/student/internship-request", icon: FileText },
-  // { name: "Career Sessions", href: "/dashboard/sessions", icon: Calendar },
+  { name: "1-on-1 Sessions", href: "/dashboard/student/one-on-one", icon: CalendarClock },
   { name: "Attendance History", href: "/dashboard/student/attendance-history", icon: BarChart3 },
-  // { name: "Career Resources", href: "/dashboard/resources", icon: FileText },
   { name: "Notifications", href: "/dashboard/student/notifications", icon: Bell },
   // { name: "Chat", href: "/dashboard/chat", icon: MessageCircle },
   // { name: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -31,9 +30,8 @@ export default StudentSidebar
 // Profile
 // Resumes -- View, Update and Delete resumes
 // Internship Request Letters -- Submit internship request letter [must meet specific requirements]
-////////////// Career Sessions -- View recents career sessions , view past and upcoming as well -- Don't need { Shows on event page }
+// 1-on-1 Sessions -- Book 1-on-1 Sessions with career advisor
 // Attendance History -- Track session attendance {Sessions attended and missed}
-////////////// Career Resources -- View career resources {CV guides, Cover Letter Templates, Career Tips, other advice}
 // Notifications -- Notified of Current Career Session {30 mins notification}
 ////////////// Chat -- Send and recieve messages from admin { Future Implementation }
 ////////////// Settings

@@ -1,4 +1,5 @@
 import { CheckCircle, Clock, XCircle, Calendar, ArrowUp, FileText, Users } from "lucide-react"
+import Link from "next/link"
 
 const AdminDashboard = ({ mockData, loading }) => {
   return (
@@ -44,18 +45,21 @@ const AdminDashboard = ({ mockData, loading }) => {
           </div>
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
-          <button className="px-4 py-2 bg-[#A91827] text-white rounded-lg text-sm flex items-center">
+          {/* <button className="px-4 py-2 bg-[#A91827] text-white rounded-lg text-sm flex items-center">
             <CheckCircle className="h-4 w-4 mr-2" />
             Approve Selected
           </button>
           <button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm flex items-center">
             <XCircle className="h-4 w-4 mr-2" />
             Reject Selected
-          </button>
-          <button className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm flex items-center">
-            <FileText className="h-4 w-4 mr-2" />
-            View Details
-          </button>
+          </button> */}
+          <Link href="/dashboard/admin/internships" >
+            <button className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm flex items-center">
+              <FileText className="h-4 w-4 mr-2" />
+              View Details
+            </button>
+          </Link>
+          
         </div>
       </div>
 
@@ -80,10 +84,12 @@ const AdminDashboard = ({ mockData, loading }) => {
             ))}
           </div>
           <div className="mt-6">
-            <button className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center">
-              View all sessions
-              <ArrowUp className="h-4 w-4 ml-1 rotate-45" />
-            </button>
+            <Link href="/dashboard/admin/events" >
+              <button className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center">
+                View all sessions
+                <ArrowUp className="h-4 w-4 ml-1 rotate-45" />
+              </button>
+            </Link>
           </div>
         </div>
 
@@ -152,6 +158,14 @@ const AdminDashboard = ({ mockData, loading }) => {
               </div>
             </div>
           ))}
+        </div>
+        <div className="mt-6">
+          <Link href="/dashboard/admin/notifications" >
+            <button className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center">
+              View all Notifications
+              <ArrowUp className="h-4 w-4 ml-1 rotate-45" />
+            </button>
+          </Link>
         </div>
       </div>
     </div>
