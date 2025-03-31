@@ -54,13 +54,13 @@ export default function NotFound() {
         // Set destination based on role
         switch (userData.role_id) {
           case 1:
-            setDestination("/superadmin/dashboard")
+            setDestination("/dashboard/superadmin")
             break
           case 2:
-            setDestination("/admin/dashboard")
+            setDestination("/dashboard/admin")
             break
           case 3:
-            setDestination("/student/dashboard")
+            setDestination("/dashboard/student")
             break
           default:
             setDestination("/")

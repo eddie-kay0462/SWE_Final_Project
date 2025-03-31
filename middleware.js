@@ -11,9 +11,9 @@ import { createServerClient } from '@supabase/ssr'
 
 // Define routes that require authentication and role-specific access
 const protectedRoutes = [
-  '/student/dashboard',
-  '/admin/dashboard',
-  '/superadmin/dashboard',
+  '/dashboard/student',
+  '/dashboard/admin',
+  '/dashboard/superadmin',
 ]
 
 const studentRoutes = [
