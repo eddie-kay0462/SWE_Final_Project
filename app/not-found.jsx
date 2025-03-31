@@ -4,78 +4,12 @@
  * Custom 404 Not Found Page
  * 
  * A CSOFT-themed page shown when users access an invalid URL
- * Detects user authentication status and redirects to appropriate home page
  */
 
-import { useEffect, useState } from "react"
-import { createBrowserClient } from "@supabase/ssr"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { GraduationCap, ArrowLeft } from "lucide-react"
 
 export default function NotFound() {
-  const [destination, setDestination] = useState("/")
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
-
-  useEffect(() => {
-    const checkUserStatus = async () => {
-      try {
-        // Create Supabase client
-        const supabase = createBrowserClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        )
-
-        // Check if user is authenticated
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        
-        if (userError || !user) {
-          // Not authenticated, redirect to landing page
-          setDestination("/")
-          setIsLoading(false)
-          return
-        }
-
-        // Get user's role from the database
-        const { data: userData, error: roleError } = await supabase
-          .from('users')
-          .select('role_id')
-          .eq('id', user.id)
-          .single()
-
-        if (roleError || !userData) {
-          // Default to landing page if role can't be determined
-          setDestination("/")
-          setIsLoading(false)
-          return
-        }
-
-        // Set destination based on role
-        switch (userData.role_id) {
-          case 1:
-            setDestination("/dashboard/superadmin")
-            break
-          case 2:
-            setDestination("/dashboard/admin")
-            break
-          case 3:
-            setDestination("/dashboard/student")
-            break
-          default:
-            setDestination("/")
-        }
-      } catch (error) {
-        console.error("Error determining user status:", error)
-        setDestination("/")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkUserStatus()
-  }, [])
-
   return (
     <div className="min-h-screen flex flex-col bg-[#f3f1ea]">
       {/* Header */}
@@ -108,11 +42,11 @@ export default function NotFound() {
           </p>
 
           <Link 
-            href={destination}
+            href="/"
             className="inline-flex items-center justify-center gap-2 bg-[#A91827] text-white px-6 py-3 rounded-lg hover:bg-[#A91827]/90 transition-colors mb-4 w-full"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span>{isLoading ? "Finding your way home..." : "Back to Home"}</span>
+            <span>Back to Home</span>
           </Link>
 
           <p className="text-sm text-gray-500 mt-4">
