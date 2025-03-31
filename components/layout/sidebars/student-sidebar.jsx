@@ -1,5 +1,5 @@
 "use client"
-import { LayoutDashboard, FileText, Calendar, BarChart3, Bell, Settings, UserPen, MessageCircle, FileUser } from "lucide-react"
+import { LayoutDashboard, FileText, BarChart3, Bell, Settings, UserPen, MessageCircle, FileUser, CalendarClock, Map } from "lucide-react"
 import Sidebar from "../sidebar"
 import Dashboard from "@/app/dashboard/page"
 
