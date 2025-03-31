@@ -1,0 +1,59 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+### Rule: Enforce JavaDoc-style and Detailed Comments for All Code
+
+**Objective**:  
+Ensure that every class, method, and significant logic block is documented using **JavaDoc-style comments**, including parameters, return types, exceptions, and usage notes. Additionally, important logic steps within functions must be explained using inline comments.
+
+---
+
+### Commenting Rules
+
+#### 1. Class-Level Documentation
+Every class must begin with a JavaDoc block that includes:
+```java
+/**
+ * [Brief description of what the class does]
+ *
+ * <p>Additional context or purpose of this class.</p>
+ *
+ * @author [Author]
+ * @version [Version or Date]
+ */
+```
+
+#### 2. Method-Level Documentation
+Every method must have:
+```java
+/**
+ * [What the method does]
+ *
+ * @param [paramName] [description]
+ * @return [description of return value]
+ * @throws [Exception] [when and why it's thrown]
+ */
+```
+
+#### 3. Inline Comments for Logic Blocks
+- Complex or non-trivial lines must be prefaced with `//` explaining the logic.
+- If a logic block involves a loop, condition, or unusual structure, explain **why** it’s needed.
+```java
+// Iterate through the list to remove duplicates
+for (...) {
+    ...
+}
+```
+
+#### 4. TODOs and FIXMEs
+Mark unresolved or questionable sections using consistent flags:
+```java
+// TODO: Handle edge case for null input
+// FIXME: This logic breaks if input size > 1000
+```
+
+### 5. NEVER USE EMOJIS IN COMMENTS
+
+---
