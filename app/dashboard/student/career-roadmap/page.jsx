@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+// import { motion } from "framer-motion"
 import { ArrowUpCircle, CheckCircle, Calendar, Award, BookOpen, Briefcase, Users, FileEdit, X, ChevronRight, ChevronLeft, Info } from "lucide-react"
 import Link from "next/link"
 
@@ -124,11 +124,11 @@ export default function CareerRoadmapPage() {
     setShowMilestoneDetails(true)
   }
 
-  const getStatusColor = (milestone) => {
-    if (milestone.completed) return "text-green-500"
-    if (milestone.id === mockStudentProgress.currentStage) return "text-[#A91827]"
-    return "text-gray-400"
-  }
+  // const getStatusColor = (milestone) => {
+  //   if (milestone.completed) return "text-green-500"
+  //   if (milestone.id === mockStudentProgress.currentStage) return "text-[#A91827]"
+  //   return "text-gray-400"
+  // }
 
   const getStatusIcon = (milestone) => {
     if (milestone.completed) return <CheckCircle className="h-6 w-6 text-green-500" />
@@ -167,7 +167,7 @@ export default function CareerRoadmapPage() {
             Track your progress and upcoming career milestones
           </p>
         </div>
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <button 
             onClick={() => setShowTips(!showTips)}
             className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -182,7 +182,7 @@ export default function CareerRoadmapPage() {
             <Award className="h-4 w-4" />
             <span>View Achievements</span>
           </Link>
-        </div>
+        </div> */}
       </div>
 
       {/* Tips Section */}
@@ -280,8 +280,8 @@ export default function CareerRoadmapPage() {
                             'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                           }`}>
                             {milestone.completed ? 'Completed' : 
-                             milestone.id === mockStudentProgress.currentStage ? 'Current' : 
-                             'Upcoming'}
+                              milestone.id === mockStudentProgress.currentStage ? 'Current' : 
+                              'Upcoming'}
                           </span>
                           <ChevronRight className="h-4 w-4 text-gray-400" />
                         </div>
@@ -339,8 +339,8 @@ export default function CareerRoadmapPage() {
                   'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                 }`}>
                   {mockStudentProgress.milestones[selectedMilestone - 1].completed ? 'Completed' :
-                   selectedMilestone === mockStudentProgress.currentStage ? 'In Progress' :
-                   'Not Started'}
+                    selectedMilestone === mockStudentProgress.currentStage ? 'In Progress' :
+                    'Not Started'}
                 </div>
               </div>
 
@@ -410,8 +410,8 @@ export default function CareerRoadmapPage() {
                             'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
                           }`}>
                             {session.type === 'workshop' ? 'Workshop' :
-                             session.type === 'one-on-one' ? '1-on-1 Session' :
-                             'Event'}
+                              session.type === 'one-on-one' ? '1-on-1 Session' :
+                              'Event'}
                           </span>
                         </div>
                         <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
@@ -432,7 +432,7 @@ export default function CareerRoadmapPage() {
                 ))}
               </div>
               <div className="mt-6 text-center">
-                <Link href="/dashboard/student/attendance-history" className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center justify-center gap-1">
+                <Link href="/main/events" className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center justify-center gap-1">
                   View all upcoming sessions
                   <ChevronRight className="h-4 w-4" />
                 </Link>
