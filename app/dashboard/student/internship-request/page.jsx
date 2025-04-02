@@ -24,7 +24,7 @@ export default function InternshipRequestPage() {
   const [file, setFile] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Mock data - in a real app, this would come from your API
+  // Mock data 
   const requirements = [
     {
       id: 1,
