@@ -144,7 +144,18 @@ const Sidebar = ({ navItems, userRole, userName, userEmail, userAvatar, sidebarO
           <ul className="space-y-1">
             {navItems.map((item) => {
               // const isActive = pathname === item.href
-              const isActive = pathname === item.href || item.href !== '/dashboard' && pathname.startsWith(item.href)
+              const isActive = (() => {
+                switch (roleInfo) {
+                  case "student":
+                    return pathname === item.href || item.href === '/dashboard/student' && pathname.startsWith('/dashboard/student');
+                  case "admin":
+                    return pathname === item.href || item.href === '/dashboard/admin' && pathname.startsWith('/dashboard/admin');
+                  case "superAdmin":
+                    return pathname === item.href || item.href === '/dashboard/super-admin' && pathname.startsWith('/dashboard/super-admin');
+                  default:
+                    return pathname === item.href;
+                }
+              })();
               return (
                 <li key={item.name}>
                   <Link
