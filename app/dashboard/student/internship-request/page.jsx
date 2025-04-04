@@ -1,3 +1,4 @@
+// Internship request page
 "use client"
 
 import { useState } from "react"
