@@ -53,7 +53,7 @@ const AdminDashboard = ({ mockData, loading }) => {
             <XCircle className="h-4 w-4 mr-2" />
             Reject Selected
           </button> */}
-          <Link href="/dashboard/admin/internships" >
+          <Link href="/dashboard/admin/internship-request" >
             <button className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm flex items-center">
               <FileText className="h-4 w-4 mr-2" />
               View Details
