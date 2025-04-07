@@ -156,7 +156,7 @@ export default function AdminInternshipRequestsPage() {
             {pendingRequests.length > 0 ? (
               pendingRequests.map((request) => (
                 <Card key={request.id}>
-                  <CardContent className="p-6">
+                  <CardContent className="p-6 pt-5">
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-medium text-lg">{request.studentName}</h3>
@@ -193,7 +193,7 @@ export default function AdminInternshipRequestsPage() {
             {approvedRequests.length > 0 ? (
               approvedRequests.map((request) => (
                 <Card key={request.id}>
-                  <CardContent className="p-6">
+                  <CardContent className="p-6 pt-5">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export default function AdminInternshipRequestsPage() {
             {rejectedRequests.length > 0 ? (
               rejectedRequests.map((request) => (
                 <Card key={request.id}>
-                  <CardContent className="p-6">
+                  <CardContent className="p-6 pt-5">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
