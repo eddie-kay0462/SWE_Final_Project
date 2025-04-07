@@ -4,7 +4,7 @@
  * <p>This API handles all operations related to student internship requests including
  * viewing requirements, submitting requests, and checking status.</p>
  *
- * @author Claude Assistant
+ * @author Nana Kwaku Amoako
  * @version 1.0
  */
 
