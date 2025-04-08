@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import StudentDashboard from "../components/student-dashboard"
+import { getGreeting } from "@/app/utils/greetings"
 
 // Mock data for demonstration (you can import this from a shared file)
 const mockData = {
@@ -29,18 +30,22 @@ const mockData = {
 
 export default function StudentDashboardPage() {
   const [loading, setLoading] = useState(true)
+  const [greeting, setGreeting] = useState("")
 
-  // Initial load animation
+  // Initial load animation and greeting setup
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false)
     }, 500)
 
+    // Set the greeting with a mock name (replace with actual user name from auth)
+    setGreeting(getGreeting("Student"))
+
     return () => clearTimeout(timer)
   }, [])
 
   return (   
-    <StudentDashboard mockData={mockData} loading={loading} />
+    <StudentDashboard mockData={mockData} loading={loading} greeting={greeting} />
   )
 }
 
