@@ -15,22 +15,6 @@ export default function StudentDashboard({ dashboardData, loading }) {
 
   const { user, internshipStats, upcomingSessions, engagementProgress, notifications } = dashboardData;
 
-<<<<<<< HEAD
-const StudentDashboard = ({ mockData, loading, greeting }) => {
-  return (
-    <div
-      className={`space-y-6 transition-all duration-500 ease-in-out ${loading ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}
-    >
-      {/* Greeting */}
-      <h2 className="text-2xl font-medium text-gray-800 dark:text-gray-200 mb-6">{greeting}</h2>
-
-      {/* Internship Request Status */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
-        <h3 className="text-lg font-medium mb-4">Internship Request Status</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-=======
   return (
     <div className="flex-1 p-6 md:p-8 grid gap-6 md:gap-8">
       <Card>
@@ -40,7 +24,6 @@ const StudentDashboard = ({ mockData, loading, greeting }) => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
->>>>>>> origin/main
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Requests</p>
                 <h3 className="text-2xl font-bold mt-1">{internshipStats.totalRequests}</h3>

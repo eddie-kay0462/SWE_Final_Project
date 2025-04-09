@@ -7,14 +7,8 @@ import { getGreeting } from "@/app/utils/greetings"
 export default function StudentDashboardPage() {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
-<<<<<<< HEAD
-  const [greeting, setGreeting] = useState("")
-
-  // Initial load animation and greeting setup
-=======
   const [error, setError] = useState(null)
 
->>>>>>> origin/main
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
@@ -22,16 +16,6 @@ export default function StudentDashboardPage() {
       try {
         const response = await fetch('/api/dashboard/student')
 
-<<<<<<< HEAD
-    // Set the greeting with a mock name (replace with actual user name from auth)
-    setGreeting(getGreeting("Student"))
-
-    return () => clearTimeout(timer)
-  }, [])
-
-  return (   
-    <StudentDashboard mockData={mockData} loading={loading} greeting={greeting} />
-=======
         if (!response.ok) {
           const errorData = await response.json()
           throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
@@ -64,7 +48,6 @@ export default function StudentDashboardPage() {
 
   return (
     <StudentDashboard dashboardData={dashboardData} loading={loading} />
->>>>>>> origin/main
   )
 }
 
