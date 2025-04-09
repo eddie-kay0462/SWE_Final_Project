@@ -1,8 +1,10 @@
 import React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cn } from "@/lib/utils"
 
 const Button = React.forwardRef(
   ({ className = "", variant = "default", size = "default", asChild = false, children, ...props }, ref) => {
-    const Comp = asChild ? React.cloneElement(children, { ref, ...props }) : "button"
+    const Comp = asChild ? Slot : "button"
 
     const baseStyles =
       "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background"
@@ -24,11 +26,15 @@ const Button = React.forwardRef(
     }
 
     return (
-      <Comp className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`} ref={ref} {...props}>
+      <Comp 
+        className={cn(baseStyles, variants[variant], sizes[size], className)} 
+        ref={ref} 
+        {...props}
+      >
         {children}
       </Comp>
     )
-  },
+  }
 )
 
 Button.displayName = "Button"
