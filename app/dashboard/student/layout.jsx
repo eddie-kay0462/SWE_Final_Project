@@ -1,6 +1,7 @@
 // app/dashboard/student/layout.jsx
 "use client"
 
+<<<<<<< HEAD
 import { Suspense } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
@@ -19,12 +20,14 @@ const DashboardLayout = dynamic(
     )
   }
 )
+=======
+import { useState } from "react"
+import DashboardLayout from "@/components/layout/dashboard-layout"
+>>>>>>> 8107b690c51f507047b1cdfb57ca607ebefd3f00
 
 export default function StudentDashboardLayout({ children }) {
-  const pathname = usePathname()
-  const router = useRouter()
-  
   return (
+<<<<<<< HEAD
     <Suspense fallback={
       <div className="min-h-screen bg-[#f3f1ea] dark:bg-gray-900">
         <div className="flex items-center justify-center h-screen">
@@ -40,5 +43,10 @@ export default function StudentDashboardLayout({ children }) {
         {children}
       </DashboardLayout>
     </Suspense>
+=======
+    <DashboardLayout userRole="student">
+      {children}
+    </DashboardLayout>
+>>>>>>> 8107b690c51f507047b1cdfb57ca607ebefd3f00
   )
 }

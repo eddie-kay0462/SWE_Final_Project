@@ -1,5 +1,6 @@
 "use client"
 
+<<<<<<< HEAD
 import { useState, useEffect, Suspense } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -28,63 +29,32 @@ import {
 const SuperAdminSidebar = dynamic(() => import("./sidebars/super-admin-sidebar"), { ssr: false })
 const AdminSidebar = dynamic(() => import("./sidebars/admin-sidebar"), { ssr: false })
 const StudentSidebar = dynamic(() => import("./sidebars/student-sidebar"), { ssr: false })
+=======
+import { useState } from "react"
+import StudentSidebar from "./sidebars/student-sidebar"
+import AdminSidebar from "./sidebars/admin-sidebar"
+import SuperAdminSidebar from "./sidebars/super-admin-sidebar"
+import Navbar from "./navbar"
+>>>>>>> 8107b690c51f507047b1cdfb57ca607ebefd3f00
 
-// Define the top navbar items
-// const navbarTabs = [
-//   { name: "Home", href: "/dashboard", icon: Home },
-//   { name: "Resources", href: "/dashboard/resources", icon: BookOpen },
-//   { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-//   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
-// ]
-
-export default function DashboardLayout({ children, userRole, userName, userEmail, userAvatar }) {
+const DashboardLayout = ({ children, userRole }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [darkMode, setDarkMode] = useState(false)
-  const [activeTab, setActiveTab] = useState("/dashboard")
-  const [aiAssistantOpen, setAiAssistantOpen] = useState(false)
-  const pathname = usePathname()
 
-  // Set active tab based on pathname
-  // useEffect(() => {
-  //   const matchingTab = navbarTabs.find((tab) => pathname === tab.href)
-  //   if (matchingTab) {
-  //     setActiveTab(matchingTab.href)
-  //   }
-  // }, [pathname])
-
-  // Toggle dark mode
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-    }
-  }, [darkMode])
-
-  // Render the appropriate sidebar based on user role
   const renderSidebar = () => {
-    const sidebarProps = {
-      userRole,
-      userName,
-      userEmail,
-      userAvatar,
-      sidebarOpen,
-      setSidebarOpen,
-    }
-
     switch (userRole) {
-      case "superAdmin":
-        return <SuperAdminSidebar {...sidebarProps} />
-      case "admin":
-        return <AdminSidebar {...sidebarProps} />
       case "student":
-        return <StudentSidebar {...sidebarProps} />
+        return <StudentSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      case "admin":
+        return <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      case "superAdmin":
+        return <SuperAdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       default:
-        return <StudentSidebar {...sidebarProps} />
+        return null
     }
   }
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen bg-[#f3f1ea] dark:bg-gray-900">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
@@ -262,9 +232,19 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
           }>
             {children}
           </Suspense>
+=======
+    <div className="flex h-screen overflow-hidden">
+      {renderSidebar()}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Navbar />
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4">
+          {children}
+>>>>>>> 8107b690c51f507047b1cdfb57ca607ebefd3f00
         </main>
       </div>
     </div>
   )
 }
+
+export default DashboardLayout
 
