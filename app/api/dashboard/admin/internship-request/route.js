@@ -4,7 +4,7 @@
  * <p>This API handles all admin operations related to internship requests including
  * managing requirements, approving/rejecting requests, and uploading letters.</p>
  *
- * @author Claude Assistant
+ * @author Nana Kwaku Amoako
  * @version 1.0
  */
 
