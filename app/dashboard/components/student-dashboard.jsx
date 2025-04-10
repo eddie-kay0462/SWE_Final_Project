@@ -35,7 +35,7 @@ export default function StudentDashboard({ dashboardData, loading }) {
           </div>
           <div className="flex gap-4 mt-4">
             <Button asChild>
-              <Link href="/dashboard/student/internship-request/new">Submit New Request</Link>
+              <Link href="/dashboard/student/internship-request">Submit New Request</Link>
             </Button>
             <Button variant="outline" asChild>
               <Link href="/dashboard/student/internship-request">View Request Details</Link>
