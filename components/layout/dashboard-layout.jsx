@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import {
   Menu,
   Home,
@@ -22,9 +23,11 @@ import {
   ChevronDown,
   X,
 } from "lucide-react"
-import SuperAdminSidebar from "./sidebars/super-admin-sidebar"
-import AdminSidebar from "./sidebars/admin-sidebar"
-import StudentSidebar from "./sidebars/student-sidebar"
+
+// Dynamically import sidebars
+const SuperAdminSidebar = dynamic(() => import("./sidebars/super-admin-sidebar"), { ssr: false })
+const AdminSidebar = dynamic(() => import("./sidebars/admin-sidebar"), { ssr: false })
+const StudentSidebar = dynamic(() => import("./sidebars/student-sidebar"), { ssr: false })
 
 // Define the top navbar items
 // const navbarTabs = [
@@ -89,77 +92,87 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
       )}
 
       {/* Render the appropriate sidebar */}
-      {renderSidebar()}
+      <Suspense fallback={
+        <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg">
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
+          </div>
+        </div>
+      }>
+        {renderSidebar()}
+      </Suspense>
 
       {/* AI Assistant */}
-      <div
-        className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ease-in-out ${aiAssistantOpen ? "scale-100" : "scale-90"}`}
-      >
+      <Suspense fallback={null}>
         <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${aiAssistantOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
+          className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ease-in-out ${aiAssistantOpen ? "scale-100" : "scale-90"}`}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-t-xl shadow-lg p-4 mb-1 w-80">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-lg">AI Assistant</h3>
-              <button
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
-                onClick={() => setAiAssistantOpen(false)}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="h-60 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-3">
-              <div className="flex flex-col space-y-3">
-                <div className="flex items-start">
-                  <div className="h-8 w-8 rounded-full bg-[#A91827]/10 flex items-center justify-center mr-2 flex-shrink-0">
-                    <Bot className="h-5 w-5 text-[#A91827]" />
-                  </div>
-                  <div className="bg-gray-100 dark:bg-gray-600 p-2 rounded-lg max-w-[80%]">
-                    <p className="text-sm">Hello, {userName}! How can I assist you today?</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-2 flex-shrink-0">
-                    <div className="text-blue-600 dark:text-blue-400 text-sm font-bold">
-                      {userName.charAt(0).toUpperCase()}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${aiAssistantOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-t-xl shadow-lg p-4 mb-1 w-80">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-lg">AI Assistant</h3>
+                <button
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
+                  onClick={() => setAiAssistantOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="h-60 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-3">
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-start">
+                    <div className="h-8 w-8 rounded-full bg-[#A91827]/10 flex items-center justify-center mr-2 flex-shrink-0">
+                      <Bot className="h-5 w-5 text-[#A91827]" />
+                    </div>
+                    <div className="bg-gray-100 dark:bg-gray-600 p-2 rounded-lg max-w-[80%]">
+                      <p className="text-sm">Hello, {userName}! How can I assist you today?</p>
                     </div>
                   </div>
-                  <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg max-w-[80%]">
-                    <p className="text-sm">I need help with setting up a new internship request.</p>
+                  <div className="flex items-start">
+                    <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-2 flex-shrink-0">
+                      <div className="text-blue-600 dark:text-blue-400 text-sm font-bold">
+                        {userName.charAt(0).toUpperCase()}
+                      </div>
+                    </div>
+                    <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg max-w-[80%]">
+                      <p className="text-sm">I need help with setting up a new internship request.</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="h-8 w-8 rounded-full bg-[#A91827]/10 flex items-center justify-center mr-2 flex-shrink-0">
-                    <Bot className="h-5 w-5 text-[#A91827]" />
-                  </div>
-                  <div className="bg-gray-100 dark:bg-gray-600 p-2 rounded-lg max-w-[80%]">
-                    <p className="text-sm">
-                      I can help with that! Go to the Internship Requests section and click on "Submit New Request".
-                      Would you like me to guide you through the process?
-                    </p>
+                  <div className="flex items-start">
+                    <div className="h-8 w-8 rounded-full bg-[#A91827]/10 flex items-center justify-center mr-2 flex-shrink-0">
+                      <Bot className="h-5 w-5 text-[#A91827]" />
+                    </div>
+                    <div className="bg-gray-100 dark:bg-gray-600 p-2 rounded-lg max-w-[80%]">
+                      <p className="text-sm">
+                        I can help with that! Go to the Internship Requests section and click on "Submit New Request".
+                        Would you like me to guide you through the process?
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Type your message..."
-                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#A91827]"
-              />
-              <button className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[#A91827] hover:text-[#A91827]/80">
-                <ChevronUp className="h-5 w-5 rotate-45" />
-              </button>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Type your message..."
+                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#A91827]"
+                />
+                <button className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[#A91827] hover:text-[#A91827]/80">
+                  <ChevronUp className="h-5 w-5 rotate-45" />
+                </button>
+              </div>
             </div>
           </div>
+          <button
+            onClick={() => setAiAssistantOpen(!aiAssistantOpen)}
+            className={`flex items-center justify-center w-14 h-14 rounded-full bg-[#A91827] text-white shadow-lg hover:bg-[#A91827]/90 transition-all duration-300 ${aiAssistantOpen ? "rotate-0" : "rotate-12"}`}
+          >
+            {aiAssistantOpen ? <ChevronDown className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
+          </button>
         </div>
-        <button
-          onClick={() => setAiAssistantOpen(!aiAssistantOpen)}
-          className={`flex items-center justify-center w-14 h-14 rounded-full bg-[#A91827] text-white shadow-lg hover:bg-[#A91827]/90 transition-all duration-300 ${aiAssistantOpen ? "rotate-0" : "rotate-12"}`}
-        >
-          {aiAssistantOpen ? <ChevronDown className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
-        </button>
-      </div>
+      </Suspense>
 
       {/* Main content */}
       <div className="lg:pl-64">
@@ -241,7 +254,15 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
         </header>
 
         {/* Page content */}
-        <main className="p-4 lg:p-6">{children}</main>
+        <main className="p-4 lg:p-6">
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
+            </div>
+          }>
+            {children}
+          </Suspense>
+        </main>
       </div>
     </div>
   )

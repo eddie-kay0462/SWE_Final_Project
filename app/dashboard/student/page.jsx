@@ -1,7 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import StudentDashboard from "../components/student-dashboard"
+import { useState, useEffect, Suspense } from "react"
+import dynamic from "next/dynamic"
+
+// Dynamically import the student dashboard component
+const StudentDashboard = dynamic(
+  () => import("../components/student-dashboard"),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
+      </div>
+    ),
+    ssr: false
+  }
+)
 
 export default function StudentDashboardPage() {
   const [dashboardData, setDashboardData] = useState(null)
@@ -33,6 +46,7 @@ export default function StudentDashboardPage() {
     fetchData()
   }, [])
 
+<<<<<<< HEAD
   if (loading) {
     return <div>Loading dashboard...</div>
   }
@@ -47,6 +61,16 @@ export default function StudentDashboardPage() {
 
   return (
     <StudentDashboard dashboardData={dashboardData} loading={loading} />
+=======
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
+      </div>
+    }>
+      <StudentDashboard mockData={mockData} loading={loading} />
+    </Suspense>
+>>>>>>> eddies-branch
   )
 }
 
