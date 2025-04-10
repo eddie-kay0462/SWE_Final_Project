@@ -13,7 +13,7 @@ const getTimeBasedGreeting = (name) => {
   if (hour >= 12 && hour < 17) {
     return {
       greeting: `Good Afternoon, ${name}!`,
-      wellWish: `Hope you're having a great day, ${name}!`
+      wellWish: `Hope you're having a great day!`
     };
   }
   
@@ -21,7 +21,7 @@ const getTimeBasedGreeting = (name) => {
   if (hour >= 17 && hour < 21) {
     return {
       greeting: `Good Evening, ${name}!`,
-      wellWish: `How's your evening shaping up, ${name}?`
+      wellWish: `How's your evening shaping up?`
     };
   }
   
