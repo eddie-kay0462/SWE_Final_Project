@@ -9,11 +9,9 @@ import LoadingButton from "@/components/ui/loading-button"
 import {
     User,
     Mail,
-    Phone as PhoneIcon,
-    GraduationCap,
-    Building2,
     Pencil,
-    X
+    X,
+    IdCard
 } from "lucide-react"
 
 /**
@@ -30,9 +28,7 @@ export default function PersonalInfo({ initialData }) {
     fname: currentInitialData?.fname || '',
     lname: currentInitialData?.lname || '',
     email: currentInitialData?.email || '',
-    phone: currentInitialData?.phone || '', 
-    major: currentInitialData?.major || '', 
-    graduationYear: currentInitialData?.graduationYear || '' 
+    student_id: currentInitialData?.student_id || ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
@@ -48,9 +44,7 @@ export default function PersonalInfo({ initialData }) {
         fname: currentInitialData?.fname || '',
         lname: currentInitialData?.lname || '',
         email: currentInitialData?.email || '',
-        phone: currentInitialData?.phone || '',
-        major: currentInitialData?.major || '',
-        graduationYear: currentInitialData?.graduationYear || ''
+        student_id: currentInitialData?.student_id || ''
       })
     }
     setIsEditing(!isEditing)
@@ -66,35 +60,35 @@ export default function PersonalInfo({ initialData }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          fname: formData.fname,
+          lname: formData.lname
+        }),
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to update profile')
+        throw new Error('Failed to update profile')
       }
 
       const updatedData = await response.json()
       setFormData({
-          fname: updatedData?.fname || formData.fname,
-          lname: updatedData?.lname || formData.lname,
-          email: updatedData?.email || formData.email, 
-          phone: updatedData?.phone || formData.phone,
-          major: updatedData?.major || formData.major,
-          graduationYear: updatedData?.graduationYear || formData.graduationYear
+        fname: updatedData.fname,
+        lname: updatedData.lname,
+        email: updatedData.email,
+        student_id: updatedData.student_id
       });
-      setCurrentInitialData(updatedData); 
+      setCurrentInitialData(updatedData);
 
       toast({
         title: "Success",
         description: "Profile updated successfully.",
       })
-      setIsEditing(false) 
+      setIsEditing(false)
     } catch (error) {
       console.error("Error updating profile:", error)
       toast({
         title: "Error",
-        description: error.message || "Could not update profile.",
+        description: "Could not update profile.",
         variant: "destructive",
       })
     } finally {
@@ -107,7 +101,7 @@ export default function PersonalInfo({ initialData }) {
       <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="font-medium truncate">{value || "-"}</p> 
+        <p className="font-medium truncate">{value || "-"}</p>
       </div>
     </div>
   )
@@ -124,17 +118,17 @@ export default function PersonalInfo({ initialData }) {
           onChange={handleInputChange}
           type={type}
           className="w-full"
-          disabled={name === 'email'} 
+          disabled={name === 'email' || name === 'student_id'}
         />
       </div>
     </div>
   )
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6 pt-6">
+    <div className="mt-6">
+      <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold">Personal Information</h2>
-        <Button variant="outline" size="sm" onClick={handleEditToggle}> 
+        <Button variant="outline" size="sm" onClick={handleEditToggle}>
           {isEditing ? (
             <>
               <X className="h-4 w-4 mr-2" />
@@ -142,7 +136,7 @@ export default function PersonalInfo({ initialData }) {
             </>
           ) : (
             <>
-              <Pencil className="h-4 w-4 mr-2" /> 
+              <Pencil className="h-4 w-4 mr-2" />
               Edit
             </>
           )}
@@ -151,12 +145,10 @@ export default function PersonalInfo({ initialData }) {
 
       {isEditing ? (
         <form onSubmit={handleSubmit} className="space-y-1">
+          {renderEditItem(IdCard, "Student ID", "student_id", formData.student_id)}
           {renderEditItem(User, "First Name", "fname", formData.fname)}
           {renderEditItem(User, "Last Name", "lname", formData.lname)}
           {renderEditItem(Mail, "Email", "email", formData.email)}
-          {renderEditItem(PhoneIcon, "Phone", "phone", formData.phone)}
-          {renderEditItem(Building2, "Major", "major", formData.major)}
-          {renderEditItem(GraduationCap, "Graduation", "graduationYear", formData.graduationYear, "number")}
 
           <div className="flex justify-end pt-4">
             <LoadingButton type="submit" isLoading={isLoading} disabled={isLoading}>
@@ -166,11 +158,9 @@ export default function PersonalInfo({ initialData }) {
         </form>
       ) : (
         <div className="space-y-0 divide-y divide-border">
+          {renderInfoItem(IdCard, "Student ID", formData.student_id, 'student_id')}
           {renderInfoItem(User, "Name", `${formData.fname} ${formData.lname}`, 'name')}
           {renderInfoItem(Mail, "Email", formData.email, 'email')}
-          {renderInfoItem(PhoneIcon, "Phone", formData.phone, 'phone')}
-          {renderInfoItem(Building2, "Major", formData.major, 'major')}
-          {renderInfoItem(GraduationCap, "Graduation", formData.graduationYear, 'graduation')}
         </div>
       )}
     </div>
