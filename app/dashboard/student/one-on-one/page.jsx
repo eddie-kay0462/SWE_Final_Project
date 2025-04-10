@@ -102,12 +102,11 @@ export default function OneOnOnePage() {
 
   return (
     <div className="space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-serif font-medium">1-on-1 Sessions</h1>
-        <p className="text-muted-foreground mt-1">Book and manage your career advising sessions</p>
-      </div>
-
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-serif font-medium">1-on-1 Sessions</h1>
+          <p className="text-muted-foreground mt-1">Book and manage your career advising sessions</p>
+        </div>
         <Button onClick={() => setIsDialogOpen(true)}>Book New Session</Button>
       </div>
 

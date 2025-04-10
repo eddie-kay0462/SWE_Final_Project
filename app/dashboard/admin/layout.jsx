@@ -1,20 +1,12 @@
-// app/dashboard/student/layout.jsx
+// app/dashboard/admin/layout.jsx
 "use client"
 
-import { useState, useEffect } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { useState } from "react"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 
-export default function StudentDashboardLayout({ children }) {
-  const pathname = usePathname()
-  const router = useRouter()
-  
+export default function AdminDashboardLayout({ children }) {
   return (
-    <DashboardLayout 
-      userRole="admin" 
-      userName="Carol Advisor" 
-      userEmail="admin@example.com"
-    >
+    <DashboardLayout userRole="admin">
       {children}
     </DashboardLayout>
   )

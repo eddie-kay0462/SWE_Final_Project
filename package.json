@@ -11,14 +11,22 @@
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.0",
     "@supabase/ssr": "^0.5.2",
+<<<<<<< HEAD
     "class-variance-authority": "^0.7.1",
     "dotenv": "^16.4.7",
+=======
+    "@supabase/supabase-js": "^2.49.1",
+    "@tabler/icons-react": "^3.31.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+>>>>>>> origin/main
     "framer-motion": "^12.6.2",
     "lucide-react": "^0.483.0",
-    "next": "^14.2.24",
+    "motion": "^12.6.3",
+    "next": "^15.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwind-merge": "^3.0.2",
+    "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {

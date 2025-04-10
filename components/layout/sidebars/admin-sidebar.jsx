@@ -1,23 +1,78 @@
 "use client"
-import { LayoutDashboard, FileText, Calendar, BarChart3, Users, Bell, Settings, UserPen, MessageCircle, CalendarCheck } from "lucide-react"
-import Sidebar from "../sidebar"
+import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/components/ui/sidebar"
+import { GraduationCap } from "lucide-react"
+import ThemeToggle from "@/components/ui/theme-toggle"
+import {
+  IconLayoutDashboard,
+  IconUserCircle,
+  IconFileText,
+  IconCalendarEvent,
+  IconChartBar,
+  IconUsers,
+  IconBell,
+  IconMessageCircle,
+  IconSettings,
+  IconCalendarCheck
+} from "@tabler/icons-react"
 
 // Define the navigation items for admin
 const adminNavItems = [
-  { name: "Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
-  { name: "Profile", href: "/dashboard/admin/profile", icon: UserPen },
-  { name: "Internship Requests", href: "/dashboard/admin/internship-request", icon: FileText },
-  { name: "1-on-1 Sessions", href: "/dashboard/admin/sessions", icon: CalendarCheck },
-  { name: "Events", href: "/dashboard/admin/events", icon: Calendar },
-  // { name: "Attendance Reports", href: "/dashboard/admin/attendance", icon: BarChart3 },
-  { name: "Student Profiles", href: "/dashboard/admin/students", icon: Users },
-  { name: "Notifications", href: "/dashboard/admin/notifications", icon: Bell },
-  // { name: "Chat", href: "/dashboard/chat", icon: MessageCircle },
-  // { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  { label: "Dashboard", href: "/dashboard/admin", icon: <IconLayoutDashboard className="h-6 w-6 shrink-0" /> },
+  { label: "Profile", href: "/dashboard/admin/profile", icon: <IconUserCircle className="h-6 w-6 shrink-0" /> },
+  { label: "Internship Requests", href: "/dashboard/admin/internship-request", icon: <IconFileText className="h-6 w-6 shrink-0" /> },
+  { label: "1-on-1 Sessions", href: "/dashboard/admin/sessions", icon: <IconCalendarCheck className="h-6 w-6 shrink-0" /> },
+  { label: "Events", href: "/dashboard/admin/events", icon: <IconCalendarEvent className="h-6 w-6 shrink-0" /> },
+  { label: "Student Profiles", href: "/dashboard/admin/students", icon: <IconUsers className="h-6 w-6 shrink-0" /> },
+  { label: "Notifications", href: "/dashboard/admin/notifications", icon: <IconBell className="h-6 w-6 shrink-0" /> },
 ]
 
-const AdminSidebar = (props) => {
-  return <Sidebar navItems={adminNavItems} {...props} />
+const AdminSidebar = ({ sidebarOpen, setSidebarOpen, userInfo }) => {
+  const Logo = () => {
+    const { open } = useSidebar();
+    return (
+      <div className="flex items-center gap-2 py-1">
+        <GraduationCap className="h-8 w-8 text-[#A91827]" />
+        {open && <span className="text-xl font-bold">CSOFT</span>}
+      </div>
+    );
+  };
+
+  return (
+    <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
+      <SidebarBody className="justify-between gap-10">
+        <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+          {/* Logo */}
+          <Logo />
+
+          {/* Navigation Links */}
+          <div className="mt-8 flex flex-col gap-2">
+            {adminNavItems.map((link, idx) => (
+              <SidebarLink key={idx} link={link} />
+            ))}
+          </div>
+        </div>
+
+        {/* Footer Section */}
+        <div className="flex flex-col gap-2">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
+          {/* User Profile */}
+          <SidebarLink
+            link={{
+              label: "Carol Advisor",
+              href: "/dashboard/admin/profile",
+              icon: (
+                <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                  C
+                </div>
+              ),
+            }}
+          />
+        </div>
+      </SidebarBody>
+    </Sidebar>
+  )
 }
 
 export default AdminSidebar
