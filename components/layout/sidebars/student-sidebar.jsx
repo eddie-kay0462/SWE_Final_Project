@@ -1,5 +1,5 @@
 "use client"
-import { LayoutDashboard, FileText, Bell, Settings, UserPen, MessageCircle, FileUser, CalendarClock, Map } from "lucide-react"
+import { LayoutDashboard, FileText, Bell, Settings, UserPen, MessageCircle, FileUser, CalendarClock, Map, CalendarDays } from "lucide-react"
 import Sidebar from "../sidebar"
 import Dashboard from "@/app/dashboard/page"
 
@@ -8,6 +8,7 @@ const studentNavItems = [
   { name: "Dashboard", href: "/dashboard/student", icon: LayoutDashboard },
   { name: "Profile", href: "/dashboard/student/profile", icon: UserPen },
   { name: "Resume", href: "/dashboard/student/resume", icon: FileUser },
+  { name: "Events", href: "/dashboard/student/resume", icon: CalendarDays },
   { name: "Career Roadmap", href: "/dashboard/student/career-roadmap", icon: Map },
   { name: "Internship Requests", href: "/dashboard/student/internship-request", icon: FileText },
   { name: "1-on-1 Sessions", href: "/dashboard/student/one-on-one", icon: CalendarClock },
@@ -28,6 +29,7 @@ export default StudentSidebar
 // Dashboard
 // Profile
 // Resumes -- View, Update and Delete resumes
+// Events -- normal events display page
 // Career Roadmap -- Track career development journey and recommended next steps
 // Internship Request Letters -- Submit internship request letter [must meet specific requirements]
 // 1-on-1 Sessions -- Book 1-on-1 Sessions with career advisor

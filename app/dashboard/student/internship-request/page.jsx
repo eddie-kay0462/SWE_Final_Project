@@ -145,6 +145,14 @@ export default function InternshipRequestPage() {
           </div>
 
           <div className="mt-8">
+
+            {/* Add link to form 
+            
+            <Link href="https://forms.office.com/pages/responsepage.aspx?id=9WHGbQzuDka9tANK6z82cMBT3eyEeuxJj2tGLx5v4a5URTlMUERJREE4R0hISVBIUjhZSkg5Vk1COC4u&route=shorturl">
+              <DialogTitle>Submit Internship Request</DialogTitle>
+            </Link>
+            
+            */}
             <Button
               onClick={() => setIsDialogOpen(true)}
               className={cn(
