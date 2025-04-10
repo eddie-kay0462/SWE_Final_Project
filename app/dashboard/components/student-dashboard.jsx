@@ -103,7 +103,19 @@ const StudentDashboard = ({ mockData, loading }) => {
 
       {/* Upcoming Career Sessions */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-medium mb-4">Upcoming Career Sessions</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium">Upcoming Career Sessions</h3>
+          <div className="flex gap-2">
+            <Link href="/dashboard/student/attendance" className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center">
+              <QrCode className="h-4 w-4 mr-1" />
+              Check-in
+            </Link>
+            <Link href="/dashboard/student/attendance-history" className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center">
+              <History className="h-4 w-4 mr-1" />
+              History
+            </Link>
+          </div>
+        </div>
         <div className="space-y-4">
           {mockData.upcomingSessions.map((session) => (
             <SessionCard key={session.id} session={session} />
