@@ -1,16 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
-import { Calendar, Clock, MapPin, Users, ChevronRight, FileText, CheckCircle, QrCode, History } from 'lucide-react'
-import { QRCodeSVG } from 'qrcode.react'
-import { toast } from 'sonner'
+import { Calendar, Clock, MapPin, Users, ChevronRight, FileText, CheckCircle } from 'lucide-react'
 
 export default function EventsPage() {
   const [activeTab, setActiveTab] = useState("upcoming")
-  const [selectedEvent, setSelectedEvent] = useState(null)
-  const [showQRModal, setShowQRModal] = useState(false)
-  const [attendanceHistory, setAttendanceHistory] = useState([])
 
   // Mock data for events
   const upcomingEvents = [
@@ -89,35 +84,6 @@ export default function EventsPage() {
     }
   ]
 
-  // Function to generate QR code data
-  const generateQRData = (event) => {
-    const studentId = "STUDENT123" // This should come from user data
-    const timestamp = new Date().toISOString()
-    const data = `${studentId}-${event.id}-${timestamp}`
-    return data
-  }
-
-  // Function to handle QR code generation
-  const handleGenerateQR = (event) => {
-    setSelectedEvent(event)
-    setShowQRModal(true)
-    toast.success("QR code generated for check-in")
-  }
-
-  // Function to view attendance history
-  const handleViewHistory = (event) => {
-    // In a real app, this would fetch from the database
-    const mockHistory = [
-      {
-        id: 1,
-        eventId: event.id,
-        checkInTime: "2024-03-15T10:05:00Z",
-        checkOutTime: "2024-03-15T15:30:00Z"
-      }
-    ]
-    setAttendanceHistory(mockHistory)
-  }
-
   // Function to render event cards
   const renderEventCards = (events) => {
     return events.map((event) => (
@@ -138,13 +104,11 @@ export default function EventsPage() {
                 <MapPin className="h-4 w-4 mr-2" />
                 <span>{event.location}</span>
               </div>
-            </div>
-            {/* <div className="mt-4 md:mt-0">
-              <div className="flex items-center text-sm text-primary-foreground bg-primary px-3 py-1 rounded-full">
-                <Users className="h-3 w-3 mr-1" />
-                <span>{event.attendees} attending</span>
+              <div className="flex items-center text-muted-foreground mb-1">
+                <Users className="h-4 w-4 mr-2" />
+                <span>{event.attendees} attendees</span>
               </div>
-            </div> */}
+            </div>
           </div>
           <p className="text-muted-foreground mb-4">{event.description}</p>
           <div className="flex flex-wrap gap-2">
@@ -162,26 +126,17 @@ export default function EventsPage() {
               View details
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
-            <div className="flex gap-2">
-              {activeTab === "upcoming" && (
-                <button 
-                  onClick={() => handleGenerateQR(event)}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-[#A91827] text-white text-sm font-medium hover:bg-[#A91827]/90 transition-colors"
-                >
-                  <QrCode className="h-4 w-4" />
-                  Check-in
-                </button>
-              )}
-              {activeTab === "past" && (
-                <button 
-                  onClick={() => handleViewHistory(event)}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <History className="h-4 w-4" />
-                  View History
-                </button>
-              )}
-            </div>
+            {activeTab === "upcoming" && (
+              <button className="inline-flex items-center px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                RSVP Now
+              </button>
+            )}
+            {activeTab === "past" && (
+              <div className="inline-flex items-center text-muted-foreground text-sm">
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Event Completed
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -190,44 +145,6 @@ export default function EventsPage() {
 
   return (
     <div className="space-y-6">
-      {/* QR Code Modal */}
-      {showQRModal && selectedEvent && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Check-in QR Code</h3>
-              <button
-                onClick={() => setShowQRModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="flex flex-col items-center gap-4">
-              <QRCodeSVG
-                value={generateQRData(selectedEvent)}
-                size={200}
-                level="H"
-                includeMargin={true}
-                className="p-4 bg-white rounded-lg"
-              />
-              <p className="text-sm text-muted-foreground text-center">
-                Show this QR code to the event organizer to check in
-              </p>
-            </div>
-          </div>
-          {/* <div className="mt-4 md:mt-0">
-            <Link
-              href=""
-              className="inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Calendar className="mr-2 h-4 w-4" />
-              My Calendar
-            </Link>
-          </div> */}
-        </div>
-      )}
-
       {/* Tabs */}
       <div className="flex space-x-4 border-b">
         <button
