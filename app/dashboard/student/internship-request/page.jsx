@@ -1,8 +1,7 @@
-// Internship request page
 "use client"
 
 import { useState } from "react"
-import { Check, X, Upload, AlertCircle } from "lucide-react"
+import { Check, X, AlertCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -22,10 +21,17 @@ import { cn } from "@/lib/utils"
 export default function InternshipRequestPage() {
   const { toast } = useToast()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [file, setFile] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formData, setFormData] = useState({
+    fullName: "",
+    yearGroup: "",
+    major: "",
+    companyAddress: "",
+    employerName: "",
+    internshipDuration: "",
+  })
 
-  // Mock data 
+  // Mock data - in a real app, this would come from your API
   const requirements = [
     {
       id: 1,
@@ -45,12 +51,6 @@ export default function InternshipRequestPage() {
       completed: false,
       details: "0/1 sessions completed",
     },
-    {
-      id: 4,
-      description: "Completed Big Interview Mock Interview",
-      completed: true,
-      details: "Completed on March 15, 2025",
-    },
   ]
 
   const completedRequirements = requirements.filter((req) => req.completed).length
@@ -58,10 +58,12 @@ export default function InternshipRequestPage() {
   const progress = (completedRequirements / totalRequirements) * 100
   const allRequirementsMet = completedRequirements === totalRequirements
 
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
-    }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData({
+      ...formData,
+      [name]: value,
+    })
   }
 
   const handleSubmit = () => {
@@ -75,10 +77,14 @@ export default function InternshipRequestPage() {
       return
     }
 
-    if (!file) {
+    // Validate form data
+    const requiredFields = ["fullName", "yearGroup", "major", "companyAddress", "employerName", "internshipDuration"]
+    const missingFields = requiredFields.filter((field) => !formData[field])
+
+    if (missingFields.length > 0) {
       toast({
-        title: "Missing Document",
-        description: "Please upload your 2024 Career Fair validation pass.",
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
         variant: "destructive",
       })
       return
@@ -90,7 +96,6 @@ export default function InternshipRequestPage() {
     setTimeout(() => {
       setIsSubmitting(false)
       setIsDialogOpen(false)
-      setFile(null)
 
       toast({
         title: "Request Submitted",
@@ -175,7 +180,7 @@ export default function InternshipRequestPage() {
           <DialogHeader>
             <DialogTitle>Submit Internship Request</DialogTitle>
             <DialogDescription>
-              Please upload your 2024 Career Fair validation pass to complete your request.
+              Please provide the following information to generate your internship introductory letter.
             </DialogDescription>
           </DialogHeader>
 
@@ -191,55 +196,80 @@ export default function InternshipRequestPage() {
             <>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="validation-pass" className="font-medium">
-                    Career Fair Validation Pass
-                  </Label>
-                  <div className="flex items-center justify-center w-full">
-                    <label
-                      htmlFor="validation-pass"
-                      className={cn(
-                        "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
-                        file ? "border-green-300 bg-green-50" : "border-gray-300 bg-gray-50 hover:bg-gray-100",
-                      )}
-                    >
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        {file ? (
-                          <>
-                            <Check className="w-8 h-8 mb-3 text-green-500" />
-                            <p className="mb-2 text-sm text-green-700 font-medium">File selected</p>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-8 h-8 mb-3 text-gray-500" />
-                            <p className="mb-2 text-sm text-gray-500">
-                              <span className="font-semibold">Click to upload</span> or drag and drop
-                            </p>
-                          </>
-                        )}
-                        <p className="text-xs text-gray-500">PDF or image file (MAX. 5MB)</p>
-                      </div>
-                      <input
-                        id="validation-pass"
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                  </div>
-                  {file && (
-                    <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-md">
-                      <p className="text-sm text-green-700 truncate">{file.name}</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-red-500"
-                        onClick={() => setFile(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    className="w-full p-2 border rounded-md"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="yearGroup">Year Group</Label>
+                  <select
+                    id="yearGroup"
+                    name="yearGroup"
+                    className="w-full p-2 border rounded-md"
+                    value={formData.yearGroup}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Select Year Group</option>
+                    <option value="2025">2025</option>
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="major">Major</Label>
+                  <input
+                    id="major"
+                    name="major"
+                    type="text"
+                    className="w-full p-2 border rounded-md"
+                    value={formData.major}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="companyAddress">Company Postal Address</Label>
+                  <textarea
+                    id="companyAddress"
+                    name="companyAddress"
+                    className="w-full p-2 border rounded-md min-h-[80px]"
+                    value={formData.companyAddress}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="employerName">Employer/Recruiter Name</Label>
+                  <input
+                    id="employerName"
+                    name="employerName"
+                    type="text"
+                    className="w-full p-2 border rounded-md"
+                    value={formData.employerName}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="internshipDuration">Internship Duration</Label>
+                  <input
+                    id="internshipDuration"
+                    name="internshipDuration"
+                    type="text"
+                    className="w-full p-2 border rounded-md"
+                    placeholder="e.g., 3 months (June - August 2025)"
+                    value={formData.internshipDuration}
+                    onChange={handleInputChange}
+                  />
                 </div>
               </div>
               <DialogFooter>
@@ -257,4 +287,3 @@ export default function InternshipRequestPage() {
     </div>
   )
 }
-
