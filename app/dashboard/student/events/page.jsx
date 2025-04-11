@@ -162,17 +162,26 @@ export default function EventsPage() {
               View details
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
-            {activeTab === "upcoming" && (
-              <button className="inline-flex items-center px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-                You can make this the QR code button
-              </button>
-            )}
-            {activeTab === "past" && (
-              <div className="inline-flex items-center text-muted-foreground text-sm">
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Event Completed
-              </div>
-            )}
+            <div className="flex gap-2">
+              {activeTab === "upcoming" && (
+                <button 
+                  onClick={() => handleGenerateQR(event)}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-[#A91827] text-white text-sm font-medium hover:bg-[#A91827]/90 transition-colors"
+                >
+                  <QrCode className="h-4 w-4" />
+                  Check-in
+                </button>
+              )}
+              {activeTab === "past" && (
+                <button 
+                  onClick={() => handleViewHistory(event)}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <History className="h-4 w-4" />
+                  View History
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
