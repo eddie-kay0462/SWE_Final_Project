@@ -1,10 +1,10 @@
 "use client"
 
-<<<<<<< HEAD
 import { useState, useEffect, Suspense } from "react"
 import dynamic from "next/dynamic"
+import getTimeBasedGreeting from "@/utils/greetings"
 
-// Dynamically import the student dashboard component
+// Dynamically import the dashboard component with loading state
 const StudentDashboard = dynamic(
   () => import("../components/student-dashboard"),
   {
@@ -16,11 +16,6 @@ const StudentDashboard = dynamic(
     ssr: false
   }
 )
-=======
-import { useState, useEffect } from "react"
-import StudentDashboard from "../components/student-dashboard"
-import getTimeBasedGreeting from "@/utils/greetings"
->>>>>>> 8107b690c51f507047b1cdfb57ca607ebefd3f00
 
 export default function StudentDashboardPage() {
   const [dashboardData, setDashboardData] = useState(null)
@@ -58,7 +53,6 @@ export default function StudentDashboardPage() {
     fetchData()
   }, [])
 
-<<<<<<< HEAD
   if (loading) {
     return <div>Loading dashboard...</div>
   }
@@ -72,19 +66,6 @@ export default function StudentDashboardPage() {
   }
 
   return (
-<<<<<<< HEAD
-    <StudentDashboard dashboardData={dashboardData} loading={loading} />
-=======
-  return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
-      </div>
-    }>
-      <StudentDashboard mockData={mockData} loading={loading} />
-    </Suspense>
->>>>>>> eddies-branch
-=======
     <div className="space-y-6">
       {/* Greetings Section */}
       <div className="space-y-1 pl-4 pt-2">
@@ -94,7 +75,6 @@ export default function StudentDashboardPage() {
       
       <StudentDashboard dashboardData={dashboardData} loading={loading} />
     </div>
->>>>>>> 8107b690c51f507047b1cdfb57ca607ebefd3f00
   )
 }
 
