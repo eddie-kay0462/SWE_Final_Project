@@ -105,12 +105,12 @@ export default function EventsPage() {
                 <span>{event.location}</span>
               </div>
             </div>
-            <div className="mt-4 md:mt-0">
+            {/* <div className="mt-4 md:mt-0">
               <div className="flex items-center text-sm text-primary-foreground bg-primary px-3 py-1 rounded-full">
                 <Users className="h-3 w-3 mr-1" />
                 <span>{event.attendees} attending</span>
               </div>
-            </div>
+            </div> */}
           </div>
           <p className="text-muted-foreground mb-4">{event.description}</p>
           <div className="flex flex-wrap gap-2 mb-4">
@@ -130,7 +130,7 @@ export default function EventsPage() {
             </Link>
             {activeTab === "upcoming" && (
               <button className="inline-flex items-center px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-                RSVP Now
+                You can make this the QR code button
               </button>
             )}
             {activeTab === "past" && (
@@ -154,7 +154,7 @@ export default function EventsPage() {
             <h1 className="text-3xl font-bold mb-2">Events & Workshops</h1>
             <p className="text-muted-foreground">Discover career development events and opportunities</p>
           </div>
-          <div className="mt-4 md:mt-0">
+          {/* <div className="mt-4 md:mt-0">
             <Link
               href=""
               className="inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
@@ -162,7 +162,7 @@ export default function EventsPage() {
               <Calendar className="mr-2 h-4 w-4" />
               My Calendar
             </Link>
-          </div>
+          </div> */}
         </div>
 
         {/* Tab Navigation */}
