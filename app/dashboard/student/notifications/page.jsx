@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Bell, Calendar, FileText, BookOpen, X, Trash2, Info } from "lucide-react"
+import { Bell, Calendar, FileText, BookOpen, X, Trash2, Info, Trash } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -67,6 +67,7 @@ export default function NotificationsPage() {
   ])
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false)
   const [notificationToDelete, setNotificationToDelete] = useState(null)
 
   const handleMarkAsRead = (id) => {
@@ -83,13 +84,30 @@ export default function NotificationsPage() {
         description: "The notification has been removed.",
       })
       setNotificationToDelete(null)
-      setDeleteDialogOpen(false) // Add this line to close the dialog
+      setDeleteDialogOpen(false)
     }
+  }
+
+  const handleClearAllConfirm = () => {
+    setNotifications([])
+    toast({
+      title: "Notifications Cleared",
+      description: "All notifications have been removed.",
+    })
+    setClearAllDialogOpen(false)
   }
 
   const handleDeleteClick = (id) => {
     setNotificationToDelete(id)
     setDeleteDialogOpen(true)
+  }
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(notifications.map((notification) => ({ ...notification, read: true })))
+    toast({
+      title: "All Notifications Marked as Read",
+      description: "All notifications have been marked as read.",
+    })
   }
 
   const getNotificationTypeColor = (type) => {
@@ -126,11 +144,33 @@ export default function NotificationsPage() {
     }
   }
 
+  const unreadCount = notifications.filter((notification) => !notification.read).length
+
   return (
     <div className="space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-serif font-medium">Notifications</h1>
-        <p className="text-muted-foreground mt-1">Stay updated with important information and events</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-serif font-medium">Notifications</h1>
+          <p className="text-muted-foreground mt-1">Stay updated with important information and events</p>
+        </div>
+
+        {notifications.length > 0 && (
+          <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <Button variant="outline" onClick={handleMarkAllAsRead}>
+                Mark All as Read
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => setClearAllDialogOpen(true)}
+            >
+              <Trash className="h-4 w-4 mr-2" />
+              Clear All
+            </Button>
+          </div>
+        )}
       </div>
 
       {notifications.length > 0 ? (
@@ -190,7 +230,7 @@ export default function NotificationsPage() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-6 text-center">
+          <CardContent className="p-6 text-center pt-6">
             <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium">No Notifications</h3>
             <p className="text-muted-foreground mt-1">You're all caught up! Check back later for updates.</p>
@@ -198,6 +238,7 @@ export default function NotificationsPage() {
         </Card>
       )}
 
+      {/* Delete Single Notification Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -212,7 +253,24 @@ export default function NotificationsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Clear All Notifications Dialog */}
+      <AlertDialog open={clearAllDialogOpen} onOpenChange={setClearAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear All Notifications</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to clear all notifications? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearAllConfirm} className="bg-red-600 hover:bg-red-700">
+              Clear All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
-
