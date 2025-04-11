@@ -138,27 +138,13 @@ export default function EventsPage() {
                 <MapPin className="h-4 w-4 mr-2" />
                 <span>{event.location}</span>
               </div>
-              <div className="flex items-center text-muted-foreground mb-1">
-                <Users className="h-4 w-4 mr-2" />
-                <span>{event.attendees} attendees</span>
+            </div>
+            {/* <div className="mt-4 md:mt-0">
+              <div className="flex items-center text-sm text-primary-foreground bg-primary px-3 py-1 rounded-full">
+                <Users className="h-3 w-3 mr-1" />
+                <span>{event.attendees} attending</span>
               </div>
-            </div>
-            <div className="mt-4 md:mt-0 flex flex-col gap-2">
-              <button
-                onClick={() => handleGenerateQR(event)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors"
-              >
-                <QrCode className="h-4 w-4" />
-                Generate Check-in QR
-              </button>
-              <button
-                onClick={() => handleViewHistory(event)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                <History className="h-4 w-4" />
-                View History
-              </button>
-            </div>
+            </div> */}
           </div>
           <p className="text-muted-foreground mb-4">{event.description}</p>
           <div className="flex flex-wrap gap-2">
@@ -167,6 +153,26 @@ export default function EventsPage() {
                 {tag}
               </span>
             ))}
+          </div>
+          <div className="flex justify-between items-center">
+            <Link
+              href={`/events/${event.id}`}
+              className="inline-flex items-center text-primary hover:text-primary/80 font-medium"
+            >
+              View details
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+            {activeTab === "upcoming" && (
+              <button className="inline-flex items-center px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                You can make this the QR code button
+              </button>
+            )}
+            {activeTab === "past" && (
+              <div className="inline-flex items-center text-muted-foreground text-sm">
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Event Completed
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -201,43 +207,15 @@ export default function EventsPage() {
               </p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Attendance History Modal */}
-      {attendanceHistory.length > 0 && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Attendance History</h3>
-              <button
-                onClick={() => setAttendanceHistory([])}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="space-y-4">
-              {attendanceHistory.map((record) => (
-                <div key={record.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Check-in</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(record.checkInTime).toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-medium">Check-out</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(record.checkOutTime).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* <div className="mt-4 md:mt-0">
+            <Link
+              href=""
+              className="inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              My Calendar
+            </Link>
+          </div> */}
         </div>
       )}
 
