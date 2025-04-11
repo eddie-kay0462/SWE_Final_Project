@@ -14,8 +14,6 @@ import {
   IconFileCv,
   IconBriefcase2,
   IconCalendarEvent,
-  IconQrcode,
-  IconHistory,
 } from "@tabler/icons-react"
 import Image from "next/image"
 
@@ -29,8 +27,6 @@ const studentNavItems = [
   { label: "Internship Requests", href: "/dashboard/student/internship-request", icon: <IconFileText className="h-6 w-6 shrink-0" /> },
   { label: "1-on-1 Sessions", href: "/dashboard/student/one-on-one", icon: <IconCalendarTime className="h-6 w-6 shrink-0" /> },
   { label: "Resources", href: "/dashboard/student/resources", icon: <IconBriefcase2 className="h-6 w-6 shrink-0" /> },
-  { label: "Attendance", href: "/dashboard/student/attendance", icon: <IconQrcode className="h-6 w-6 shrink-0" /> },
-  { label: "Attendance History", href: "/dashboard/student/attendance-history", icon: <IconHistory className="h-6 w-6 shrink-0" /> },
   { label: "Notifications", href: "/dashboard/student/notifications", icon: <IconBell className="h-6 w-6 shrink-0" /> },
 ]
 
