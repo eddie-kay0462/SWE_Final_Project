@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Search, ChevronDown, User, FileText, BarChart3, Calendar } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,93 +15,25 @@ export default function AdminStudentProfilesPage() {
   const [studentDialogOpen, setStudentDialogOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [activeTab, setActiveTab] = useState("profile")
+  const [students, setStudents] = useState([]);
 
   // Year groups
   const yearGroups = ["2025", "2026", "2027", "2028"]
 
-  // Mock data for students
-  const students = [
-    {
-      id: "58762025",
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@example.com",
-      yearGroup: "2025",
-      profilePicture: "/placeholder.svg?height=40&width=40",
-      major: "Computer Science",
-      gpa: "3.8",
-      eventsAttended: 5,
-      resumeUploaded: true,
-      careerRoadmap: {
-        goals: ["Software Engineer at Google", "Complete AWS certification"],
-        progress: 60,
-      },
-    },
-    {
-      id: "10332025",
-      firstName: "Jane",
-      lastName: "Smith",
-      email: "jane.smith@example.com",
-      yearGroup: "2025",
-      profilePicture: "/placeholder.svg?height=40&width=40",
-      major: "Business Administration",
-      gpa: "3.6",
-      eventsAttended: 3,
-      resumeUploaded: true,
-      careerRoadmap: {
-        goals: ["Investment Banking Analyst", "Complete CFA Level 1"],
-        progress: 40,
-      },
-    },
-    {
-      id: "24572026",
-      firstName: "Michael",
-      lastName: "Johnson",
-      email: "michael.johnson@example.com",
-      yearGroup: "2026",
-      profilePicture: "/placeholder.svg?height=40&width=40",
-      major: "Mechanical Engineering",
-      gpa: "3.5",
-      eventsAttended: 2,
-      resumeUploaded: false,
-      careerRoadmap: {
-        goals: ["Engineering Internship", "Join Engineering Club"],
-        progress: 30,
-      },
-    },
-    {
-      id: "18942027",
-      firstName: "Emily",
-      lastName: "Williams",
-      email: "emily.williams@example.com",
-      yearGroup: "2027",
-      profilePicture: "/placeholder.svg?height=40&width=40",
-      major: "Psychology",
-      gpa: "3.9",
-      eventsAttended: 4,
-      resumeUploaded: true,
-      careerRoadmap: {
-        goals: ["Research Assistant Position", "Apply to Graduate School"],
-        progress: 50,
-      },
-    },
-    {
-      id: "50932028",
-      firstName: "David",
-      lastName: "Brown",
-      email: "david.brown@example.com",
-      yearGroup: "2028",
-      profilePicture: "/placeholder.svg?height=40&width=40",
-      major: "Finance",
-      gpa: "3.7",
-      eventsAttended: 1,
-      resumeUploaded: false,
-      careerRoadmap: {
-        goals: ["Finance Internship", "Join Finance Club"],
-        progress: 20,
-      },
-    },
-  ]
+  useEffect(() => {
+    // Fetch student data from the API
+    async function fetchStudents() {
+      try {
+        const response = await fetch('/api/dashboard/admin/students');
+        const data = await response.json();
+        setStudents(data);
+      } catch (error) {
+        console.error("Failed to fetch students:", error);
+      }
+    }
+
+    fetchStudents();
+  }, []);
 
   // Mock data for attendance history
   const mockAttendanceHistory = [
