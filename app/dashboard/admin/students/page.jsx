@@ -22,7 +22,7 @@ export default function AdminStudentProfilesPage() {
   // Mock data for students
   const students = [
     {
-      id: "20242025",
+      id: "58762025",
       firstName: "John",
       lastName: "Doe",
       email: "john.doe@example.com",
@@ -38,7 +38,7 @@ export default function AdminStudentProfilesPage() {
       },
     },
     {
-      id: "20242026",
+      id: "10332025",
       firstName: "Jane",
       lastName: "Smith",
       email: "jane.smith@example.com",
@@ -54,7 +54,7 @@ export default function AdminStudentProfilesPage() {
       },
     },
     {
-      id: "20242027",
+      id: "24572026",
       firstName: "Michael",
       lastName: "Johnson",
       email: "michael.johnson@example.com",
@@ -70,7 +70,7 @@ export default function AdminStudentProfilesPage() {
       },
     },
     {
-      id: "20242028",
+      id: "18942027",
       firstName: "Emily",
       lastName: "Williams",
       email: "emily.williams@example.com",
@@ -86,7 +86,7 @@ export default function AdminStudentProfilesPage() {
       },
     },
     {
-      id: "20242029",
+      id: "50932028",
       firstName: "David",
       lastName: "Brown",
       email: "david.brown@example.com",
