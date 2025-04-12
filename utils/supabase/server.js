@@ -1,3 +1,14 @@
+/**
+ * Supabase Server Client
+ * 
+ * <p>Creates and configures a Supabase client for server-side operations
+ * using server components.</p>
+ *
+ * @author Nana Amoako
+ * @version 1.0.0
+ */
+'use server'
+
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 

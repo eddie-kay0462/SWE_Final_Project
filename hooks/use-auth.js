@@ -1,3 +1,14 @@
+/**
+ * Custom Authentication Hook
+ * 
+ * <p>Provides authentication utilities and user session state management
+ * for use throughout the application.</p>
+ *
+ * @author Nana Amoako
+ * @version 1.1.0
+ */
+'use client'
+
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/utils/supabase/client"; // Use client for hooks
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

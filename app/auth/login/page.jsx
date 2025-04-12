@@ -10,12 +10,12 @@
  */
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { GraduationCap, AlertTriangle } from "lucide-react"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function Login() {
   const [email, setEmail] = useState("")
@@ -23,12 +23,11 @@ export default function Login() {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isPageLoading, setIsPageLoading] = useState(false)
-  const router = useRouter()
-
+  const { signIn } = useAuth()
+  
   /**
    * Handles form submission for user login
-   * Makes API call to the backend login endpoint
-   * Redirects user based on their role
+   * Validates email domain and submits to server action
    * 
    * @param {Event} e - Form submit event
    */
@@ -46,43 +45,20 @@ export default function Login() {
     }
 
     try {
-      // Call the backend API
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        // Enhanced error handling
-        if (response.status === 404) {
-          throw new Error(
-            'User profile not found. This could happen if your account was recently created ' +
-            'but not fully set up. Please try signing up again or contact support.'
-          )
-        } else if (response.status === 401) {
-          throw new Error('Invalid email or password. Please check your credentials and try again.')
-        } else {
-          throw new Error(data.error || 'An error occurred during login. Please try again.')
-        }
-      }
-
-      // Show page loading before redirect
+      // Show page loading before authentication
       setIsPageLoading(true)
       
-      // Redirect based on user role from the API response
-      setTimeout(() => {
-        router.push(data.redirectPath || '/')
-      }, 500) // Short delay to show the loading state
+      // Call signIn function from auth hook
+      const result = await signIn(email, password)
+      
+      // If there's an error, display it
+      if (!result?.success && result?.error) {
+        setError(result.error)
+        setIsLoading(false)
+        setIsPageLoading(false)
+      }
     } catch (error) {
-      setError(error.message)
+      setError(error.message || "An unexpected error occurred")
       setIsLoading(false)
       setIsPageLoading(false)
     }
@@ -113,7 +89,6 @@ export default function Login() {
           </nav>
         </div>
       </header>
-
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto p-4 md:p-8 flex items-center justify-center">
@@ -249,120 +224,4 @@ export default function Login() {
       </footer>
     </div>
   )
-}
-
-/**
- * Handles user login authentication and role-based redirection
- * 
- * @route POST /api/auth/login
- * @param {Object} request - The request object containing login credentials
- * @returns {Object} Response with user data, session, and redirect path based on role
- */
-
-import { createClient } from '@/utils/supabase/server'
-import { NextResponse } from 'next/server'
-
-export async function POST(req) {
-  try {
-    const { email, password } = await req.json()
-    const reqCookies = {}
-    const supabase = await createClient(reqCookies)
-
-    // Validate Ashesi email domain
-    const [username, domain] = email.split('@')
-    if (domain !== 'ashesi.edu.gh' && domain !== 'aucampus.onmicrosoft.com') {
-      return NextResponse.json(
-        { error: 'Only Ashesi email addresses are allowed (ashesi.edu.gh or aucampus.onmicrosoft.com)' },
-        { status: 400 }
-      )
-    }
-
-    // First check if the user exists in the users table by email
-    const { data: publicUserData, error: publicUserError } = await supabase
-      .from('users')
-      .select('id, student_id, fname, lname, role_id, email')
-      .eq('email', email)
-      .single()
-    
-    // If no error at this point, authenticate with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-
-    if (authError) {
-      return NextResponse.json(
-        { error: authError.message },
-        { status: 401 }
-      )
-    }
-
-    // If we don't have public user data or there was an error finding it
-    if (publicUserError || !publicUserData) {
-      // Fall back to checking the users table by auth ID
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, role_id, fname, lname, student_id')
-        .eq('id', authData.user.id)
-        .single()
-
-      if (userError || !userData) {
-        return NextResponse.json(
-          { error: 'User profile not found. Please contact support.' },
-          { status: 404 }
-        )
-      }
-
-      // We found the user in the regular users table
-      return createSuccessResponse(authData, userData, reqCookies)
-    }
-
-    // We found the user in users table by email
-    return createSuccessResponse(authData, publicUserData, reqCookies)
-  } catch (error) {
-    console.error("Login error:", error)
-    return NextResponse.json(
-      { error: 'Internal server error: ' + error.message },
-      { status: 500 }
-    )
-  }
-}
-
-// Helper function to create a success response
-function createSuccessResponse(authData, userData, reqCookies) {
-  // Determine redirect path based on role
-  let redirectPath
-  switch (userData.role_id) {
-    case 1:
-      redirectPath = '/dashboard/super-admin' // Super Admin
-      break
-    case 2:
-      redirectPath = '/dashboard/admin' // Admin/Staff
-      break
-    case 3:
-      redirectPath = '/dashboard/student' // Student
-      break
-    default:
-      redirectPath = '/' // Default
-  }
-
-  // Create response with cookies set by the Supabase client
-  const response = NextResponse.json({
-    user: {
-      id: userData.id,
-      email: authData.user.email,
-      firstName: userData.fname,
-      lastName: userData.lname,
-      studentId: userData.student_id,
-      roleId: userData.role_id
-    },
-    redirectPath
-  })
-
-  // Transfer cookies from Supabase response to our response
-  Object.entries(reqCookies).forEach(([name, value]) => {
-    response.cookies.set(name, value)
-  })
-
-  return response
 }
