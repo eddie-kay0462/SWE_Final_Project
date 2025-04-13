@@ -36,28 +36,37 @@ export default function Login() {
     setIsLoading(true)
     setError(null)
 
+    console.log("Login attempt started with email:", email)
+
     // Validate Ashesi email domain
     const parts = email.split('@')
     if (parts.length !== 2 || (parts[1] !== 'ashesi.edu.gh' && parts[1] !== 'aucampus.onmicrosoft.com')) {
       setError('Only Ashesi email addresses are allowed (ashesi.edu.gh or aucampus.onmicrosoft.com)')
       setIsLoading(false)
+      console.log("Email validation failed: Not an Ashesi email")
       return
     }
 
     try {
       // Show page loading before authentication
       setIsPageLoading(true)
+      console.log("Starting authentication with Supabase...")
       
       // Call signIn function from auth hook
       const result = await signIn(email, password)
+      console.log("Authentication result:", result)
       
       // If there's an error, display it
       if (!result?.success && result?.error) {
+        console.error("Authentication error:", result.error)
         setError(result.error)
         setIsLoading(false)
         setIsPageLoading(false)
+      } else {
+        console.log("Authentication successful, waiting for redirection...")
       }
     } catch (error) {
+      console.error("Unexpected login error:", error)
       setError(error.message || "An unexpected error occurred")
       setIsLoading(false)
       setIsPageLoading(false)
