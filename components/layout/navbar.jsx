@@ -12,6 +12,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
+
 const pathMap = {
   student: {
     "/dashboard/student": { label: "Dashboard", icon: Home },

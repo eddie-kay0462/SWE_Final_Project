@@ -6,13 +6,21 @@ import { Button } from "@/components/ui/button"
 import { Upload } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "@/lib/date-utils"
+import { useResume } from "@/hooks/use-resume"
 
+/**
+ * ResumePage Component
+ * 
+ * Client-side component for managing student resume uploads and displaying advisor comments.
+ * Uses the useResume hook for Supabase operations.
+ * 
+ * @component
+ */
 export default function ResumePage() {
   const { toast } = useToast()
   const [resume, setResume] = useState(null)
   const [comments, setComments] = useState([])
-  const [isUploading, setIsUploading] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const { isLoading, setIsLoading, isUploading, fetchResumeData, uploadResume } = useResume()
 
   useEffect(() => {
     fetchResumeAndComments()
@@ -21,26 +29,14 @@ export default function ResumePage() {
   const fetchResumeAndComments = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/dashboard/student/resume')
-      const data = await response.json()
-      
-      if (response.ok) {
-        console.log("Received data:", data) // Debug log
-        setResume(data.resume)
-        setComments(data.comments || [])
-      } else {
-        console.error('Error fetching resume:', data.error)
-        toast({
-          title: "Error",
-          description: data.error || "Failed to load resume data",
-          variant: "destructive",
-        })
-      }
+      const data = await fetchResumeData()
+      setResume(data.resume)
+      setComments(data.comments || [])
     } catch (error) {
       console.error('Error fetching resume:', error)
       toast({
         title: "Error",
-        description: "Failed to load resume data",
+        description: error.message || "Failed to load resume data",
         variant: "destructive",
       })
     } finally {
@@ -52,52 +48,22 @@ export default function ResumePage() {
     const file = event.target.files[0]
     if (!file) return
 
-    if (file.type !== 'application/pdf') {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF file",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
-
     try {
-      const response = await fetch('/api/dashboard/student/resume', {
-        method: 'POST',
-        body: formData,
+      await uploadResume(file)
+      toast({
+        title: "Success",
+        description: "Resume uploaded successfully",
       })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Resume uploaded successfully",
-        })
-        // Wait a brief moment before fetching to ensure the database has updated
-        setTimeout(() => {
-          fetchResumeAndComments()
-        }, 500)
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to upload resume",
-          variant: "destructive",
-        })
-      }
+      await fetchResumeAndComments()
     } catch (error) {
       console.error('Error uploading resume:', error)
       toast({
         title: "Error",
-        description: "Failed to upload resume",
+        description: error.message || "Failed to upload resume",
         variant: "destructive",
       })
     } finally {
-      setIsUploading(false)
+      event.target.value = ''
     }
   }
 
@@ -158,8 +124,8 @@ export default function ResumePage() {
                   <h3 className="text-lg font-medium mb-4">Advisor Comments</h3>
                   {comments.length > 0 ? (
                     <div className="space-y-4">
-                      {comments.map((comment, index) => (
-                        <div key={index} className="bg-muted p-4 rounded-lg">
+                      {comments.map((comment) => (
+                        <div key={comment.id} className="bg-muted p-4 rounded-lg">
                           <div className="flex justify-between items-start mb-2">
                             <div>
                               <p className="font-medium">

@@ -7,7 +7,7 @@ import { toast } from "sonner"; // Assuming sonner is used for toasts
 /**
  * @typedef {import('@supabase/supabase-js').User} SupabaseAuthUser
  */
-
+  
 /**
  * @typedef {object} UserProfileData
  * @property {string} id - UUID from public.users (matches auth.uid())
