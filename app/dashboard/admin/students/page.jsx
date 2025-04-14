@@ -1,3 +1,14 @@
+/**
+ * Admin Students Page Component
+ * 
+ * This component displays a list of students and their details, allowing administrators
+ * to view and manage student information. It fetches data directly from the database
+ * using Supabase client.
+ *
+ * @author Ronelle
+ * @version 1.0
+ */
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -6,34 +17,107 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { createClient } from '@/utils/supabase/client'
 
 export default function AdminStudentProfilesPage() {
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedYearGroup, setSelectedYearGroup] = useState("2025")
+  const [selectedYearGroup, setSelectedYearGroup] = useState("")
   const [yearGroupDropdownOpen, setYearGroupDropdownOpen] = useState(false)
   const [studentDialogOpen, setStudentDialogOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [activeTab, setActiveTab] = useState("profile")
-  const [students, setStudents] = useState([]);
+  const [students, setStudents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [yearGroups, setYearGroups] = useState([])
 
-  // Year groups
-  const yearGroups = ["2025", "2026", "2027", "2028"]
+  // Initialize Supabase client
+  const supabase = createClient()
+
+  /**
+   * Extracts the year group from a student ID
+   * @param {string} studentId - Student ID (4 digits)
+   * @returns {string} The year group (e.g., "2024")
+   */
+  const extractYearGroup = (studentId) => {
+    if (!studentId) return "Unknown"
+    
+    // Convert to string and pad with leading zeros if necessary
+    const paddedId = studentId.toString().padStart(4, '0')
+    
+    // Get the last digit
+    const lastDigit = paddedId.slice(-1)
+    
+    // Map the last digit to a year (202X)
+    return `202${lastDigit}`
+  }
 
   useEffect(() => {
-    // Fetch student data from the API
+    // Fetch student data from Supabase
     async function fetchStudents() {
       try {
-        const response = await fetch('/api/dashboard/admin/students');
-        const data = await response.json();
-        setStudents(data);
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('users')
+          .select(`
+            id,
+            student_id,
+            fname,
+            lname,
+            email,
+            profilepic,
+            role_id,
+            created_at
+          `)
+          .eq('role_id', 3) // Assuming role_id 3 is for students
+
+        if (error) {
+          throw error
+        }
+
+        // Transform the data to match the component's expected format
+        const transformedData = data.map(student => {
+          const yearGroup = extractYearGroup(student.student_id)
+          return {
+            id: student.student_id,
+            firstName: student.fname,
+            lastName: student.lname,
+            email: student.email,
+            profilePicture: student.profilepic,
+            yearGroup,
+            major: "Computer Science", // You might want to add this field to your database
+            gpa: "3.5", // You might want to add this field to your database
+            resumeUploaded: false,
+            eventsAttended: 0,
+            careerRoadmap: {
+              goals: ["Complete internship", "Learn new technologies"],
+              progress: 50
+            }
+          }
+        })
+
+        // Extract unique year groups and sort them
+        const uniqueYearGroups = [...new Set(transformedData.map(student => student.yearGroup))]
+          .filter(year => year !== "Unknown")
+          .sort((a, b) => a - b)
+
+        setYearGroups(uniqueYearGroups)
+        setSelectedYearGroup(uniqueYearGroups[0] || "") // Set first year group as default
+        setStudents(transformedData)
       } catch (error) {
-        console.error("Failed to fetch students:", error);
+        console.error("Error fetching students:", error)
+        toast({
+          title: "Error",
+          description: "Failed to fetch student data. Please try again later.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
       }
     }
 
-    fetchStudents();
-  }, []);
+    fetchStudents()
+  }, [])
 
   // Mock data for attendance history
   const mockAttendanceHistory = [
@@ -47,11 +131,11 @@ export default function AdminStudentProfilesPage() {
   // Filter students based on search query and selected year group
   const filteredStudents = students.filter(
     (student) =>
-      student.yearGroup === selectedYearGroup &&
+      (selectedYearGroup === "" || student.yearGroup === selectedYearGroup) &&
       (searchQuery === "" ||
         student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.id.includes(searchQuery)),
+        student.id.includes(searchQuery))
   )
 
   const handleViewStudent = (student) => {
@@ -123,7 +207,16 @@ export default function AdminStudentProfilesPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredStudents.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center">
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      <span>Loading students...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredStudents.length > 0 ? (
                 filteredStudents.map((student) => (
                   <tr
                     key={student.id}
