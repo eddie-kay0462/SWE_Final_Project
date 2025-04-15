@@ -1,9 +1,11 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 export async function updateSession(request) {
-  let supabaseResponse = NextResponse.next({
-    request,
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
   })
 
   const supabase = createServerClient(
@@ -11,24 +13,19 @@ export async function updateSession(request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
+        get: (name) => request.cookies.get(name)?.value,
+        set: (name, value, options) => {
+          response.cookies.set(name, value, options)
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+        remove: (name, options) => {
+          response.cookies.set(name, '', { ...options, maxAge: 0 })
         },
       },
     }
   )
 
-  // refreshing the auth token
-  await supabase.auth.getUser()
+  // Refresh session if expired - required for Server Components
+  await supabase.auth.getSession()
 
-  return supabaseResponse
+  return response
 }
