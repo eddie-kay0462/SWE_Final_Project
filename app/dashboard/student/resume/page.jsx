@@ -1,23 +1,40 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Upload, Clock, CheckCircle, AlertCircle, FileText, Download, RefreshCw, MessageSquare } from "lucide-react"
 import { toast } from "sonner"
 
 export default function ResumeUploadPage() {
   const [file, setFile] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [uploadHistory, setUploadHistory] = useState([
-    {
-      id: 1,
-      name: "Resume_2025_Spring.pdf",
-      uploadDate: "2025-04-10",
-      status: "Approved",
-      feedback: "Great resume! Your experience section is well structured.",
-      version: 2,
-    },
-  ])
+  const [uploadHistory, setUploadHistory] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
   const fileInputRef = useRef(null)
+
+  // Debug logging for component mount
+  useEffect(() => {
+    console.debug("[ResumeUpload] Component mounted")
+    fetchResumeHistory()
+  }, [])
+
+  const fetchResumeHistory = async () => {
+    try {
+      console.debug("[ResumeUpload] Fetching resume history...")
+      const response = await fetch('/api/resume/history')
+      const data = await response.json()
+
+      console.debug("[ResumeUpload] History response:", data)
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch history')
+      }
+
+      setUploadHistory(data.history)
+    } catch (error) {
+      console.error('[ResumeUpload] History fetch error:', error)
+      toast.error('Failed to load resume history')
+    }
+  }
 
   const handleDragOver = (e) => {
     e.preventDefault()
@@ -37,12 +54,22 @@ export default function ResumeUploadPage() {
   }
 
   const handleFileChange = (e) => {
+    console.debug("[ResumeUpload] File selected:", e.target.files[0]?.name)
     const selectedFile = e.target.files[0]
     validateAndSetFile(selectedFile)
   }
 
-  const validateAndSetFile = (file) => {
-    if (!file) return
+  const validateAndSetFile = async (file) => {
+    if (!file) {
+      console.debug("[ResumeUpload] No file selected")
+      return
+    }
+
+    console.debug("[ResumeUpload] Validating file:", {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    })
 
     // Check file type
     const validTypes = [
@@ -51,35 +78,92 @@ export default function ResumeUploadPage() {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ]
     if (!validTypes.includes(file.type)) {
+      console.warn("[ResumeUpload] Invalid file type:", file.type)
       toast.error("Please upload a PDF or DOC file")
       return
     }
 
     // Check file size (2MB max)
     if (file.size > 2 * 1024 * 1024) {
+      console.warn("[ResumeUpload] File too large:", file.size)
       toast.error("File size must be less than 2MB")
       return
     }
 
     setFile(file)
-    toast.success("Resume uploaded successfully!")
+    await handleUpload(file)
+  }
 
-    // Add to history
-    const newUpload = {
-      id: Date.now(),
-      name: file.name,
-      uploadDate: new Date().toISOString().split("T")[0],
-      status: "Pending Review",
-      feedback: "",
-      version: 1,
+  const handleUpload = async (file) => {
+    try {
+      setIsLoading(true)
+      console.debug("[ResumeUpload] Starting upload for:", file.name)
+
+      const formData = new FormData()
+      formData.append('file', file)
+
+      // Log request details
+      console.debug("[ResumeUpload] Upload request:", {
+        url: '/api/resume/upload',
+        fileSize: file.size,
+        fileType: file.type
+      })
+
+      const response = await fetch('/api/resume/upload', {
+        method: 'POST',
+        body: formData,
+        // Add credentials to ensure cookies are sent
+        credentials: 'include',
+      })
+
+      console.debug("[ResumeUpload] Upload response status:", response.status)
+
+      if (!response.ok) {
+        // Log detailed error information
+        const errorText = await response.text()
+        console.error("[ResumeUpload] Upload failed:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        })
+        
+        if (response.status === 401) {
+          throw new Error("Authentication required - Please log in")
+        }
+        throw new Error(`Upload failed: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.debug("[ResumeUpload] Upload success:", data)
+
+      if (!data.success) {
+        throw new Error(data.error || 'Upload failed')
+      }
+
+      toast.success("Resume uploaded successfully!")
+      await fetchResumeHistory() // Refresh the history
+      setFile(null)
+    } catch (error) {
+      console.error('[ResumeUpload] Upload error:', error)
+      toast.error(error.message || 'Failed to upload resume')
+    } finally {
+      setIsLoading(false)
     }
-
-    setUploadHistory([newUpload, ...uploadHistory])
   }
 
   const handleSubmitClick = () => {
     if (!file) {
       fileInputRef.current.click()
+    }
+  }
+
+  const handleDownload = async (fileUrl) => {
+    try {
+      console.debug("[ResumeUpload] Downloading file:", fileUrl)
+      window.open(fileUrl, '_blank')
+    } catch (error) {
+      console.error('[ResumeUpload] Download error:', error)
+      toast.error('Failed to download resume')
     }
   }
 
@@ -124,18 +208,29 @@ export default function ResumeUploadPage() {
                 onChange={handleFileChange}
                 accept=".pdf,.doc,.docx"
                 className="hidden"
+                disabled={isLoading}
               />
-              <Upload className="h-12 w-12 mx-auto mb-4 text-[#A91827]" />
-              <h3 className="text-lg font-medium mb-2">Drag and drop your resume here</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Supported formats: PDF, DOC, DOCX (Max 2MB)
-              </p>
-              <button
-                className="bg-[#A91827] hover:bg-[#8a1420] text-white font-medium py-2 px-4 rounded-md transition-colors"
-                onClick={handleSubmitClick}
-              >
-                Browse Files
-              </button>
+              {isLoading ? (
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827] mb-4"></div>
+                  <p className="text-sm text-gray-500">Uploading...</p>
+                </div>
+              ) : (
+                <>
+                  <Upload className="h-12 w-12 mx-auto mb-4 text-[#A91827]" />
+                  <h3 className="text-lg font-medium mb-2">Drag and drop your resume here</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Supported formats: PDF, DOC, DOCX (Max 2MB)
+                  </p>
+                  <button
+                    className="bg-[#A91827] hover:bg-[#8a1420] text-white font-medium py-2 px-4 rounded-md transition-colors"
+                    onClick={handleSubmitClick}
+                    disabled={isLoading}
+                  >
+                    Browse Files
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -159,15 +254,24 @@ export default function ResumeUploadPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <button className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors">
+                  <button 
+                    onClick={() => window.open(uploadHistory[0].fileUrl, '_blank')}
+                    className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors"
+                  >
                     <FileText className="h-4 w-4 mr-2" />
                     View
                   </button>
-                  <button className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors">
+                  <button 
+                    onClick={() => handleDownload(uploadHistory[0].fileUrl)}
+                    className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors"
+                  >
                     <Download className="h-4 w-4 mr-2" />
                     Download
                   </button>
-                  <button className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors">
+                  <button 
+                    onClick={() => fileInputRef.current.click()}
+                    className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors"
+                  >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Replace
                   </button>
