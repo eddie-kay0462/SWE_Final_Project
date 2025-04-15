@@ -27,16 +27,11 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true,
     optimizePackageImports: ['@supabase/ssr', '@supabase/supabase-js', 'framer-motion'],
-    serverActions: true,
   },
   // Enable static optimization
   staticPageGenerationTimeout: 60,
-  // Enable HTTP/2
-  http2: true,
-  // Enable compression
-  compress: true,
 };
 
 export default nextConfig;

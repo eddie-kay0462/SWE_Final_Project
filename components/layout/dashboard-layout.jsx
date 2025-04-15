@@ -61,7 +61,7 @@ const DashboardLayout = ({ children, userRole }) => {
         </div>
       </div>
     }>
-      <div className="min-h-screen bg-[#f3f1ea] dark:bg-gray-900">
+      <div className="min-h-screen bg-[#f3f1ea] dark:bg-gray-900 flex">
         {/* Mobile sidebar backdrop */}
         {sidebarOpen && (
           <div className="fixed inset-0 z-40 bg-black/30 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -69,7 +69,7 @@ const DashboardLayout = ({ children, userRole }) => {
 
         {/* Sidebar */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+          className={`fixed lg:sticky top-0 z-50 h-screen transition-transform duration-200 ease-in-out lg:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -77,9 +77,9 @@ const DashboardLayout = ({ children, userRole }) => {
         </aside>
 
         {/* Main content */}
-        <div className="lg:pl-64">
+        <div className="flex-1 flex flex-col min-h-screen">
           <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-          <main className="p-6 md:p-8">
+          <main className="flex-1 p-6 md:p-8 overflow-x-hidden">
             {children}
           </main>
         </div>
