@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Calendar, Clock, MapPin, Users, ChevronRight, CheckCircle, MessageSquare } from 'lucide-react'
 import { Card, CardContent } from "@/components/ui/card"
@@ -17,85 +17,41 @@ export default function EventsPage() {
   const [feedbackText, setFeedbackText] = useState("")
   const [rating, setRating] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [upcomingEvents, setUpcomingEvents] = useState([])
+  const [pastEvents, setPastEvents] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // Mock data for events
-  const upcomingEvents = [
-    {
-      id: 1,
-      title: "Career Fair - Spring 2025",
-      date: "March 15, 2025",
-      time: "10:00 AM - 4:00 PM",
-      location: "University Center, Main Hall",
-      attendees: 123,
-      description: "Our biggest career fair of the year with over 50 companies from various industries looking to recruit students for internships and full-time positions.",
-      tags: ["All Students", "Job Fair"],
-      status: "upcoming",
-      feedbackStatus: "inactive" // Before event
-    },
-    {
-      id: 2,
-      title: "Resume Workshop",
-      date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
-      time: "2:00 PM - 4:00 PM",
-      location: "Career Center, Room 202",
-      attendees: 45,
-      description: "Learn how to create an effective resume that highlights your skills and experiences in the best way possible.",
-      tags: ["Workshop", "Career Development"],
-      status: "upcoming",
-      feedbackStatus: "active" // During event (today)
-    },
-    {
-      id: 3,
-      title: "Interview Skills Session",
-      date: "March 5, 2025",
-      time: "1:00 PM - 3:00 PM",
-      location: "Online (Zoom)",
-      attendees: 67,
-      description: "Practice answering common interview questions and receive feedback from career advisors to improve your interviewing skills.",
-      tags: ["Workshop", "Virtual"],
-      status: "upcoming",
-      feedbackStatus: "inactive"
-    },
-  ]
-
-  const pastEvents = [
-    {
-      id: 5,
-      title: "Fall Career Fair 2024",
-      date: "October 15, 2024",
-      time: "10:00 AM - 4:00 PM",
-      location: "University Center, Main Hall",
-      attendees: 210,
-      description: "Our annual fall career fair featuring over 40 companies from various industries.",
-      tags: ["All Students", "Job Fair"],
-      status: "past",
-      feedbackStatus: "off" // After event, feedback period closed
-    },
-    {
-      id: 6,
-      title: "LinkedIn Profile Workshop",
-      date: "November 5, 2024",
-      time: "3:00 PM - 5:00 PM",
-      location: "Career Center, Room 202",
-      attendees: 52,
-      description: "Learn how to optimize your LinkedIn profile to attract recruiters and showcase your professional brand.",
-      tags: ["Workshop", "Career Development"],
-      status: "past",
-      feedbackStatus: "off"
-    },
-    {
-      id: 7,
-      title: "Industry Insights: Technology",
-      date: "February 20, 2025",
-      time: "4:00 PM - 6:00 PM",
-      location: "Tech Building, Auditorium",
-      attendees: 89,
-      description: "Panel discussion with industry leaders about current trends and career opportunities in the technology sector.",
-      tags: ["Panel", "Industry Specific"],
-      status: "past",
-      feedbackStatus: "active" // Recent event, feedback still open
+  // Fetch events from the API
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/dashboard/student/events')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch events')
+        }
+        
+        const data = await response.json()
+        setUpcomingEvents(data.upcomingEvents || [])
+        setPastEvents(data.pastEvents || [])
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching events:', err)
+        setError('Failed to load events. Please try again later.')
+        toast({
+          title: "Error",
+          description: "Failed to load events. Please try again later.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
     }
-  ]
+
+    fetchEvents()
+  }, [toast])
 
   const handleOpenFeedbackDialog = (event) => {
     setSelectedEvent(event)
@@ -130,6 +86,31 @@ export default function EventsPage() {
 
   // Function to render event cards
   const renderEventCards = (events) => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      )
+    }
+
+    if (events.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No {activeTab} events found.</p>
+        </div>
+      )
+    }
+
     return events.map((event) => (
       <Card key={event.id} className="bg-card rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
         <CardContent className="p-6 pt-6">
