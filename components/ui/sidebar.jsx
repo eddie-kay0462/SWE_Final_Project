@@ -141,7 +141,12 @@ export const SidebarLink = ({
 }) => {
   const { open, animate } = useSidebar();
   const pathname = usePathname();
-  const isActive = pathname === link.href || pathname.startsWith(link.href + '/');
+  
+  // Special handling for dashboard route
+  const isDashboard = link.href === '/dashboard';
+  const isActive = isDashboard 
+    ? pathname === '/dashboard'
+    : pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href + '/') && !pathname.startsWith(link.href + '/../'));
 
   return (
     <Link

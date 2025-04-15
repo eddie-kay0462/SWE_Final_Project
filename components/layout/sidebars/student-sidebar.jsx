@@ -20,7 +20,7 @@ import Image from "next/image"
 // Define the navigation items for student
 const studentNavItems = [
   { label: "Dashboard", href: "/dashboard/student", icon: <IconLayoutDashboard className="h-6 w-6 shrink-0" /> },
-  { label: "Profile", href: "/dashboard/student/profile", icon: <IconUserCircle className="h-6 w-6 shrink-0" /> },
+  // { label: "Profile", href: "/dashboard/student/profile", icon: <IconUserCircle className="h-6 w-6 shrink-0" /> },
   { label: "Resume", href: "/dashboard/student/resume", icon: <IconFileCv className="h-6 w-6 shrink-0" /> },
   { label: "Events", href: "/dashboard/student/events", icon: <IconCalendarEvent className="h-6 w-6 shrink-0" /> },
   { label: "Career Roadmap", href: "/dashboard/student/career-roadmap", icon: <IconMap className="h-6 w-6 shrink-0" /> },
