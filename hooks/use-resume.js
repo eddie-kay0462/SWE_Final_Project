@@ -1,68 +1,73 @@
 /**
  * Custom hook for managing resume operations with Supabase
  * Handles resume fetching, uploading, and comment management
+ * 
+ * @returns {Object} Resume management functions and state
  */
 
 import { useState, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useSession } from './use-session'
 
 export function useResume() {
   const [isLoading, setIsLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const supabase = createClientComponentClient()
+  const { session, isLoading: isSessionLoading } = useSession()
 
   /**
-   * Fetches the latest resume and its comments
+   * Gets the current user from session
+   * @returns {Object} The user data
+   */
+  const getCurrentUser = () => {
+    if (isSessionLoading) {
+      throw new Error('Session loading')
+    }
+    if (!session) {
+      throw new Error('Authentication required')
+    }
+    return session
+  }
+
+  /**
+   * Fetches the latest resume and its comments for the current user
    * @returns {Promise<{resume: Object, comments: Array}>}
    */
   const fetchResumeData = useCallback(async () => {
     try {
-      // Get authenticated user
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError) throw new Error('Authentication required')
+      if (isSessionLoading) {
+        return { resume: null, comments: [] }
+      }
 
-      // Get resume data with comments in a single query
-      const { data: resumeData, error: resumeError } = await supabase
+      const user = getCurrentUser()
+
+      // Get resume data
+      const { data: documents, error: documentsError } = await supabase
         .from('documents')
-        .select(`
-          *,
-          user:users!inner (
-            id,
-            email
-          ),
-          comments:document_comments (
-            id,
-            content,
-            created_at,
-            advisor:users!advisor_id (
-              fname,
-              lname,
-              email
-            )
-          )
-        `)
-        .eq('user.email', user.email)
+        .select('*')
+        .eq('user_id', user.id)
         .eq('file_type', 'pdf')
         .order('uploaded_at', { ascending: false })
         .limit(1)
         .single()
 
-      if (resumeError && resumeError.code !== 'PGRST116') {
-        throw resumeError
+      if (documentsError && documentsError.code !== 'PGRST116') {
+        throw documentsError
       }
 
       return {
-        resume: resumeData || null,
-        comments: resumeData?.comments || []
+        resume: documents || null,
+        comments: [] // We'll implement comments later
       }
     } catch (error) {
       console.error('Error in fetchResumeData:', error)
       throw error
     }
-  }, [supabase])
+  }, [supabase, session, isSessionLoading])
 
   /**
-   * Uploads a new resume file
+   * Uploads a new resume file to Supabase storage
    * @param {File} file - The PDF file to upload
    * @returns {Promise<Object>} The uploaded document data
    */
@@ -70,79 +75,66 @@ export function useResume() {
     if (!file) throw new Error('No file provided')
     if (file.type !== 'application/pdf') throw new Error('Only PDF files are allowed')
     
-    const maxSize = 20 * 1024 * 1024 // 20MB
-    if (file.size > maxSize) throw new Error('File size must be less than 20MB')
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSize) throw new Error('File size must be less than 10MB')
 
     setIsUploading(true)
+    setUploadProgress(0)
+
     try {
-      // Get authenticated user
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError) throw new Error('Authentication required')
+      const user = getCurrentUser()
 
-      // Get user data
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', user.email)
-        .single()
-
-      if (userError) throw new Error('User not found')
-
-      // Create unique storage path
+      // Create unique file name
       const timestamp = Date.now()
-      const fileExt = file.name.split('.').pop()
-      const storagePath = `resumes/${userData.id}/${timestamp}_resume.${fileExt}`
+      const fileName = `${user.id}_${timestamp}_${file.name.replace(/\s+/g, '_')}`
+      const filePath = `resumes/${fileName}`
 
-      // Upload file
+      // Upload file to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from('docs')
-        .upload(storagePath, file, {
+        .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false,
-          contentType: 'application/pdf'
+          upsert: false
         })
 
-      if (uploadError) throw new Error('Failed to upload file')
+      if (uploadError) throw uploadError
 
       // Get public URL
-      const { data: urlData } = await supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('docs')
-        .getPublicUrl(storagePath)
+        .getPublicUrl(filePath)
 
-      // Create document record
-      const { data: documentData, error: documentError } = await supabase
+      // Create document record in database
+      const { data: document, error: documentError } = await supabase
         .from('documents')
         .insert({
           file_type: 'pdf',
-          file_url: urlData.publicUrl,
-          user_id: userData.id,
+          file_url: publicUrl,
+          user_id: user.id,
           uploaded_at: new Date().toISOString()
         })
         .select()
         .single()
 
-      if (documentError) {
-        // Rollback: delete uploaded file if record creation fails
-        await supabase.storage
-          .from('docs')
-          .remove([storagePath])
-        throw new Error('Failed to create document record')
-      }
+      if (documentError) throw documentError
 
-      return documentData
+      setUploadProgress(100)
+      return document
     } catch (error) {
       console.error('Error in uploadResume:', error)
       throw error
     } finally {
       setIsUploading(false)
     }
-  }, [supabase])
+  }, [supabase, session, isSessionLoading])
 
   return {
-    isLoading,
+    isLoading: isLoading || isSessionLoading,
     setIsLoading,
     isUploading,
+    uploadProgress,
     fetchResumeData,
-    uploadResume
+    uploadResume,
+    isAuthenticated: !!session
   }
 } 

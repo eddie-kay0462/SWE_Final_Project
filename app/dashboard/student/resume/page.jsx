@@ -7,6 +7,8 @@ import { Upload } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "@/lib/date-utils"
 import { useResume } from "@/hooks/use-resume"
+import { Progress } from "@/components/ui/progress"
+import { useRouter } from "next/navigation"
 
 /**
  * ResumePage Component
@@ -18,15 +20,31 @@ import { useResume } from "@/hooks/use-resume"
  */
 export default function ResumePage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [resume, setResume] = useState(null)
   const [comments, setComments] = useState([])
-  const { isLoading, setIsLoading, isUploading, fetchResumeData, uploadResume } = useResume()
+  const { 
+    isLoading, 
+    setIsLoading, 
+    isUploading, 
+    uploadProgress, 
+    fetchResumeData, 
+    uploadResume,
+    isAuthenticated 
+  } = useResume()
 
   useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      router.push('/login') // Redirect to login if not authenticated
+      return
+    }
+    
     fetchResumeAndComments()
-  }, [])
+  }, [isAuthenticated, isLoading])
 
   const fetchResumeAndComments = async () => {
+    if (!isAuthenticated) return
+
     setIsLoading(true)
     try {
       const data = await fetchResumeData()
@@ -48,6 +66,16 @@ export default function ResumePage() {
     const file = event.target.files[0]
     if (!file) return
 
+    if (!isAuthenticated) {
+      toast({
+        title: "Error",
+        description: "Please log in to upload a resume",
+        variant: "destructive",
+      })
+      router.push('/login')
+      return
+    }
+
     try {
       await uploadResume(file)
       toast({
@@ -57,11 +85,15 @@ export default function ResumePage() {
       await fetchResumeAndComments()
     } catch (error) {
       console.error('Error uploading resume:', error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to upload resume",
-        variant: "destructive",
-      })
+      if (error.message === 'Authentication required') {
+        router.push('/login')
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to upload resume",
+          variant: "destructive",
+        })
+      }
     } finally {
       event.target.value = ''
     }
@@ -80,6 +112,10 @@ export default function ResumePage() {
         </Card>
       </div>
     )
+  }
+
+  if (!isAuthenticated) {
+    return null // Let the useEffect handle redirect
   }
 
   return (
@@ -118,6 +154,15 @@ export default function ResumePage() {
                     </div>
                   </div>
                 </div>
+
+                {isUploading && (
+                  <div className="space-y-2">
+                    <Progress value={uploadProgress} />
+                    <p className="text-sm text-muted-foreground text-right">
+                      {Math.round(uploadProgress)}%
+                    </p>
+                  </div>
+                )}
 
                 {/* Comments Section */}
                 <div className="mt-8">
@@ -163,7 +208,14 @@ export default function ResumePage() {
                     disabled={isUploading}
                   />
                   <Button disabled={isUploading}>
-                    {isUploading ? "Uploading..." : "Upload Resume"}
+                    {isUploading ? (
+                      <div className="flex items-center gap-2">
+                        <span>Uploading...</span>
+                        <span>{Math.round(uploadProgress)}%</span>
+                      </div>
+                    ) : (
+                      "Upload Resume"
+                    )}
                   </Button>
                 </div>
               </div>
