@@ -1,22 +1,34 @@
+/**
+ * Resume upload page component that handles file uploads, validation and history management
+ * 
+ * <p>Allows students to upload, view and manage their resume documents with drag & drop
+ * support, file validation, and status tracking.</p>
+ *
+ * @author Resume Team
+ * @version 1.0.0
+ */
+
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { Upload, Clock, CheckCircle, AlertCircle, FileText, Download, RefreshCw, MessageSquare } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Upload, FileText, Download, RefreshCw, CheckCircle, Clock, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
-import { createClient } from '@/utils/supabase/client'
-import { useAuth } from '@/hooks/use-auth'
-import { useRouter } from 'next/navigation'
+import { createClient } from "@/utils/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 
 export default function ResumeUploadPage() {
   const router = useRouter()
   const { authUser, loading: authLoading } = useAuth()
   const [file, setFile] = useState(null)
-  const [isDragging, setIsDragging] = useState(false)
   const [uploadHistory, setUploadHistory] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const fileInputRef = useRef(null)
   const supabase = createClient()
 
+  /**
+   * Checks if user is authenticated and redirects to login if not
+   */
   useEffect(() => {
     if (!authLoading && !authUser) {
       console.log('[ResumeUpload] No authenticated user, redirecting to login')
@@ -25,110 +37,99 @@ export default function ResumeUploadPage() {
     }
   }, [authUser, authLoading, router])
 
+  /**
+   * Fetches resume upload history when component mounts
+   */
   useEffect(() => {
     if (authUser) {
-      console.debug("[ResumeUpload] Component mounted with authenticated user")
       fetchResumeHistory()
     }
   }, [authUser])
 
+  /**
+   * Fetches user's resume upload history from Supabase
+   * @throws {Error} If database query fails
+   */
   const fetchResumeHistory = async () => {
-    if (!authUser) {
-      console.warn("[ResumeUpload] Attempted to fetch history without authentication")
-      return
-    }
-
+    if (!authUser) return
     try {
-      console.debug("[ResumeUpload] Fetching resume history...")
-      const response = await fetch('/api/resume/history', {
-        credentials: 'include',
-        headers: {
-          'Authorization': `Bearer ${authUser.access_token}`
-        }
-      })
-      
-      console.debug("[ResumeUpload] History API response status:", response.status)
-      const data = await response.json()
-      console.debug("[ResumeUpload] History API response data:", data)
+      // First get the public.users ID
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', authUser.email)
+        .single()
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch history')
-      }
+      if (userError || !userData) throw userError
 
-      setUploadHistory(data.history)
+      // Then get documents for that user
+      const { data, error } = await supabase
+        .from('documents')
+        .select('id, name, file_url, status, uploaded_at, file_type')
+        .eq('user_id', userData.id)
+
+      if (error) throw error
+      setUploadHistory(data)
     } catch (error) {
-      console.error('[ResumeUpload] History fetch error:', {
-        message: error.message,
-        stack: error.stack
-      })
-      
-      if (error.message === 'Authentication required') {
-        toast.error('Please log in to view resume history')
-        router.push('/auth/login')
-      } else {
-        toast.error('Failed to load resume history')
-      }
+      console.error('[ResumeUpload] History fetch error:', error)
+      toast.error('Failed to load resume history')
     }
   }
 
+  /**
+   * Handles drag over event for file drop zone
+   * @param {DragEvent} e - The drag event object
+   */
   const handleDragOver = (e) => {
     e.preventDefault()
-    setIsDragging(true)
   }
 
-  const handleDragLeave = () => {
-    setIsDragging(false)
-  }
-
+  /**
+   * Handles file drop event
+   * @param {DragEvent} e - The drop event object
+   */
   const handleDrop = (e) => {
     e.preventDefault()
-    setIsDragging(false)
-
     const droppedFile = e.dataTransfer.files[0]
     validateAndSetFile(droppedFile)
   }
 
+  /**
+   * Handles file selection from input
+   * @param {Event} e - The change event object
+   */
   const handleFileChange = (e) => {
-    console.debug("[ResumeUpload] File selected:", e.target.files[0]?.name)
     const selectedFile = e.target.files[0]
     validateAndSetFile(selectedFile)
   }
 
-  const validateAndSetFile = async (file) => {
-    if (!file) {
-      console.debug("[ResumeUpload] No file selected")
-      return
-    }
-
-    console.debug("[ResumeUpload] Validating file:", {
-      name: file.name,
-      type: file.type,
-      size: file.size
-    })
-
-    // Check file type
-    const validTypes = [
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ]
+  /**
+   * Validates file type and size before setting it
+   * @param {File} file - The file to validate
+   */
+  const validateAndSetFile = (file) => {
+    // Check allowed file types
+    const validTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
     if (!validTypes.includes(file.type)) {
-      console.warn("[ResumeUpload] Invalid file type:", file.type)
-      toast.error("Please upload a PDF or DOC file")
+      toast.error("Only PDF or DOC/DOCX files are allowed")
       return
     }
 
-    // Check file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      console.warn("[ResumeUpload] File too large:", file.size)
+    // Check file size limit (2MB)
+    if (file.size > 2 * 1024 * 1024) {
       toast.error("File size must be less than 2MB")
       return
     }
 
     setFile(file)
-    await handleUpload(file)
+    handleUpload(file)
   }
 
+  /**
+   * Handles file upload to Supabase storage
+   * @param {File} file - The file to upload
+   * @throws {Error} If upload or database insert fails
+   */
   const handleUpload = async (file) => {
     if (!authUser) {
       toast.error('Please log in to upload resumes')
@@ -138,16 +139,28 @@ export default function ResumeUploadPage() {
 
     try {
       setIsLoading(true)
-      console.debug("[ResumeUpload] Starting upload for:", file.name)
 
-      // Generate unique file name
+      // First, get the public.users record for this authenticated user
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', authUser.email)  // Match by email since that's unique
+        .single()
+
+      if (userError || !userData) {
+        console.error('Failed to find user record:', userError)
+        throw new Error('User record not found')
+      }
+
+      // Now we have the public.users ID
+      const publicUserId = userData.id
+
+      // Generate unique file path with timestamp
       const timestamp = new Date().getTime()
-      const fileName = `${timestamp}-${file.name}`
-      const filePath = `resumes/${authUser.id}/${fileName}`
+      const filePath = `users/${publicUserId}/resumes/${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
 
-      console.debug("[ResumeUpload] Uploading to storage:", { filePath })
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Upload file to storage
+      const { data: fileData, error: uploadError } = await supabase.storage
         .from('docs')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -155,77 +168,63 @@ export default function ResumeUploadPage() {
         })
 
       if (uploadError) {
-        throw new Error(uploadError.message || 'Upload failed')
+        console.error('Storage upload error:', uploadError)
+        throw uploadError
       }
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('docs')
         .getPublicUrl(filePath)
 
-      // Create resume record
-      const response = await fetch('/api/resume/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authUser.access_token}`
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: file.name,
-          fileUrl: publicUrl,
-          filePath: filePath
-        })
-      })
+      // Insert into documents using the public.users ID
+      const { error: dbError } = await supabase
+        .from('documents')
+        .insert([
+          {
+            name: file.name,
+            file_type: file.type.split("/")[1],
+            file_url: publicUrl,
+            user_id: publicUserId,  // Using the public.users ID here
+            status: 'Pending Review'
+          }
+        ])
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error("[ResumeUpload] Upload record creation failed:", {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        })
-        
-        if (response.status === 401) {
-          throw new Error("Authentication required - Please log in")
-        }
-        throw new Error(`Upload failed: ${response.statusText}`)
-      }
-
-      const apiResponse = await response.json()
-      console.debug("[ResumeUpload] Upload success:", apiResponse)
-
-      if (!apiResponse.success) {
-        throw new Error(apiResponse.error || 'Upload failed')
+      if (dbError) {
+        console.error('Database insert error:', dbError)
+        throw dbError
       }
 
       toast.success("Resume uploaded successfully!")
-      await fetchResumeHistory()
+      fetchResumeHistory()
       setFile(null)
     } catch (error) {
-      console.error('[ResumeUpload] Upload error:', error)
-      toast.error(error.message || 'Failed to upload resume')
+      console.error('Upload error:', error)
+      toast.error(`Failed to upload resume: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleSubmitClick = () => {
-    if (!file) {
-      fileInputRef.current.click()
-    }
+  /**
+   * Opens file URL in new tab for download
+   * @param {string} fileUrl - The URL of the file to download
+   */
+  const handleDownload = (fileUrl) => {
+    window.open(fileUrl, "_blank")
   }
 
-  const handleDownload = async (fileUrl) => {
-    try {
-      console.debug("[ResumeUpload] Downloading file:", fileUrl)
-      window.open(fileUrl, '_blank')
-    } catch (error) {
-      console.error('[ResumeUpload] Download error:', error)
-      toast.error('Failed to download resume')
-    }
+  /**
+   * Triggers file input click for replacement
+   */
+  const handleReplace = () => {
+    fileInputRef.current.click()
   }
 
+  /**
+   * Returns appropriate icon based on document status
+   * @param {string} status - The document status
+   * @returns {JSX.Element} Icon component
+   */
   const getStatusIcon = (status) => {
     switch (status) {
       case "Pending Review":
@@ -249,198 +248,64 @@ export default function ResumeUploadPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-2/3">
-          <h1 className="text-3xl font-bold mb-2">Resume Upload</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">Upload your resume for review by career advisors</p>
-
-          {/* Upload Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Upload Resume</h2>
-
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isDragging
-                  ? "border-[#A91827] bg-[#A91827]/5"
-                  : "border-gray-300 hover:border-[#A91827] hover:bg-[#A91827]/5"
-              }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current.click()}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx"
-                className="hidden"
-                disabled={isLoading}
-              />
-              {isLoading ? (
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827] mb-4"></div>
-                  <p className="text-sm text-gray-500">Uploading...</p>
-                </div>
-              ) : (
-                <>
-                  <Upload className="h-12 w-12 mx-auto mb-4 text-[#A91827]" />
-                  <h3 className="text-lg font-medium mb-2">Drag and drop your resume here</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    Supported formats: PDF, DOC, DOCX (Max 2MB)
-                  </p>
-                  <button
-                    className="bg-[#A91827] hover:bg-[#8a1420] text-white font-medium py-2 px-4 rounded-md transition-colors"
-                    onClick={handleSubmitClick}
-                    disabled={isLoading}
-                  >
-                    Browse Files
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Current Resume Section */}
-          {uploadHistory.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Current Resume</h2>
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <FileText className="h-8 w-8 text-[#A91827] mr-3" />
-                    <div>
-                      <h3 className="font-medium">{uploadHistory[0].name}</h3>
-                      <p className="text-sm text-gray-500">Uploaded on {uploadHistory[0].uploadDate}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    {getStatusIcon(uploadHistory[0].status)}
-                    <span className="ml-2 font-medium">{uploadHistory[0].status}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button 
-                    onClick={() => window.open(uploadHistory[0].fileUrl, '_blank')}
-                    className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    View
-                  </button>
-                  <button 
-                    onClick={() => handleDownload(uploadHistory[0].fileUrl)}
-                    className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </button>
-                  <button 
-                    onClick={() => fileInputRef.current.click()}
-                    className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Replace
-                  </button>
-                </div>
-
-                {uploadHistory[0].feedback && (
-                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-                    <h4 className="text-sm font-medium mb-1 flex items-center">
-                      <MessageSquare className="h-4 w-4 mr-1" />
-                      Advisor Feedback
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{uploadHistory[0].feedback}</p>
-                  </div>
-                )}
-              </div>
+      <h1 className="text-3xl font-bold mb-6">Resume Upload</h1>
+      <div className="bg-white shadow-sm p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Upload Your Resume</h2>
+        <div
+          className="border-2 border-dashed p-8 text-center cursor-pointer"
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current.click()}
+        >
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".pdf,.doc,.docx"
+            className="hidden"
+          />
+          {isLoading ? (
+            <p>Uploading...</p>
+          ) : (
+            <div>
+              <Upload className="h-12 w-12 mx-auto mb-4" />
+              <p className="mb-4">Drag and drop your resume or click to browse</p>
             </div>
           )}
         </div>
+      </div>
 
-        <div className="w-full md:w-1/3">
-          {/* Status Tracker */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Resume Status</h2>
-
-            <div className="space-y-4">
-              {uploadHistory.map((item) => (
-                <div key={item.id} className="flex items-start border-b pb-4 last:border-0">
-                  <div className="mr-3 mt-1">{getStatusIcon(item.status)}</div>
-                  <div>
-                    <h3 className="font-medium">{item.name}</h3>
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                      <span>Version {item.version}</span>
-                      <span className="mx-2">•</span>
-                      <span>{item.uploadDate}</span>
-                    </div>
-                    <div className="mt-1 text-sm">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          item.status === "Approved"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                            : item.status === "Needs Edits"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                              : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </div>
-                  </div>
+      <div className="bg-white shadow-sm p-6">
+        <h2 className="text-xl font-semibold mb-4">Your Upload History</h2>
+        {uploadHistory.length > 0 ? (
+          <div>
+            {uploadHistory.map((item) => (
+              <div key={item.id} className="flex justify-between items-center mb-4">
+                <div>
+                  <h3>{item.name}</h3>
+                  <p className="text-sm">{new Date(item.uploaded_at).toLocaleString()}</p>
                 </div>
-              ))}
-            </div>
-
-            {uploadHistory.length === 0 && (
-              <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                <p>No resume uploads yet</p>
+                <div className="flex items-center">
+                  {getStatusIcon(item.status)}
+                  <button
+                    onClick={() => handleDownload(item.file_url)}
+                    className="ml-2 text-blue-600"
+                  >
+                    Download
+                  </button>
+                  <button
+                    onClick={handleReplace}
+                    className="ml-2 text-red-600"
+                  >
+                    Replace
+                  </button>
+                </div>
               </div>
-            )}
+            ))}
           </div>
-
-          {/* Guidelines */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Resume Guidelines</h2>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-start">
-                <span className="inline-block h-5 w-5 rounded-full bg-[#A91827] text-white text-xs flex items-center justify-center mr-2 mt-0.5">
-                  1
-                </span>
-                <span>Keep your resume to 1-2 pages maximum</span>
-              </li>
-              <li className="flex items-start">
-                <span className="inline-block h-5 w-5 rounded-full bg-[#A91827] text-white text-xs flex items-center justify-center mr-2 mt-0.5">
-                  2
-                </span>
-                <span>Use bullet points to highlight achievements</span>
-              </li>
-              <li className="flex items-start">
-                <span className="inline-block h-5 w-5 rounded-full bg-[#A91827] text-white text-xs flex items-center justify-center mr-2 mt-0.5">
-                  3
-                </span>
-                <span>Quantify your accomplishments when possible</span>
-              </li>
-              <li className="flex items-start">
-                <span className="inline-block h-5 w-5 rounded-full bg-[#A91827] text-white text-xs flex items-center justify-center mr-2 mt-0.5">
-                  4
-                </span>
-                <span>Tailor your resume for each job application</span>
-              </li>
-              <li className="flex items-start">
-                <span className="inline-block h-5 w-5 rounded-full bg-[#A91827] text-white text-xs flex items-center justify-center mr-2 mt-0.5">
-                  5
-                </span>
-                <span>Proofread carefully for errors and typos</span>
-              </li>
-            </ul>
-            <div className="mt-4">
-              <a href="#" className="text-[#A91827] hover:underline text-sm font-medium">
-                View full resume writing guide →
-              </a>
-            </div>
-          </div>
-        </div>
+        ) : (
+          <p>No uploads yet.</p>
+        )}
       </div>
     </div>
   )
