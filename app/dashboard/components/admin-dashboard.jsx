@@ -1,11 +1,14 @@
 import { CheckCircle, Clock, XCircle, Calendar, ArrowUp, FileText, Users } from "lucide-react"
 import Link from "next/link"
 
-const AdminDashboard = ({ mockData, loading }) => {
+const AdminDashboard = ({ mockData, loading, greeting }) => {
   return (
     <div
       className={`space-y-6 transition-all duration-500 ease-in-out ${loading ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}
     >
+      {/* Greeting */}
+      <h2 className="text-2xl font-medium text-gray-800 dark:text-gray-200 mb-6">{greeting}</h2>
+
       {/* Internship Requests Summary */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
         <h3 className="text-lg font-medium mb-4">Internship Requests Summary</h3>

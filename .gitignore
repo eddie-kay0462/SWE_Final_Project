@@ -44,4 +44,8 @@ next-env.d.ts
 /docs
 backend.md
 docs/internship_request_tables.sql
+<<<<<<< HEAD
+/database
+=======
 db.sql
+>>>>>>> origin/main

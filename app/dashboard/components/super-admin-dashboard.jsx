@@ -1,10 +1,13 @@
 import { Users, FileText, Calendar, ArrowUp, CheckCircle, Clock, XCircle, Server, Activity } from "lucide-react"
 
-const SuperAdminDashboard = ({ mockData, loading }) => {
+const SuperAdminDashboard = ({ mockData, loading, greeting }) => {
   return (
     <div
       className={`space-y-6 transition-all duration-500 ease-in-out ${loading ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}
     >
+      {/* Greeting */}
+      <h2 className="text-2xl font-medium text-gray-800 dark:text-gray-200 mb-6">{greeting}</h2>
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[

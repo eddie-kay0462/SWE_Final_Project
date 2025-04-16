@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import AdminDashboard from "../components/admin-dashboard"
+import { getGreeting } from "@/app/utils/greetings"
 
 // Mock data for demonstration (you can import this from a shared file)
 const mockData = {
@@ -28,18 +29,22 @@ const mockData = {
 
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
+  const [greeting, setGreeting] = useState("")
 
-  // Initial load animation
+  // Initial load animation and greeting setup
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false)
     }, 500)
 
+    // Set the greeting with a mock name (replace with actual user name from auth)
+    setGreeting(getGreeting("Admin"))
+
     return () => clearTimeout(timer)
   }, [])
 
   return (
-    <AdminDashboard mockData={mockData} loading={loading} />
+    <AdminDashboard mockData={mockData} loading={loading} greeting={greeting} />
   )
 }
 
