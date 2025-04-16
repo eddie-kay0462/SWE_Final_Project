@@ -1,14 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, Clock, MapPin, Users, QrCode, CheckCircle } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, QrCode, CheckCircle, MessageSquare } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { toast } from 'sonner'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export default function AdminEventsPage() {
   const [activeTab, setActiveTab] = useState("upcoming")
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [showQRModal, setShowQRModal] = useState(false)
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false)
+  const [feedbackText, setFeedbackText] = useState("")
+  const [rating, setRating] = useState(0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Mock data for events
   const upcomingEvents = [
@@ -55,6 +60,61 @@ export default function AdminEventsPage() {
     toast.success("QR code generated for event check-in")
   }
 
+  // Function to handle opening feedback dialog
+  const handleOpenFeedbackDialog = (event) => {
+    setSelectedEvent(event)
+    setFeedbackDialogOpen(true)
+  }
+
+  // Function to handle feedback submission
+  const handleSubmitFeedback = async () => {
+    if (rating === 0) {
+      toast({
+        title: "Rating Required",
+        description: "Please provide a rating for this event.",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/dashboard/student/events/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventId: selectedEvent.id,
+          rating,
+          feedback: feedbackText,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit feedback');
+      }
+      
+      setFeedbackDialogOpen(false)
+      setFeedbackText("")
+      setRating(0)
+      
+      toast({
+        title: "Success",
+        description: "Thank you for your feedback!",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit feedback. Please try again.",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   // Function to render event cards
   const renderEventCards = (events) => {
     return events.map((event) => (
@@ -91,9 +151,18 @@ export default function AdminEventsPage() {
                 </button>
               )}
               {activeTab === "past" && (
-                <div className="inline-flex items-center text-muted-foreground text-sm">
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Event Completed
+                <div className="flex gap-2">
+                  <div className="inline-flex items-center text-muted-foreground text-sm">
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Event Completed
+                  </div>
+                  <button
+                    onClick={() => handleOpenFeedbackDialog(event)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Feedback
+                  </button>
                 </div>
               )}
             </div>
@@ -141,6 +210,70 @@ export default function AdminEventsPage() {
           </div>
         </div>
       )}
+
+      {/* Feedback Dialog */}
+      <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Event Feedback</DialogTitle>
+          </DialogHeader>
+
+          {selectedEvent && (
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-muted rounded-md">
+                <h3 className="font-medium">{selectedEvent.title}</h3>
+                <p className="text-sm text-muted-foreground">{selectedEvent.date} • {selectedEvent.time}</p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="rating" className="font-medium">Rating</label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      className={`text-2xl ${
+                        star <= rating ? "text-yellow-400" : "text-gray-300"
+                      }`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="feedback" className="font-medium">Comments</label>
+                <textarea
+                  id="feedback"
+                  className="w-full p-2 border rounded-md min-h-[100px]"
+                  placeholder="Share your thoughts about this event..."
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <button
+              type="button"
+              className="px-4 py-2 border rounded-md hover:bg-gray-100"
+              onClick={() => setFeedbackDialogOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmitFeedback}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-[#A91827] text-white rounded-md hover:bg-[#A91827]/90 disabled:opacity-50"
+            >
+              {isSubmitting ? "Submitting..." : "Submit Feedback"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Tabs */}
       <div className="flex space-x-4 border-b">
