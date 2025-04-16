@@ -1,70 +1,86 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
-export async function GET() {
+/**
+ * GET handler for fetching resume history
+ * Uses server-side Supabase client with proper session handling
+ */
+export async function GET(request) {
+  console.log('[Resume History API] Starting request handling')
+  
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    // Create server-side Supabase client
+    const cookieStore = cookies()
+    const supabase = await createClient(cookieStore)
+
+    // Get the session using the new method
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
-    // Get authenticated user from auth.users
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    console.log('[Resume History API] Session check:', {
+      hasSession: !!session,
+      error: sessionError?.message
+    })
+
+    if (sessionError) {
+      console.error('[Resume History API] Session error:', sessionError)
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: 'Authentication failed', details: sessionError.message },
         { status: 401 }
-      );
+      )
     }
 
-    // Get the corresponding user from public.users table using email
-    const { data: publicUser, error: publicUserError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', user.email)
-      .single();
-
-    if (publicUserError || !publicUser) {
+    if (!session) {
+      console.warn('[Resume History API] No active session')
       return NextResponse.json(
-        { error: 'User not found in system' },
-        { status: 404 }
-      );
+        { error: 'Authentication required', details: 'No active session' },
+        { status: 401 }
+      )
     }
 
-    // Fetch user's documents ordered by upload date using public user ID
+    // Use the session user directly
+    const userId = session.user.id
+    console.log('[Resume History API] Fetching documents for user:', userId)
+
+    // Fetch documents using RLS
     const { data: documents, error: dbError } = await supabase
       .from('documents')
       .select('*')
-      .eq('user_id', publicUser.id)
-      .order('uploaded_at', { ascending: false });
+      .eq('user_id', userId)
+      .order('uploaded_at', { ascending: false })
 
     if (dbError) {
+      console.error('[Resume History API] Database error:', dbError)
       return NextResponse.json(
         { error: 'Failed to fetch documents', details: dbError.message },
         { status: 500 }
-      );
+      )
     }
 
-    // Transform the data to match the frontend format
+    console.log('[Resume History API] Successfully fetched documents:', {
+      count: documents.length
+    })
+
     const history = documents.map((doc, index) => ({
       id: doc.id,
       name: doc.file_url.split('/').pop(),
-      uploadDate: new Date(doc.uploaded_at).toISOString().split('T')[0],
+      uploadDate: new Date(doc.uploaded_at).toLocaleDateString(),
       status: doc.status || 'Pending Review',
       feedback: doc.feedback || '',
       version: documents.length - index,
       fileUrl: doc.file_url
-    }));
+    }))
 
     return NextResponse.json({
       success: true,
       history
-    });
+    })
 
   } catch (error) {
-    console.error('Resume history fetch error:', error);
+    console.error('[Resume History API] Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 }
-    );
+    )
   }
 } 

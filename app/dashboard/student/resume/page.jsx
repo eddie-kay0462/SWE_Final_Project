@@ -3,27 +3,53 @@
 import { useState, useRef, useEffect } from "react"
 import { Upload, Clock, CheckCircle, AlertCircle, FileText, Download, RefreshCw, MessageSquare } from "lucide-react"
 import { toast } from "sonner"
+import { createClient } from '@/utils/supabase/client'
+import { useAuth } from '@/hooks/use-auth'
+import { useRouter } from 'next/navigation'
 
 export default function ResumeUploadPage() {
+  const router = useRouter()
+  const { authUser, loading: authLoading } = useAuth()
   const [file, setFile] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploadHistory, setUploadHistory] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const fileInputRef = useRef(null)
+  const supabase = createClient()
 
-  // Debug logging for component mount
   useEffect(() => {
-    console.debug("[ResumeUpload] Component mounted")
-    fetchResumeHistory()
-  }, [])
+    if (!authLoading && !authUser) {
+      console.log('[ResumeUpload] No authenticated user, redirecting to login')
+      router.push('/auth/login')
+      return
+    }
+  }, [authUser, authLoading, router])
+
+  useEffect(() => {
+    if (authUser) {
+      console.debug("[ResumeUpload] Component mounted with authenticated user")
+      fetchResumeHistory()
+    }
+  }, [authUser])
 
   const fetchResumeHistory = async () => {
+    if (!authUser) {
+      console.warn("[ResumeUpload] Attempted to fetch history without authentication")
+      return
+    }
+
     try {
       console.debug("[ResumeUpload] Fetching resume history...")
-      const response = await fetch('/api/resume/history')
+      const response = await fetch('/api/resume/history', {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${authUser.access_token}`
+        }
+      })
+      
+      console.debug("[ResumeUpload] History API response status:", response.status)
       const data = await response.json()
-
-      console.debug("[ResumeUpload] History response:", data)
+      console.debug("[ResumeUpload] History API response data:", data)
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch history')
@@ -31,8 +57,17 @@ export default function ResumeUploadPage() {
 
       setUploadHistory(data.history)
     } catch (error) {
-      console.error('[ResumeUpload] History fetch error:', error)
-      toast.error('Failed to load resume history')
+      console.error('[ResumeUpload] History fetch error:', {
+        message: error.message,
+        stack: error.stack
+      })
+      
+      if (error.message === 'Authentication required') {
+        toast.error('Please log in to view resume history')
+        router.push('/auth/login')
+      } else {
+        toast.error('Failed to load resume history')
+      }
     }
   }
 
@@ -83,8 +118,8 @@ export default function ResumeUploadPage() {
       return
     }
 
-    // Check file size (2MB max)
-    if (file.size > 2 * 1024 * 1024) {
+    // Check file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
       console.warn("[ResumeUpload] File too large:", file.size)
       toast.error("File size must be less than 2MB")
       return
@@ -95,33 +130,57 @@ export default function ResumeUploadPage() {
   }
 
   const handleUpload = async (file) => {
+    if (!authUser) {
+      toast.error('Please log in to upload resumes')
+      router.push('/auth/login')
+      return
+    }
+
     try {
       setIsLoading(true)
       console.debug("[ResumeUpload] Starting upload for:", file.name)
 
-      const formData = new FormData()
-      formData.append('file', file)
+      // Generate unique file name
+      const timestamp = new Date().getTime()
+      const fileName = `${timestamp}-${file.name}`
+      const filePath = `resumes/${authUser.id}/${fileName}`
 
-      // Log request details
-      console.debug("[ResumeUpload] Upload request:", {
-        url: '/api/resume/upload',
-        fileSize: file.size,
-        fileType: file.type
-      })
+      console.debug("[ResumeUpload] Uploading to storage:", { filePath })
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('docs')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Upload failed')
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('docs')
+        .getPublicUrl(filePath)
+
+      // Create resume record
       const response = await fetch('/api/resume/upload', {
         method: 'POST',
-        body: formData,
-        // Add credentials to ensure cookies are sent
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authUser.access_token}`
+        },
         credentials: 'include',
+        body: JSON.stringify({
+          name: file.name,
+          fileUrl: publicUrl,
+          filePath: filePath
+        })
       })
 
-      console.debug("[ResumeUpload] Upload response status:", response.status)
-
       if (!response.ok) {
-        // Log detailed error information
         const errorText = await response.text()
-        console.error("[ResumeUpload] Upload failed:", {
+        console.error("[ResumeUpload] Upload record creation failed:", {
           status: response.status,
           statusText: response.statusText,
           error: errorText
@@ -133,15 +192,15 @@ export default function ResumeUploadPage() {
         throw new Error(`Upload failed: ${response.statusText}`)
       }
 
-      const data = await response.json()
-      console.debug("[ResumeUpload] Upload success:", data)
+      const apiResponse = await response.json()
+      console.debug("[ResumeUpload] Upload success:", apiResponse)
 
-      if (!data.success) {
-        throw new Error(data.error || 'Upload failed')
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'Upload failed')
       }
 
       toast.success("Resume uploaded successfully!")
-      await fetchResumeHistory() // Refresh the history
+      await fetchResumeHistory()
       setFile(null)
     } catch (error) {
       console.error('[ResumeUpload] Upload error:', error)
@@ -178,6 +237,14 @@ export default function ResumeUploadPage() {
       default:
         return <Clock className="h-5 w-5 text-amber-500" />
     }
+  }
+
+  if (authLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (!authUser) {
+    return null
   }
 
   return (

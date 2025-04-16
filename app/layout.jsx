@@ -15,6 +15,6 @@ export default function RootLayout({ children }) {
           </LoadingProvider>
         </ThemeProvider>
       </body>
-    </html>
+    </html> 
   )
 }
