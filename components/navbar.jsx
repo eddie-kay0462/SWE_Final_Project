@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useTheme } from "@/components/theme-provider"
-import { GraduationCap, Menu, X, Home, Calendar, FileText, MessageSquare, User, LogOut, Moon, Sun, LayoutDashboard } from "lucide-react"
+import { useTheme } from "@/contexts/theme-context"
+import { GraduationCap, Menu, X, Calendar, FileText, User, LogOut, Moon, Sun, LayoutDashboard } from "lucide-react"
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme()
@@ -24,9 +24,7 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Navigation */}
-          
           <div className="hidden md:flex items-center space-x-4">
-            
             <Link
               href="/main/events"
               className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -75,7 +73,6 @@ export default function Navbar() {
                       <span>Dashboard</span>
                     </div>
                   </Link>
-            
                   <button className="w-full text-left block px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors">
                     <div className="flex items-center gap-2">
                       <LogOut className="h-4 w-4" />
@@ -91,92 +88,68 @@ export default function Navbar() {
           <div className="md:hidden">
             <button
               onClick={toggleMenu}
-              className="inline-flex items-center justify-center p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
-              aria-expanded={isOpen}
+              className="inline-flex items-center justify-center p-2 rounded-md text-neutral-700 dark:text-neutral-200 hover:bg-accent hover:text-accent-foreground transition-colors"
             >
-              <span className="sr-only">Open main menu</span>
-              {isOpen ? (
-                <X className="block h-6 w-6" aria-hidden="true" />
-              ) : (
-                <Menu className="block h-6 w-6" aria-hidden="true" />
-              )}
+              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Mobile menu */}
-      <div className={`md:hidden ${isOpen ? "block" : "hidden"}`}>
-        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background border-b border-border">
-          {/* <Link
-            href="/dashboard"
-            className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Home className="h-5 w-5" />
-              <span>Dashboard</span>
-            </div>
-          </Link> */}
-          <Link
-            href="/events"
-            className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              <span>Events</span>
-            </div>
-          </Link>
-          <Link
-            href="/resources"
-            className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              <span>Resources</span>
-            </div>
-          </Link>
-          {/* <Link
-            href="/feed"
-            className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              <span>Feed</span>
-            </div>
-          </Link> */}
-          <Link
-            href="/dashboard/student"
-            className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <LayoutDashboard className="h-5 w-5" />
-              <span>Dashboard</span>
-            </div>
-          </Link>
-          <button className="w-full text-left block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
-            <div className="flex items-center gap-2">
-              <LogOut className="h-5 w-5" />
-              <span>Sign out</span>
-            </div>
-          </button>
-          <button
-            onClick={toggleTheme}
-            className="w-full text-left block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              {theme === "dark" ? (
-                <>
-                  <Sun className="h-5 w-5" />
-                  <span>Light Mode</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="h-5 w-5" />
-                  <span>Dark Mode</span>
-                </>
-              )}
-            </div>
-          </button>
+        {/* Mobile menu */}
+        <div className={`md:hidden ${isOpen ? "block" : "hidden"}`}>
+          <div className="px-2 pt-2 pb-3 space-y-1">
+            <Link
+              href="/main/events"
+              className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                <span>Events</span>
+              </div>
+            </Link>
+            <Link
+              href="/main/resources"
+              className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                <span>Resources</span>
+              </div>
+            </Link>
+            <Link
+              href="/dashboard/student"
+              className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <LayoutDashboard className="h-5 w-5" />
+                <span>Dashboard</span>
+              </div>
+            </Link>
+            <button className="w-full text-left block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
+              <div className="flex items-center gap-2">
+                <LogOut className="h-5 w-5" />
+                <span>Sign out</span>
+              </div>
+            </button>
+            <button
+              onClick={toggleTheme}
+              className="w-full text-left block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                {theme === "dark" ? (
+                  <>
+                    <Sun className="h-5 w-5" />
+                    <span>Light Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="h-5 w-5" />
+                    <span>Dark Mode</span>
+                  </>
+                )}
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </nav>

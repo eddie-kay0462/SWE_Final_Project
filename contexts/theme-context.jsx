@@ -1,50 +1,55 @@
+/**
+ * Theme context provider and hook for managing application-wide theme state
+ * Uses next-themes under the hood for better Next.js integration
+ */
+
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React from "react";
+import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from "next-themes";
 
-const ThemeContext = createContext();
-
+/**
+ * Theme provider component that wraps the application
+ * @param {Object} props - Component props
+ * @param {React.ReactNode} props.children - Child components
+ */
 export function ThemeProvider({ children }) {
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    // Check if user has a theme preference in localStorage
-    const savedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    
-    if (savedTheme) {
-      setDarkMode(savedTheme === "dark");
-    } else {
-      setDarkMode(prefersDark);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Update document class and localStorage when theme changes
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [darkMode]);
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-
   return (
-    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
       {children}
-    </ThemeContext.Provider>
+    </NextThemesProvider>
   );
 }
 
+/**
+ * Custom hook to access and manage theme state
+ * @returns {Object} Theme state and functions
+ */
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error("useTheme must be used within a ThemeProvider");
+  const [mounted, setMounted] = React.useState(false);
+  const { theme, setTheme, systemTheme } = useNextTheme();
+
+  // Prevent hydration mismatch
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return {
+      darkMode: false,
+      toggleDarkMode: () => null,
+    };
   }
-  return context;
+
+  const darkMode = theme === "dark";
+
+  return {
+    darkMode,
+    toggleDarkMode: () => setTheme(darkMode ? "light" : "dark"),
+  };
 } 

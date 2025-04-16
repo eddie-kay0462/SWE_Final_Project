@@ -1,37 +1,106 @@
+"use client"
+
+import { memo } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Slot } from "@radix-ui/react-slot"
+import { Progress } from "@/components/ui/progress"
+import { CheckCircle, Clock, XCircle, Calendar, ArrowUp, FileText, QrCode, History, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from 'next/navigation'
-import { Progress } from "@/components/ui/progress"
-import { Clock, CheckCircle, XCircle, Bell, Users, CalendarDays, FileText, ArrowRight } from "lucide-react"
 
-export default function StudentDashboard({ dashboardData, loading }) {
-  const router = useRouter();
+// Memoized components to prevent unnecessary re-renders
+const StatusCard = memo(({ title, count, icon: Icon, color }) => (
+  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+        <h3 className="text-2xl font-bold mt-1">{count}</h3>
+      </div>
+      <div className={`h-10 w-10 ${color} rounded-full flex items-center justify-center`}>
+        <Icon className="h-5 w-5" />
+      </div>
+    </div>
+  </div>
+))
+
+const SessionCard = memo(({ session }) => (
+  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+    <div className="flex items-start justify-between">
+      <div>
+        <h4 className="font-medium">{session.title}</h4>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {session.date} • {session.location}
+        </p>
+      </div>
+      <button className="bg-[#A91827] px-3 py-1 rounded text-xs font-medium text-white">RSVP</button>
+    </div>
+  </div>
+))
+
+const NotificationCard = memo(({ notification }) => (
+  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 flex items-start">
+    <div
+      className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${
+        notification.type === "status"
+          ? "bg-green-100 dark:bg-green-900/30"
+          : notification.type === "reminder"
+            ? "bg-blue-100 dark:bg-blue-900/30"
+            : "bg-purple-100 dark:bg-purple-900/30"
+      }`}
+    >
+      {notification.type === "status" ? (
+        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+      ) : notification.type === "reminder" ? (
+        <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+      ) : (
+        <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+      )}
+    </div>
+    <div>
+      <p className="font-medium">{notification.message}</p>
+      <div className="mt-2">
+        <button className="px-3 py-1 bg-[#A91827] text-white rounded text-xs">View Details</button>
+      </div>
+    </div>
+  </div>
+))
+
+const StudentDashboard = ({ dashboardData, loading }) => {
+  const router = useRouter()
 
   if (loading || !dashboardData) {
-    return <div>Loading Dashboard Components...</div>;
+    return <div>Loading Dashboard Components...</div>
   }
 
-  const { user, internshipStats, upcomingSessions, engagementProgress, notifications } = dashboardData;
+  const { user, internshipStats, upcomingSessions, engagementProgress, notifications } = dashboardData
 
   return (
-    <div className="flex-1 p-6 md:p-8 grid gap-6 md:gap-8">
+    <div className={`flex-1 p-6 md:p-8 grid gap-6 md:gap-8 transition-opacity duration-300 ${loading ? "opacity-0" : "opacity-100"}`}>
+      {/* Internship Request Status */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base font-medium">Internship Request Status</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Requests</p>
-                <h3 className="text-2xl font-bold mt-1">{internshipStats.totalRequests}</h3>
-              </div>
-              <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
+            <StatusCard
+              title="Pending"
+              count={internshipStats.pending}
+              icon={Clock}
+              color="bg-amber-100 dark:bg-amber-900/30"
+            />
+            <StatusCard
+              title="Approved"
+              count={internshipStats.approved}
+              icon={CheckCircle}
+              color="bg-green-100 dark:bg-green-900/30"
+            />
+            <StatusCard
+              title="Rejected"
+              count={internshipStats.rejected}
+              icon={XCircle}
+              color="bg-red-100 dark:bg-red-900/30"
+            />
           </div>
           <div className="flex gap-4 mt-4">
             <Button asChild>
@@ -45,26 +114,25 @@ export default function StudentDashboard({ dashboardData, loading }) {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
+        {/* Upcoming Career Sessions */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Upcoming Career Sessions</CardTitle>
+            <div className="flex gap-2">
+              <Link href="/dashboard/student/attendance" className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center">
+                <QrCode className="h-4 w-4 mr-1" />
+                Check-in
+              </Link>
+              <Link href="/dashboard/student/attendance-history" className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center">
+                <History className="h-4 w-4 mr-1" />
+                History
+              </Link>
+            </div>
           </CardHeader>
           <CardContent className="grid gap-4">
             {upcomingSessions && upcomingSessions.length > 0 ? (
               upcomingSessions.slice(0, 2).map((session) => (
-                <div key={session.session_id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div>
-                    <h4 className="font-semibold">{session.description}</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(session.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  {session.rsvp ? (
-                      <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">RSVP'd</span>
-                  ) : (
-                      <Button size="sm" variant="outline">RSVP</Button>
-                  )}
-                </div>
+                <SessionCard key={session.session_id} session={session} />
               ))
             ) : (
               <p className="text-sm text-gray-500 dark:text-gray-400">No upcoming sessions.</p>
@@ -75,6 +143,7 @@ export default function StudentDashboard({ dashboardData, loading }) {
           </CardContent>
         </Card>
 
+        {/* Career Engagement Progress */}
         <Card>
           <CardHeader>
             <CardTitle>Career Engagement Progress</CardTitle>
@@ -106,6 +175,7 @@ export default function StudentDashboard({ dashboardData, loading }) {
         </Card>
       </div>
 
+      {/* Notifications */}
       <Card>
         <CardHeader>
           <CardTitle>Important Notifications</CardTitle>
@@ -113,17 +183,7 @@ export default function StudentDashboard({ dashboardData, loading }) {
         <CardContent className="grid gap-4">
           {notifications && notifications.length > 0 ? (
             notifications.map((notification) => (
-              <div key={notification.id} className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center shrink-0">
-                   <CalendarDays className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="font-medium">{notification.message}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                     {new Date(notification.date).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
+              <NotificationCard key={notification.id} notification={notification} />
             ))
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400">No important notifications.</p>
@@ -134,3 +194,4 @@ export default function StudentDashboard({ dashboardData, loading }) {
   )
 }
 
+export default memo(StudentDashboard)

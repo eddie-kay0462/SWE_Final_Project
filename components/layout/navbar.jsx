@@ -2,7 +2,7 @@
 
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home, Menu } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,6 +11,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+
 
 const pathMap = {
   student: {
@@ -43,7 +44,7 @@ const pathMap = {
   },
 };
 
-const Navbar = () => {
+const Navbar = ({ onMenuClick }) => {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -76,25 +77,36 @@ const Navbar = () => {
   const breadcrumbPaths = getBreadcrumbPaths();
 
   return (
-    <div className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white px-4 dark:border-gray-700 dark:bg-gray-800">
-      {/* Navigation Buttons */}
-      <div className="flex items-center gap-2">
+    <div className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      {/* Menu button for mobile */}
+      <button
+        onClick={onMenuClick}
+        className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 md:hidden h-9 w-9"
+      >
+        <Menu className="h-5 w-5" />
+        <span className="sr-only">Toggle menu</span>
+      </button>
+
+      {/* Navigation buttons */}
+      <div className="hidden md:flex items-center gap-2">
         <button
           onClick={() => router.back()}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 w-9"
         >
           <ChevronLeft className="h-5 w-5" />
+          <span className="sr-only">Go back</span>
         </button>
         <button
           onClick={() => router.forward()}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 w-9"
         >
           <ChevronRight className="h-5 w-5" />
+          <span className="sr-only">Go forward</span>
         </button>
       </div>
 
       {/* Breadcrumbs */}
-      <div className="flex-1 px-4">
+      <div className="flex-1">
         <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbPaths.map((item, index) => (
@@ -115,9 +127,6 @@ const Navbar = () => {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-
-      {/* Right side placeholder for potential actions */}
-      <div className="w-[88px]" />
     </div>
   );
 };

@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react"
-import { useLoading } from "@/components/loading-provider"
+import { useLoading } from "@/components/ui/loading-provider"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 

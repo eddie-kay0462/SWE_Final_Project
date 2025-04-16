@@ -1,20 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { Download, Eye, Upload, Check, X } from "lucide-react"
+import { Download, Eye, Check, X } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Label } from "@/components/ui/label"
 
 export default function AdminInternshipRequestsPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("pending")
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [currentRequest, setCurrentRequest] = useState(null)
-  const [letterFile, setLetterFile] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Mock data - in a real app, this would come from your API
@@ -25,7 +22,14 @@ export default function AdminInternshipRequestsPage() {
       studentName: "John Doe",
       submissionDate: "March 25, 2025",
       status: "pending",
-      validationPass: "career-fair-pass-john-doe.pdf",
+      formDetails: {
+        fullName: "John Doe",
+        yearGroup: "2025",
+        major: "Computer Science",
+        companyAddress: "123 Tech Avenue, Silicon Valley, CA 94043",
+        employerName: "Jane Smith, HR Director",
+        internshipDuration: "3 months (June - August 2025)",
+      },
     },
     {
       id: 2,
@@ -33,7 +37,14 @@ export default function AdminInternshipRequestsPage() {
       studentName: "Jane Smith",
       submissionDate: "March 24, 2025",
       status: "approved",
-      validationPass: "career-fair-pass-jane-smith.pdf",
+      formDetails: {
+        fullName: "Jane Smith",
+        yearGroup: "2026",
+        major: "Business Administration",
+        companyAddress: "456 Finance Street, New York, NY 10004",
+        employerName: "Michael Johnson, Recruiting Manager",
+        internshipDuration: "4 months (May - August 2025)",
+      },
       letterFile: "internship-letter-jane-smith.pdf",
     },
     {
@@ -42,7 +53,14 @@ export default function AdminInternshipRequestsPage() {
       studentName: "Michael Johnson",
       submissionDate: "March 23, 2025",
       status: "rejected",
-      validationPass: "career-fair-pass-michael-johnson.pdf",
+      formDetails: {
+        fullName: "Michael Johnson",
+        yearGroup: "2027",
+        major: "Mechanical Engineering",
+        companyAddress: "789 Engineering Blvd, Detroit, MI 48201",
+        employerName: "Sarah Williams, Engineering Director",
+        internshipDuration: "6 months (January - June 2026)",
+      },
       rejectionReason: "Missing required workshops attendance",
     },
     {
@@ -51,7 +69,14 @@ export default function AdminInternshipRequestsPage() {
       studentName: "Emily Williams",
       submissionDate: "March 22, 2025",
       status: "pending",
-      validationPass: "career-fair-pass-emily-williams.pdf",
+      formDetails: {
+        fullName: "Emily Williams",
+        yearGroup: "2028",
+        major: "Psychology",
+        companyAddress: "321 Health Center Drive, Boston, MA 02115",
+        employerName: "David Brown, Clinical Director",
+        internshipDuration: "3 months (May - July 2025)",
+      },
     },
     {
       id: 5,
@@ -59,7 +84,14 @@ export default function AdminInternshipRequestsPage() {
       studentName: "David Brown",
       submissionDate: "March 21, 2025",
       status: "approved",
-      validationPass: "career-fair-pass-david-brown.pdf",
+      formDetails: {
+        fullName: "David Brown",
+        yearGroup: "2025",
+        major: "Finance",
+        companyAddress: "555 Wall Street, New York, NY 10005",
+        employerName: "Robert Taylor, Finance Manager",
+        internshipDuration: "10 weeks (June - August 2025)",
+      },
       letterFile: "internship-letter-david-brown.pdf",
     },
   ]
@@ -73,39 +105,17 @@ export default function AdminInternshipRequestsPage() {
     setViewDialogOpen(true)
   }
 
-  const handleUploadLetter = (request) => {
-    setCurrentRequest(request)
-    setLetterFile(null)
-    setUploadDialogOpen(true)
-  }
-
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setLetterFile(e.target.files[0])
-    }
-  }
-
   const handleApproveRequest = () => {
-    if (!letterFile) {
-      toast({
-        title: "Missing Document",
-        description: "Please upload an internship request letter.",
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsSubmitting(true)
 
     // Simulate API call
     setTimeout(() => {
       setIsSubmitting(false)
-      setUploadDialogOpen(false)
-      setLetterFile(null)
+      setViewDialogOpen(false)
 
       toast({
         title: "Request Approved",
-        description: `Internship request for ${currentRequest.studentName} has been approved and letter uploaded.`,
+        description: `Internship request for ${currentRequest.studentName} has been approved and letter generated.`,
       })
     }, 1500)
   }
@@ -143,12 +153,12 @@ export default function AdminInternshipRequestsPage() {
           >
             Approved ({approvedRequests.length})
           </button>
-          <button
+          {/* <button
             className={`px-4 py-2 font-medium ${activeTab === "rejected" ? "border-b-2 border-primary" : ""}`}
             onClick={() => setActiveTab("rejected")}
           >
             Rejected ({rejectedRequests.length})
-          </button>
+          </button> */}
         </div>
 
         {activeTab === "pending" && (
@@ -168,10 +178,6 @@ export default function AdminInternshipRequestsPage() {
                         <Button variant="outline" size="sm" onClick={() => handleViewRequest(request)}>
                           <Eye className="h-4 w-4 mr-2" />
                           View
-                        </Button>
-                        <Button size="sm" onClick={() => handleUploadLetter(request)}>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Approve & Upload Letter
                         </Button>
                       </div>
                     </div>
@@ -313,13 +319,27 @@ export default function AdminInternshipRequestsPage() {
               </div>
 
               <div>
-                <h3 className="font-medium">Career Fair Validation Pass</h3>
-                <div className="mt-2 p-3 bg-muted rounded-md flex items-center justify-between">
-                  <p className="truncate">{currentRequest.validationPass}</p>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
+                <h3 className="font-medium">Internship Details</h3>
+                <div className="mt-2 p-3 bg-muted rounded-md">
+                  <p>
+                    <span className="font-medium">Full Name:</span> {currentRequest.formDetails.fullName}
+                  </p>
+                  <p>
+                    <span className="font-medium">Year Group:</span> {currentRequest.formDetails.yearGroup}
+                  </p>
+                  <p>
+                    <span className="font-medium">Major:</span> {currentRequest.formDetails.major}
+                  </p>
+                  <p>
+                    <span className="font-medium">Company Address:</span> {currentRequest.formDetails.companyAddress}
+                  </p>
+                  <p>
+                    <span className="font-medium">Employer/Recruiter:</span> {currentRequest.formDetails.employerName}
+                  </p>
+                  <p>
+                    <span className="font-medium">Internship Duration:</span>{" "}
+                    {currentRequest.formDetails.internshipDuration}
+                  </p>
                 </div>
               </div>
 
@@ -336,99 +356,22 @@ export default function AdminInternshipRequestsPage() {
                 </div>
               )}
 
-              {currentRequest.status === "pending" && (
+              {/* {currentRequest.status === "pending" && (
                 <div className="flex justify-between pt-4">
                   <Button variant="outline" onClick={() => handleRejectRequest()}>
                     <X className="h-4 w-4 mr-2" />
                     Reject Request
                   </Button>
-                  <Button
-                    onClick={() => {
-                      setViewDialogOpen(false)
-                      handleUploadLetter(currentRequest)
-                    }}
-                  >
+                  <Button onClick={() => handleApproveRequest()}>
                     <Check className="h-4 w-4 mr-2" />
-                    Approve Request
+                    Approve & Generate Letter
                   </Button>
                 </div>
-              )}
+              )} */}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Letter Dialog */}
-      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upload Internship Request Letter</DialogTitle>
-          </DialogHeader>
-
-          {currentRequest && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Upload an internship request letter for {currentRequest.studentName} (ID: {currentRequest.studentId})
-                </p>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="letter-file">Internship Request Letter</Label>
-                <div className="flex items-center justify-center w-full">
-                  <label
-                    htmlFor="letter-file"
-                    className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                      letterFile ? "border-green-300 bg-green-50" : "border-gray-300 bg-gray-50 hover:bg-gray-100"
-                    }`}
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      {letterFile ? (
-                        <>
-                          <Check className="w-8 h-8 mb-3 text-green-500" />
-                          <p className="mb-2 text-sm text-green-700 font-medium">File selected</p>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-8 h-8 mb-3 text-gray-500" />
-                          <p className="mb-2 text-sm text-gray-500">
-                            <span className="font-semibold">Click to upload</span> or drag and drop
-                          </p>
-                        </>
-                      )}
-                      <p className="text-xs text-gray-500">PDF file (MAX. 5MB)</p>
-                    </div>
-                    <input id="letter-file" type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
-                  </label>
-                </div>
-                {letterFile && (
-                  <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-md">
-                    <p className="text-sm text-green-700 truncate">{letterFile.name}</p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-500"
-                      onClick={() => setLetterFile(null)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setUploadDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleApproveRequest} disabled={isSubmitting}>
-              {isSubmitting ? "Uploading..." : "Approve & Upload"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   )
 }
-

@@ -1,5 +1,15 @@
 "use client"
-import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/components/ui/sidebar"
+import { 
+  Sidebar, 
+  SidebarProvider,
+  useSidebar,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarHeader,
+  SidebarFooter
+} from "@/components/ui/sidebar"
 import { GraduationCap } from "lucide-react"
 import ThemeToggle from "@/components/ui/theme-toggle"
 import {
@@ -29,52 +39,74 @@ const superAdminNavItems = [
   { label: "Dev Tools", href: "/dashboard/super-admin/dev-tools", icon: <IconDatabase className="h-6 w-6 shrink-0" /> },
 ]
 
-const SuperAdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
-  const Logo = () => {
-    const { open } = useSidebar();
-    return (
-      <div className="flex items-center gap-2 py-1">
-        <GraduationCap className="h-8 w-8 text-[#A91827]" />
-        {open && <span className="text-xl font-bold">CSOFT</span>}
-      </div>
-    );
-  };
+const SuperAdminSidebarContent = () => {
+  const { open } = useSidebar()
+
+  const Logo = () => (
+    <div className="flex items-center gap-2 py-1">
+      <GraduationCap className="h-8 w-8 text-[#A91827]" />
+      {open && <span className="text-xl font-bold">CSOFT</span>}
+    </div>
+  )
 
   return (
-    <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
-      <SidebarBody className="justify-between gap-10">
-        <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
-          {/* Logo */}
+    <SidebarContent className="justify-between gap-10">
+      <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+        {/* Logo */}
+        <SidebarHeader>
           <Logo />
+        </SidebarHeader>
 
-          {/* Navigation Links */}
-          <div className="mt-8 flex flex-col gap-2">
-            {superAdminNavItems.map((link, idx) => (
-              <SidebarLink key={idx} link={link} />
-            ))}
-          </div>
-        </div>
+        {/* Navigation Links */}
+        <SidebarMenu>
+          {superAdminNavItems.map((link, idx) => (
+            <SidebarMenuItem key={idx}>
+              <SidebarMenuButton
+                asChild
+                tooltip={link.label}
+                href={link.href}
+              >
+                <a href={link.href} className="flex items-center gap-2">
+                  {link.icon}
+                  <span>{link.label}</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </div>
 
-        {/* Footer Section */}
-        <div className="flex flex-col gap-2">
-          {/* Theme Toggle */}
-          <ThemeToggle />
+      {/* Footer Section */}
+      <SidebarFooter>
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
-          {/* User Profile */}
-          <SidebarLink
-            link={{
-              label: "Alex Admin",
-              href: "/dashboard/super-admin/profile",
-              icon: (
-                <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
-                  A
-                </div>
-              ),
-            }}
-          />
-        </div>
-      </SidebarBody>
-    </Sidebar>
+        {/* User Profile */}
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            asChild
+            href="/dashboard/super-admin/profile"
+          >
+            <a className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                A
+              </div>
+              <span>Alex Admin</span>
+            </a>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarFooter>
+    </SidebarContent>
+  )
+}
+
+const SuperAdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
+  return (
+    <SidebarProvider defaultOpen={sidebarOpen} onOpenChange={setSidebarOpen}>
+      <Sidebar>
+        <SuperAdminSidebarContent />
+      </Sidebar>
+    </SidebarProvider>
   )
 }
 

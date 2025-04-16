@@ -87,7 +87,7 @@ function createSuccessResponse(authData, userData, reqCookies) {
       redirectPath = '/dashboard/admin' // Admin/Staff
       break
     case 3:
-      redirectPath = '/main/events' // Student
+      redirectPath = '/dashboard/student' // Student
       break
     default:
       redirectPath = '/' // Default
