@@ -152,11 +152,11 @@ export default function EventsPage() {
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
             
-            {event.status === "upcoming" && event.feedbackStatus !== "active" && (
-              <Button>RSVP Now</Button>
-            )}
-            
-            {event.feedbackStatus === "active" && (
+            <div className="flex gap-2">
+              {event.status === "upcoming" && (
+                <Button>RSVP Now</Button>
+              )}
+              
               <Button 
                 variant="outline" 
                 className="inline-flex items-center"
@@ -165,14 +165,14 @@ export default function EventsPage() {
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Provide Feedback
               </Button>
-            )}
-            
-            {event.status === "past" && event.feedbackStatus === "off" && (
-              <div className="inline-flex items-center text-muted-foreground text-sm">
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Event Completed
-              </div>
-            )}
+
+              {event.status === "past" && (
+                <div className="inline-flex items-center text-muted-foreground text-sm">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Event Completed
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

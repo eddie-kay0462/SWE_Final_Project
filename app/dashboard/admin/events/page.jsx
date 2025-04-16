@@ -141,30 +141,30 @@ export default function AdminEventsPage() {
               </div>
             </div>
             <div className="mt-4 md:mt-0">
-              {activeTab === "upcoming" && (
-                <button
-                  onClick={() => handleGenerateQR(event)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors"
-                >
-                  <QrCode className="h-4 w-4" />
-                  Generate Check-in QR
-                </button>
-              )}
-              {activeTab === "past" && (
-                <div className="flex gap-2">
+              <div className="flex gap-2">
+                {activeTab === "upcoming" && (
+                  <button
+                    onClick={() => handleGenerateQR(event)}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Generate Check-in QR
+                  </button>
+                )}
+                {activeTab === "past" && (
                   <div className="inline-flex items-center text-muted-foreground text-sm">
                     <CheckCircle className="h-4 w-4 mr-1" />
                     Event Completed
                   </div>
-                  <button
-                    onClick={() => handleOpenFeedbackDialog(event)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    Feedback
-                  </button>
-                </div>
-              )}
+                )}
+                <button
+                  onClick={() => handleOpenFeedbackDialog(event)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Feedback
+                </button>
+              </div>
             </div>
           </div>
           <p className="text-muted-foreground mb-4">{event.description}</p>
