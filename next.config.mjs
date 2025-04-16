@@ -13,7 +13,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'miro.medium.com',  // Add this for Medium images
+        hostname: 'miro.medium.com',
         pathname: '/**',
       },
     ],
@@ -25,7 +25,6 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  swcMinify: true,
   experimental: {
     // optimizeCss: true,
     optimizePackageImports: ['@supabase/ssr', '@supabase/supabase-js', 'framer-motion'],
