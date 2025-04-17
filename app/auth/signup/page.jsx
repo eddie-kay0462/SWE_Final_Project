@@ -13,9 +13,11 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { GraduationCap } from "lucide-react"
+import { GraduationCap, Eye, EyeOff } from "lucide-react"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { PasswordStrength } from "@/components/ui/password-strength"
+import { validatePassword } from "@/utils/validation"
 
 export default function Signup() {
   const [email, setEmail] = useState("")
@@ -28,7 +30,34 @@ export default function Signup() {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isPageLoading, setIsPageLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [touched, setTouched] = useState({})
   const router = useRouter()
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({
+      ...prev,
+      [field]: true
+    }))
+  }
+
+  const validateForm = () => {
+    // Password validation
+    const passwordError = validatePassword(password)
+    if (passwordError) {
+      setError(passwordError)
+      return false
+    }
+
+    // Confirm password validation
+    if (password !== confirmPassword) {
+      setError("Passwords don't match")
+      return false
+    }
+
+    return true
+  }
 
   /**
    * Handles form submission for user registration
@@ -42,17 +71,16 @@ export default function Signup() {
     setIsLoading(true)
     setError(null)
 
-    // Validate Ashesi email domain
-    const parts = email.split('@')
-    if (parts.length !== 2 || (parts[1] !== 'ashesi.edu.gh' && parts[1] !== 'aucampus.onmicrosoft.com')) {
-      setError('Only Ashesi email addresses are allowed (ashesi.edu.gh or aucampus.onmicrosoft.com)')
+    // Validate form before proceeding
+    if (!validateForm()) {
       setIsLoading(false)
       return
     }
 
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      setError("Passwords don't match")
+    // Validate Ashesi email domain
+    const parts = email.split('@')
+    if (parts.length !== 2 || (parts[1] !== 'ashesi.edu.gh' && parts[1] !== 'aucampus.onmicrosoft.com')) {
+      setError('Only Ashesi email addresses are allowed (ashesi.edu.gh or aucampus.onmicrosoft.com)')
       setIsLoading(false)
       return
     }
@@ -263,35 +291,59 @@ export default function Signup() {
                 </div>
 
                 {/* Password */}
-                <div className="animate-appear opacity-0 delay-600">
+                <div>
                   <label className="block text-[#000000]/70 text-lg font-medium mb-2" htmlFor="password">
                     Password
                   </label>
-                  <input
-                    id="password"
-                    type="password"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                      placeholder="••••••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onBlur={() => handleBlur('password')}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
+                    </button>
+                  </div>
+                  {touched.password && <PasswordStrength password={password} />}
                 </div>
 
                 {/* Confirm Password */}
-                <div className="animate-appear opacity-0 delay-700">
+                <div>
                   <label className="block text-[#000000]/70 text-lg font-medium mb-2" htmlFor="confirmPassword">
                     Confirm Password
                   </label>
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
-                    placeholder="••••••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                      placeholder="••••••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onBlur={() => handleBlur('confirmPassword')}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
+                    </button>
+                  </div>
+                  {touched.confirmPassword && password !== confirmPassword && (
+                    <p className="mt-1 text-sm text-red-500">Passwords don't match</p>
+                  )}
                 </div>
 
                 {/* Admin note */}
