@@ -331,178 +331,212 @@ export default function AdvisorDashboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white sm:text-4xl">Resume Reviews</h1>
-      <p className="text-gray-600 dark:text-gray-400 mb-6 sm:text-lg">Review and manage student resume submissions</p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-neutral-100">Resume Reviews</h1>
+        <p className="mt-2 text-gray-600 dark:text-neutral-400">Review and manage student resume submissions</p>
+      </div>
 
-      {/* Statistics Cards - Updated for better responsiveness */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg border shadow-sm">
-          <h3 className="text-base sm:text-lg font-medium text-gray-500 dark:text-gray-400">Total Submissions</h3>
-          <p className="text-2xl sm:text-3xl font-bold mt-2">{stats.total}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg border shadow-sm">
-          <h3 className="text-base sm:text-lg font-medium text-gray-500 dark:text-gray-400">Pending Review</h3>
-          <div className="flex items-center">
-            <p className="text-2xl sm:text-3xl font-bold mr-2">{stats.pending}</p>
-            <Clock className="h-6 w-6 text-amber-500" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-[#1c1c1c] rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-neutral-400">Total Submissions</p>
+              <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-neutral-100">{stats.total}</h3>
+            </div>
+            <div className="h-10 w-10 bg-gray-100 dark:bg-[#262626] rounded-full flex items-center justify-center">
+              <FileText className="h-5 w-5 text-gray-600 dark:text-neutral-400" />
+            </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg border shadow-sm">
-          <h3 className="text-base sm:text-lg font-medium text-gray-500 dark:text-gray-400">Approved</h3>
-          <div className="flex items-center">
-            <p className="text-2xl sm:text-3xl font-bold mr-2">{stats.approved}</p>
-            <CheckCircle className="h-6 w-6 text-green-600" />
+
+        <div className="bg-white dark:bg-[#1c1c1c] rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-neutral-400">Pending Review</p>
+              <h3 className="text-2xl font-bold mt-1 text-amber-600 dark:text-amber-400">{stats.pending}</h3>
+            </div>
+            <div className="h-10 w-10 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+              <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg border shadow-sm">
-          <h3 className="text-base sm:text-lg font-medium text-gray-500 dark:text-gray-400">Needs Edits</h3>
-          <div className="flex items-center">
-            <p className="text-2xl sm:text-3xl font-bold mr-2">{stats.needsEdits}</p>
-            <AlertCircle className="h-6 w-6 text-red-500" />
+
+        <div className="bg-white dark:bg-[#1c1c1c] rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-neutral-400">Approved</p>
+              <h3 className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{stats.approved}</h3>
+            </div>
+            <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#1c1c1c] rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-neutral-400">Needs Edits</p>
+              <h3 className="text-2xl font-bold mt-1 text-red-600 dark:text-red-400">{stats.needsEdits}</h3>
+            </div>
+            <div className="h-10 w-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Filters and Search - Updated for better responsiveness */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-4 sm:p-6 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <h2 className="text-lg sm:text-xl font-semibold">Resume Submissions</h2>
+      {/* Resume Submissions Section */}
+      <div className="bg-white dark:bg-[#1c1c1c] rounded-xl shadow-sm">
+        <div className="p-4 border-b border-gray-200 dark:border-[#262626]">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-neutral-100">Resume Submissions</h2>
+        </div>
+
+        {/* Filters */}
+        <div className="p-4 border-b border-gray-200 dark:border-[#262626] space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1 sm:flex-none">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Search by name or email"
-                className="pl-10 pr-4 py-2 border rounded-md w-full sm:w-64 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-[#A91827] focus:border-[#A91827]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-neutral-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or student ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-[#363636] rounded-lg bg-white dark:bg-[#161616] text-gray-900 dark:text-neutral-100 placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#A91827] focus:border-transparent"
+                />
+              </div>
             </div>
-            <div className="relative flex-1 sm:flex-none">
-              <select
-                className="pl-4 pr-10 py-2 border rounded-md appearance-none w-full sm:w-48 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-[#A91827] focus:border-[#A91827]"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+            <div className="relative">
+              <button
+                onClick={() => setStatusFilter(statusFilter === "All" ? "Pending Review" : "All")}
+                className="w-full sm:w-auto px-4 py-2 bg-white dark:bg-[#262626] border border-gray-300 dark:border-[#363636] rounded-lg text-gray-700 dark:text-neutral-100 hover:bg-gray-50 dark:hover:bg-[#363636] focus:outline-none focus:ring-2 focus:ring-[#A91827] focus:border-transparent flex items-center gap-2"
               >
-                <option value="All">All Statuses</option>
-                <option value="Pending Review">Pending Review</option>
-                <option value="Approved">Approved</option>
-                <option value="Needs Edits">Needs Edits</option>
-              </select>
-              <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Filter className="h-4 w-4" />
+                Status: {statusFilter}
+                {statusFilter === "All" ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Table - Updated for better responsiveness */}
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
-          <table className="w-full border-collapse min-w-[800px]">
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-700 text-left">
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-200 text-sm sm:text-base">
-                  <button 
-                    className="flex items-center"
+              <tr className="bg-gray-50 dark:bg-[#161616] border-b border-gray-200 dark:border-[#262626]">
+                <th className="px-4 py-3 text-left">
+                  <button
                     onClick={() => handleSort('name')}
+                    className="flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-neutral-400"
                   >
                     File Name
-                    <ArrowUpDown className="h-4 w-4 ml-1" />
+                    <ArrowUpDown className="h-4 w-4" />
                   </button>
                 </th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-200 text-sm sm:text-base">
-                  <button 
-                    className="flex items-center"
-                    onClick={() => handleSort('user_student_id')}
+                <th className="px-4 py-3 text-left">
+                  <button
+                    onClick={() => handleSort('user_fname')}
+                    className="flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-neutral-400"
                   >
                     Student
-                    <ArrowUpDown className="h-4 w-4 ml-1" />
+                    <ArrowUpDown className="h-4 w-4" />
                   </button>
                 </th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-200 text-sm sm:text-base">
-                  <button 
-                    className="flex items-center"
+                <th className="px-4 py-3 text-left">
+                  <button
                     onClick={() => handleSort('uploaded_at')}
+                    className="flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-neutral-400"
                   >
                     Uploaded
-                    <ArrowUpDown className="h-4 w-4 ml-1" />
+                    <ArrowUpDown className="h-4 w-4" />
                   </button>
                 </th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-200 text-sm sm:text-base">
-                  <button 
-                    className="flex items-center"
+                <th className="px-4 py-3 text-left">
+                  <button
                     onClick={() => handleSort('status')}
+                    className="flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-neutral-400"
                   >
                     Status
-                    <ArrowUpDown className="h-4 w-4 ml-1" />
+                    <ArrowUpDown className="h-4 w-4" />
                   </button>
                 </th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-200 text-sm sm:text-base">Actions</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y dark:divide-gray-600">
+            <tbody className="divide-y divide-gray-200 dark:divide-[#262626]">
               {isLoading ? (
                 <tr>
-                  <td colSpan="5" className="px-4 py-8 text-center">
-                    <div className="flex justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#A91827]"></div>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-neutral-400">
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading resumes...
                     </div>
                   </td>
                 </tr>
               ) : filteredResumes.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                    No resume submissions found
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-neutral-400">
+                    No resumes found
                   </td>
                 </tr>
               ) : (
                 filteredResumes.map((resume) => (
-                  <tr key={resume.id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center">
-                        <FileText className="h-5 w-5 text-[#A91827] mr-2" />
-                        <span className="font-medium dark:text-white">{resume.name}</span>
+                  <tr key={resume.id} className="hover:bg-gray-50 dark:hover:bg-[#161616]">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-400 dark:text-neutral-500" />
+                        <span className="text-sm text-gray-900 dark:text-neutral-100">{resume.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
-                      <div>
-                        <div className="font-medium dark:text-white">
-                          {resume.users?.fname} {resume.users?.lname}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-400 dark:text-neutral-500" />
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-neutral-100">
+                            {resume.users?.fname} {resume.users?.lname}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-neutral-400">
+                            {resume.users?.email}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{resume.users?.email}</div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300">
-                      {new Date(resume.uploaded_at).toLocaleString()}
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-gray-500 dark:text-neutral-400">
+                        {new Date(resume.uploaded_at).toLocaleDateString()}
+                      </span>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center">
-                        {getStatusIcon(resume.status)}
-                        <span className="ml-2 dark:text-white">{resume.status}</span>
-                      </div>
+                    <td className="px-4 py-3">
+                      {getStatusIcon(resume.status)}
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="flex flex-wrap gap-2">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleViewResume(resume.file_url)}
-                          className="p-2 sm:p-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#A91827] group"
+                          className="p-1 text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-200"
                           title="View Resume"
                         >
-                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300 group-hover:text-[#A91827]" />
+                          <Download className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleStatusChange(resume.id, 'Approved')}
-                          className="p-2 sm:p-2.5 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 rounded-md text-green-700 dark:text-green-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 group"
-                          title="Approve Resume"
+                          onClick={() => openFeedbackModal(resume)}
+                          className="p-1 text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-200"
+                          title="Add Feedback"
                         >
-                          <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 group-hover:text-green-600" />
+                          <MessageSquare className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => handleStatusChange(resume.id, 'Needs Edits')}
-                          className="p-2 sm:p-2.5 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 rounded-md text-red-700 dark:text-red-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 group"
-                          title="Mark as Needs Edits"
+                        <select
+                          value={resume.status}
+                          onChange={(e) => handleStatusChange(resume.id, e.target.value)}
+                          className="text-sm border border-gray-300 dark:border-[#363636] rounded-lg bg-white dark:bg-[#262626] text-gray-700 dark:text-neutral-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#A91827] focus:border-transparent"
                         >
-                          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 group-hover:text-red-600" />
-                        </button>
+                          <option value="Pending Review">Pending Review</option>
+                          <option value="Approved">Approved</option>
+                          <option value="Needs Edits">Needs Edits</option>
+                        </select>
                       </div>
                     </td>
                   </tr>
@@ -512,60 +546,43 @@ export default function AdvisorDashboardPage() {
           </table>
         </div>
       </div>
-      
-      {/* Feedback Modal - Updated for better responsiveness */}
-      {showFeedbackModal && selectedResume && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-2xl w-full mx-auto">
-            <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center">
-              <h3 className="text-xl font-semibold dark:text-white">Resume Feedback</h3>
-              <button onClick={() => setShowFeedbackModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-[#1c1c1c] rounded-xl shadow-lg max-w-lg w-full">
+            <div className="p-4 border-b border-gray-200 dark:border-[#262626] flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-neutral-100">
+                Add Feedback
+              </h3>
+              <button
+                onClick={() => setShowFeedbackModal(false)}
+                className="text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-200"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-6">
-              <div className="mb-4 flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <User className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium dark:text-white">
-                    {selectedResume.users?.fname} {selectedResume.users?.lname}
-                  </h4>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">{selectedResume.users?.email}</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Resume: {selectedResume.name}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <label className="block font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Feedback
-                </label>
-                <textarea
-                  className="w-full border rounded-md p-3 min-h-32 focus:ring-2 focus:ring-[#A91827] focus:border-[#A91827] dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="Provide feedback on this resume..."
-                  value={feedbackText}
-                  onChange={(e) => setFeedbackText(e.target.value)}
-                ></textarea>
-              </div>
-              
-              <div className="flex justify-end space-x-3">
+            <div className="p-4">
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Enter your feedback here..."
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[#363636] rounded-lg bg-white dark:bg-[#161616] text-gray-900 dark:text-neutral-100 placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#A91827] focus:border-transparent"
+              />
+              <div className="mt-4 flex justify-end gap-2">
                 <button
                   onClick={() => setShowFeedbackModal(false)}
-                  className="px-4 py-2 border rounded-md hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
+                  className="px-4 py-2 text-gray-700 dark:text-neutral-100 bg-gray-100 dark:bg-[#262626] hover:bg-gray-200 dark:hover:bg-[#363636] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] focus:ring-offset-2 dark:focus:ring-offset-[#1c1c1c]"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmitFeedback}
-                  className="px-4 py-2 bg-[#A91827] hover:bg-[#8a1420] text-white rounded-md flex items-center"
+                  className="px-4 py-2 bg-[#A91827] hover:bg-[#A91827]/90 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] focus:ring-offset-2 dark:focus:ring-offset-[#1c1c1c] flex items-center gap-2"
                 >
-                  <Send className="h-4 w-4 mr-2" />
-                  Submit Feedback
+                  <Send className="h-4 w-4" />
+                  Send Feedback
                 </button>
               </div>
             </div>

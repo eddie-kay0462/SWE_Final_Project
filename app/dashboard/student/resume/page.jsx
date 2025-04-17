@@ -248,187 +248,103 @@ export default function ResumeUploadPage() {
 
   // Frontend
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-2/3">
-          <h1 className="text-3xl font-bold mb-2">Resume Upload</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">Upload your resume for review by career advisors</p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-neutral-100">Resume Upload</h1>
+        <p className="mt-2 text-gray-600 dark:text-neutral-400">Upload and manage your resume for career advisor review</p>
+      </div>
 
-          {/* Upload Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Upload Resume</h2>
-
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isLoading
-                  ? "border-[#A91827] bg-[#A91827]/5"
-                  : "border-gray-300 hover:border-[#A91827] hover:bg-[#A91827]/5"
-              }`}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
+      {/* Upload Section */}
+      <div className="bg-white dark:bg-[#1c1c1c] rounded-xl shadow-sm p-6">
+        <div
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          className="border-2 border-dashed border-gray-300 dark:border-[#363636] rounded-lg p-8 text-center hover:border-[#A91827] dark:hover:border-[#A91827] transition-colors"
+        >
+          <div className="mx-auto flex flex-col items-center">
+            <Upload className="h-12 w-12 text-gray-400 dark:text-neutral-500 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-neutral-100 mb-2">
+              Drag and drop your resume here
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-neutral-400 mb-4">
+              or click to select a file (PDF, DOC, DOCX up to 2MB)
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileChange}
+              accept=".pdf,.doc,.docx"
+              className="hidden"
+            />
+            <button
               onClick={() => fileInputRef.current.click()}
+              className="px-4 py-2 bg-[#A91827] hover:bg-[#A91827]/90 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] focus:ring-offset-2 dark:focus:ring-offset-[#1c1c1c] transition-colors"
             >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx"
-                className="hidden"
-                disabled={isLoading}
-              />
-              {isLoading ? (
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827] mb-4"></div>
-                  <p className="text-sm text-gray-500">Uploading...</p>
-                </div>
-              ) : (
-                <>
-                  <Upload className="h-12 w-12 mx-auto mb-4 text-[#A91827]" />
-                  <h3 className="text-lg font-medium mb-2">Drag and drop your resume here</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    Supported formats: PDF, DOC, DOCX (Max 2MB)
-                  </p>
-                  <button
-                    className="bg-[#A91827] hover:bg-[#8a1420] text-white font-medium py-2 px-4 rounded-md transition-colors"
-                    onClick={() => fileInputRef.current.click()}
-                    disabled={isLoading}
-                  >
-                    Browse Files
-                  </button>
-                </>
-              )}
-            </div>
+              Select File
+            </button>
           </div>
-
-          {/* Current Resume Section */}
-          {uploadHistory.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Current Resume</h2>
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <FileText className="h-8 w-8 text-[#A91827] mr-3" />
-                    <div>
-                      <h3 className="font-medium">{uploadHistory[0].name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {new Date(uploadHistory[0].uploaded_at).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    {getStatusIcon(uploadHistory[0].status)}
-                    <span className="ml-2 font-medium">{uploadHistory[0].status}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button 
-                    onClick={() => handleDownload(uploadHistory[0].file_url)}
-                    className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    View
-                  </button>
-                  <button 
-                    onClick={() => handleDownload(uploadHistory[0].file_url)}
-                    className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </button>
-                  <button 
-                    onClick={() => fileInputRef.current.click()}
-                    className="inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md text-sm transition-colors"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Replace
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
+      </div>
 
-        <div className="w-full md:w-1/3">
-          {/* Status Tracker */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Resume Status</h2>
-
-            <div className="space-y-4">
-              {uploadHistory.map((item) => (
-                <div key={item.id} className="flex items-start border-b pb-4 last:border-0">
-                  <div className="mr-3 mt-1">{getStatusIcon(item.status)}</div>
-                  <div>
-                    <h3 className="font-medium">{item.name}</h3>
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                      <span>{new Date(item.uploaded_at).toLocaleString()}</span>
+      {/* Upload History */}
+      <div className="bg-white dark:bg-[#1c1c1c] rounded-xl shadow-sm">
+        <div className="p-4 border-b border-gray-200 dark:border-[#262626]">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-neutral-100">Upload History</h2>
+        </div>
+        <div className="divide-y divide-gray-200 dark:divide-[#262626]">
+          {isLoading ? (
+            <div className="p-4 text-center text-gray-500 dark:text-neutral-400">
+              Loading...
+            </div>
+          ) : uploadHistory.length === 0 ? (
+            <div className="p-4 text-center text-gray-500 dark:text-neutral-400">
+              No resumes uploaded yet
+            </div>
+          ) : (
+            uploadHistory.map((doc) => (
+              <div key={doc.id} className="p-4 hover:bg-gray-50 dark:hover:bg-[#161616] transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-3">
+                    <div className="h-10 w-10 bg-gray-100 dark:bg-[#262626] rounded-full flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-gray-500 dark:text-neutral-400" />
                     </div>
-                    <div className="mt-1 text-sm">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          item.status === "Approved"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                            : item.status === "Needs Edits"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                              : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-neutral-100">
+                        {doc.name}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-4">
+                        <span className="text-xs text-gray-500 dark:text-neutral-400">
+                          {new Date(doc.uploaded_at).toLocaleDateString()}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {getStatusIcon(doc.status)}
+                          <span className="text-xs font-medium text-gray-700 dark:text-neutral-300">
+                            {doc.status}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleDownload(doc.file_url)}
+                      className="p-2 text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-200 rounded-lg"
+                      title="Download"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={handleReplace}
+                      className="p-2 text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-200 rounded-lg"
+                      title="Replace"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-              ))}
-            </div>
-
-            {uploadHistory.length === 0 && (
-              <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                <p>No resume uploads yet</p>
               </div>
-            )}
-          </div>
-
-          {/* Guidelines */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Resume Guidelines</h2>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-start">
-                <span className="inline-block h-5 w-5 rounded-full bg-[#A91827] text-white text-xs flex items-center justify-center mr-2 mt-0.5">
-                  1
-                </span>
-                <span>Keep your resume to 1-2 pages maximum</span>
-              </li>
-              <li className="flex items-start">
-                <span className="inline-block h-5 w-5 rounded-full bg-[#A91827] text-white text-xs flex items-center justify-center mr-2 mt-0.5">
-                  2
-                </span>
-                <span>Use bullet points to highlight achievements</span>
-              </li>
-              <li className="flex items-start">
-                <span className="inline-block h-5 w-5 rounded-full bg-[#A91827] text-white text-xs flex items-center justify-center mr-2 mt-0.5">
-                  3
-                </span>
-                <span>Quantify your accomplishments when possible</span>
-              </li>
-              <li className="flex items-start">
-                <span className="inline-block h-5 w-5 rounded-full bg-[#A91827] text-white text-xs flex items-center justify-center mr-2 mt-0.5">
-                  4
-                </span>
-                <span>Tailor your resume for each job application</span>
-              </li>
-              <li className="flex items-start">
-                <span className="inline-block h-5 w-5 rounded-full bg-[#A91827] text-white text-xs flex items-center justify-center mr-2 mt-0.5">
-                  5
-                </span>
-                <span>Proofread carefully for errors and typos</span>
-              </li>
-            </ul>
-            <div className="mt-4">
-              <a href="#" className="text-[#A91827] hover:underline text-sm font-medium">
-                View full resume writing guide →
-              </a>
-            </div>
-          </div>
+            ))
+          )}
         </div>
       </div>
     </div>

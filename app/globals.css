@@ -32,25 +32,25 @@
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 349 77% 38%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 349 77% 38%;
+    --background: 0 0% 9%; /* #161616 */
+    --foreground: 0 0% 98%; /* #fafafa */
+    --card: 0 0% 11%; /* #1c1c1c */
+    --card-foreground: 0 0% 98%; /* #fafafa */
+    --popover: 0 0% 13%; /* #212121 */
+    --popover-foreground: 0 0% 98%; /* #fafafa */
+    --primary: 0 0% 98%; /* #fafafa */
+    --primary-foreground: 0 0% 9%; /* #161616 */
+    --secondary: 0 0% 15%; /* #262626 */
+    --secondary-foreground: 0 0% 98%; /* #fafafa */
+    --muted: 0 0% 13%; /* #212121 */
+    --muted-foreground: 0 0% 75%; /* #bfbfbf */
+    --accent: 349 77% 38%; /* keeping the accent color */
+    --accent-foreground: 0 0% 98%; /* #fafafa */
+    --destructive: 0 62.8% 30.6%; /* keeping the destructive color */
+    --destructive-foreground: 0 0% 98%; /* #fafafa */
+    --border: 0 0% 15%; /* #262626 */
+    --input: 0 0% 15%; /* #262626 */
+    --ring: 349 77% 38%; /* keeping the ring color */
     --radius: 1rem;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
