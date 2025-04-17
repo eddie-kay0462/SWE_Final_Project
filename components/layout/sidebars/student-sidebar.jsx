@@ -4,6 +4,8 @@ import { createClient } from '@/utils/supabase/client'
 import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/components/ui/sidebar"
 import { GraduationCap } from "lucide-react"
 import ThemeToggle from "@/components/ui/theme-toggle"
+import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 import {
   IconLayoutDashboard,
   IconUserCircle,
@@ -14,6 +16,7 @@ import {
   IconFileCv,
   IconBriefcase2,
   IconCalendarEvent,
+  IconLogout,
 } from "@tabler/icons-react"
 import Image from "next/image"
 
@@ -30,9 +33,36 @@ const studentNavItems = [
   { label: "Notifications", href: "/dashboard/student/notifications", icon: <IconBell className="h-6 w-6 shrink-0" /> },
 ]
 
+// Create separate components for parts that need sidebar context
+const Logo = () => {
+  const { open } = useSidebar()
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <GraduationCap className="h-8 w-8 text-[#A91827]" />
+      {open && <span className="text-xl font-bold">CSOFT</span>}
+    </div>
+  )
+}
+
+const LogoutButton = ({ onClick, userInfo }) => {
+  const { open } = useSidebar()
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+      title="Logout"
+    >
+      <IconLogout className="h-6 w-6 shrink-0" />
+      {open && <span className="text-sm font-medium">Logout</span>}
+    </button>
+  )
+}
+
 const StudentSidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const [userInfo, setUserInfo] = useState(null)
   const [loading, setLoading] = useState(true)
+  const { signOut } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     async function fetchUserInfo() {
@@ -70,14 +100,13 @@ const StudentSidebar = ({ sidebarOpen, setSidebarOpen }) => {
     fetchUserInfo()
   }, [])
 
-  const Logo = () => {
-    const { open } = useSidebar()
-    return (
-      <div className="flex items-center gap-2 py-1">
-        <GraduationCap className="h-8 w-8 text-[#A91827]" />
-        {open && <span className="text-xl font-bold">CSOFT</span>}
-      </div>
-    )
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      router.push('/auth/login')
+    } catch (error) {
+      console.error('Error logging out:', error)
+    }
   }
 
   if (loading) {
@@ -105,17 +134,20 @@ const StudentSidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
             {/* User Profile */}
             {userInfo && (
-              <SidebarLink
-                link={{
-                  label: `${userInfo.fname} ${userInfo.lname}`,
-                  href: "/dashboard/student/profile",
-                  icon: (
-                    <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
-                      {userInfo.fname.charAt(0).toUpperCase()}
-                    </div>
-                  ),
-                }}
-              />
+              <>
+                <SidebarLink
+                  link={{
+                    label: `${userInfo.fname} ${userInfo.lname}`,
+                    href: "/dashboard/student/profile",
+                    icon: (
+                      <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                        {userInfo.fname.charAt(0).toUpperCase()}
+                      </div>
+                    ),
+                  }}
+                />
+                <LogoutButton onClick={handleLogout} userInfo={userInfo} />
+              </>
             )}
           </div>
         </div>

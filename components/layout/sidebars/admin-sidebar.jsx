@@ -1,7 +1,11 @@
 "use client"
+import { useState, useEffect } from "react"
+import { createClient } from '@/utils/supabase/client'
 import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/components/ui/sidebar"
 import { GraduationCap } from "lucide-react"
 import ThemeToggle from "@/components/ui/theme-toggle"
+import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 import {
   IconLayoutDashboard,
   IconUserCircle,
@@ -14,13 +18,16 @@ import {
   IconSettings,
   IconCalendarCheck,
   IconBriefcase2,
+  IconClipboardCheck,
+  IconLogout,
 } from "@tabler/icons-react"
 
 // Define the navigation items for admin
 const adminNavItems = [
   { label: "Dashboard", href: "/dashboard/admin", icon: <IconLayoutDashboard className="h-6 w-6 shrink-0" /> },
-  { label: "Profile", href: "/dashboard/admin/profile", icon: <IconUserCircle className="h-6 w-6 shrink-0" /> },
+  // { label: "Profile", href: "/dashboard/admin/profile", icon: <IconUserCircle className="h-6 w-6 shrink-0" /> },
   { label: "Internship Requests", href: "/dashboard/admin/internship-request", icon: <IconFileText className="h-6 w-6 shrink-0" /> },
+  { label: "Resume Reviews", href: "/dashboard/admin/resume", icon: <IconClipboardCheck className="h-6 w-6 shrink-0" /> },
   { label: "1-on-1 Sessions", href: "/dashboard/admin/sessions", icon: <IconCalendarCheck className="h-6 w-6 shrink-0" /> },
   { label: "Events", href: "/dashboard/admin/events", icon: <IconCalendarEvent className="h-6 w-6 shrink-0" /> },
   { label: "Resources", href: "/dashboard/admin/resources", icon: <IconBriefcase2 className="h-6 w-6 shrink-0" /> },
@@ -29,6 +36,56 @@ const adminNavItems = [
 ]
 
 const AdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
+  const [userInfo, setUserInfo] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const { signOut } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    async function fetchUserInfo() {
+      try {
+        const supabase = createClient()
+        
+        // Get authenticated user
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError || !user) {
+          console.error("Authentication error:", userError)
+          return
+        }
+
+        // Fetch user details using email
+        const { data: userData, error: userDataError } = await supabase
+          .from('users')
+          .select('fname, lname, email')
+          .eq('email', user.email)
+          .single()
+
+        if (userDataError) {
+          console.error("Error fetching user data:", userDataError)
+          return
+        }
+
+        setUserInfo(userData)
+      } catch (error) {
+        console.error("Error in fetchUserInfo:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserInfo()
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      router.push('/auth/login')
+    } catch (error) {
+      console.error('Error logging out:', error)
+    }
+  }
+
   const Logo = () => {
     const { open } = useSidebar()
     return (
@@ -37,6 +94,24 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
         {open && <span className="text-xl font-bold">CSOFT</span>}
       </div>
     )
+  }
+
+  const LogoutButton = ({ onClick }) => {
+    const { open } = useSidebar()
+    return (
+      <button
+        onClick={onClick}
+        className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+        title="Logout"
+      >
+        <IconLogout className="h-6 w-6 shrink-0" />
+        {open && <span className="text-sm font-medium">Logout</span>}
+      </button>
+    )
+  }
+
+  if (loading) {
+    return <div>Loading...</div>
   }
 
   return (
@@ -59,17 +134,22 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
             <ThemeToggle />
 
             {/* User Profile */}
-            <SidebarLink
-              link={{
-                label: "Carol Advisor",
-                href: "/dashboard/admin/profile",
-                icon: (
-                  <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
-                    C
-                  </div>
-                ),
-              }}
-            />
+            {userInfo && (
+              <>
+                <SidebarLink
+                  link={{
+                    label: `${userInfo.fname} ${userInfo.lname}`,
+                    href: "/dashboard/admin/profile",
+                    icon: (
+                      <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                        {userInfo.fname.charAt(0).toUpperCase()}
+                      </div>
+                    ),
+                  }}
+                />
+                <LogoutButton onClick={handleLogout} />
+              </>
+            )}
           </div>
         </div>
       </SidebarBody>
