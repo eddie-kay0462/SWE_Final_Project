@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Calendar, Clock, MapPin, Users, ChevronRight, CheckCircle, MessageSquare } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, ChevronRight, CheckCircle, MessageSquare, X } from 'lucide-react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
 
@@ -54,11 +53,20 @@ export default function EventsPage() {
   }, [toast])
 
   const handleOpenFeedbackDialog = (event) => {
-    setSelectedEvent(event)
-    setFeedbackDialogOpen(true)
+    console.log("Opening feedback dialog for event:", event);
+    setSelectedEvent(event);
+    // If user has already submitted feedback, pre-fill the form
+    if (event.hasFeedback && event.feedback) {
+      setRating(event.feedback.rating);
+      setFeedbackText(event.feedback.comments || "");
+    } else {
+      setRating(0);
+      setFeedbackText("");
+    }
+    setFeedbackDialogOpen(true);
   }
 
-  const handleSubmitFeedback = () => {
+  const handleSubmitFeedback = async () => {
     if (rating === 0) {
       toast({
         title: "Rating Required",
@@ -70,18 +78,49 @@ export default function EventsPage() {
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setFeedbackDialogOpen(false)
-      setFeedbackText("")
-      setRating(0)
+    try {
+      console.log("Submitting feedback for event:", selectedEvent.id);
+      const response = await fetch('/api/dashboard/student/events/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventId: selectedEvent.id,
+          rating: rating,
+          comments: feedbackText
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit feedback')
+      }
 
       toast({
         title: "Feedback Submitted",
         description: "Thank you for your feedback on this event.",
       })
-    }, 1000)
+
+      // Close the dialog and reset form
+      setFeedbackDialogOpen(false)
+      setFeedbackText("")
+      setRating(0)
+      setSelectedEvent(null)
+      
+      // Refresh the events to update the UI
+      window.location.reload();
+    } catch (error) {
+      console.error('Error submitting feedback:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // Function to render event cards
@@ -163,7 +202,7 @@ export default function EventsPage() {
                 onClick={() => handleOpenFeedbackDialog(event)}
               >
                 <MessageSquare className="mr-2 h-4 w-4" />
-                Provide Feedback
+                {event.hasFeedback ? "View/Edit Feedback" : "Provide Feedback"}
               </Button>
 
               {event.status === "past" && (
@@ -178,6 +217,86 @@ export default function EventsPage() {
       </Card>
     ))
   }
+
+  // Function to render the feedback modal
+  const renderFeedbackModal = () => {
+    if (!feedbackDialogOpen) return null;
+    
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
+          onClick={() => setFeedbackDialogOpen(false)}
+        />
+        <div className="z-50 w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative">
+          <button
+            className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
+            onClick={() => setFeedbackDialogOpen(false)}
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </button>
+          
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold">Event Feedback</h2>
+              <p className="text-sm text-muted-foreground">
+                Please provide your feedback for this event. Your input helps us improve future events.
+              </p>
+            </div>
+
+            {selectedEvent && (
+              <div className="space-y-4 py-4">
+                <div className="p-3 bg-muted rounded-md">
+                  <h3 className="font-medium">{selectedEvent.title}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedEvent.date} • {selectedEvent.time}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rating" className="font-medium">Rating</Label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        className={`text-2xl ${
+                          star <= rating ? "text-yellow-400" : "text-gray-300"
+                        }`}
+                        aria-label={`Rate ${star} star${star !== 1 ? 's' : ''}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="feedback" className="font-medium">Comments</Label>
+                  <textarea
+                    id="feedback"
+                    className="w-full p-2 border rounded-md min-h-[100px]"
+                    placeholder="Share your thoughts about this event..."
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setFeedbackDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmitFeedback} disabled={isSubmitting}>
+                {isSubmitting ? "Submitting..." : "Submit Feedback"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -202,61 +321,8 @@ export default function EventsPage() {
         {activeTab === "upcoming" ? renderEventCards(upcomingEvents) : renderEventCards(pastEvents)}
       </div>
 
-      {/* Feedback Dialog */}
-      <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Event Feedback</DialogTitle>
-          </DialogHeader>
-
-          {selectedEvent && (
-            <div className="space-y-4 py-4">
-              <div className="p-3 bg-muted rounded-md">
-                <h3 className="font-medium">{selectedEvent.title}</h3>
-                <p className="text-sm text-muted-foreground">{selectedEvent.date} • {selectedEvent.time}</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="rating" className="font-medium">Rating</Label>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      className={`text-2xl ${
-                        star <= rating ? "text-yellow-400" : "text-gray-300"
-                      }`}
-                    >
-                      ★
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="feedback" className="font-medium">Comments</Label>
-                <textarea
-                  id="feedback"
-                  className="w-full p-2 border rounded-md min-h-[100px]"
-                  placeholder="Share your thoughts about this event..."
-                  value={feedbackText}
-                  onChange={(e) => setFeedbackText(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setFeedbackDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmitFeedback} disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit Feedback"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Feedback Modal */}
+      {renderFeedbackModal()}
     </div>
   )
 }
