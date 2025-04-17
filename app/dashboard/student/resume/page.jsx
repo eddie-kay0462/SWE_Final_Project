@@ -65,11 +65,54 @@ export default function ResumeUploadPage() {
       // Then get documents for that user
       const { data, error } = await supabase
         .from('documents')
-        .select('id, name, file_url, status, uploaded_at, file_type')
+        .select('id, name, file_url, status, uploaded_at, file_type, feedback')
         .eq('user_id', userData.id)
 
       if (error) throw error
       setUploadHistory(data)
+
+      // Subscribe to document changes
+      const channel = supabase
+        .channel('documents')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'documents',
+            filter: `user_id=eq.${userData.id}`
+          },
+          (payload) => {
+            if (payload.eventType === 'UPDATE') {
+              const oldDoc = data.find(d => d.id === payload.old.id)
+              const newDoc = payload.new
+
+              // Show notification for status changes
+              if (oldDoc && oldDoc.status !== newDoc.status) {
+                toast.info(`Resume Status Updated`, {
+                  description: `${oldDoc.name} is now ${newDoc.status}`,
+                })
+              }
+
+              // Show notification for new feedback
+              if (oldDoc && (!oldDoc.feedback && newDoc.feedback) || (oldDoc.feedback !== newDoc.feedback)) {
+                toast.info(`New Feedback Received`, {
+                  description: `New feedback available for ${newDoc.name}`,
+                })
+              }
+
+              // Update the local state
+              setUploadHistory(prev => 
+                prev.map(doc => doc.id === newDoc.id ? newDoc : doc)
+              )
+            }
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
     } catch (error) {
       console.error('[ResumeUpload] History fetch error:', error)
       toast.error('Failed to load resume history')
@@ -194,12 +237,16 @@ export default function ResumeUploadPage() {
         throw dbError
       }
 
-      toast.success("Resume uploaded successfully!")
+      toast.success("Resume uploaded successfully!", {
+        description: "Your resume has been submitted for review."
+      })
       fetchResumeHistory()
       setFile(null)
     } catch (error) {
       console.error('Upload error:', error)
-      toast.error(`Failed to upload resume: ${error.message}`)
+      toast.error('Failed to upload resume', {
+        description: error.message
+      })
     } finally {
       setIsLoading(false)
     }
@@ -342,6 +389,13 @@ export default function ResumeUploadPage() {
                     </button>
                   </div>
                 </div>
+                {doc.feedback && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600 dark:text-neutral-400">
+                      <strong>Feedback:</strong> {doc.feedback}
+                    </p>
+                  </div>
+                )}
               </div>
             ))
           )}

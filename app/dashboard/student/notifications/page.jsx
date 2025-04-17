@@ -1,10 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { Bell, Calendar, FileText, BookOpen, X, Trash2, Info, Trash } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Bell, Calendar, FileText, BookOpen, X, Trash2, Info, MessageSquare, User } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
+import { createClient } from "@/utils/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,139 +21,210 @@ import {
 
 export default function NotificationsPage() {
   const { toast } = useToast()
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "event",
-      title: "New Career Workshop",
-      message: "Resume Building Workshop scheduled for April 10, 2025",
-      date: "March 30, 2025",
-      read: false,
-      icon: Calendar,
-    },
-    {
-      id: 2,
-      type: "session",
-      title: "1-on-1 Session Confirmed",
-      message: "Your session with Dr. Sarah Johnson has been confirmed for April 5, 2025 at 11:00 AM",
-      date: "March 28, 2025",
-      read: true,
-      icon: Calendar,
-    },
-    {
-      id: 3,
-      type: "request",
-      title: "Internship Request Update",
-      message: "Your internship request has been received and is under review",
-      date: "March 25, 2025",
-      read: true,
-      icon: FileText,
-    },
-    {
-      id: 4,
-      type: "resource",
-      title: "New Resource Available",
-      message: "New cover letter templates have been added to the resources section",
-      date: "March 20, 2025",
-      read: true,
-      icon: BookOpen,
-    },
-    {
-      id: 5,
-      type: "info",
-      title: "Career Fair Reminder",
-      message: "Don't forget to attend the Career Fair on April 15, 2025",
-      date: "March 15, 2025",
-      read: true,
-      icon: Info,
-    },
-  ])
-
+  const { authUser } = useAuth()
+  const [notifications, setNotifications] = useState([])
+  const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false)
   const [notificationToDelete, setNotificationToDelete] = useState(null)
+  const supabase = createClient()
 
-  const handleMarkAsRead = (id) => {
-    setNotifications(
-      notifications.map((notification) => (notification.id === id ? { ...notification, read: true } : notification)),
-    )
-  }
+  useEffect(() => {
+    if (!authUser) return
 
-  const handleDeleteConfirm = () => {
-    if (notificationToDelete) {
-      setNotifications(notifications.filter((notification) => notification.id !== notificationToDelete))
-      toast({
-        title: "Notification Deleted",
-        description: "The notification has been removed.",
-      })
-      setNotificationToDelete(null)
-      setDeleteDialogOpen(false)
+    const fetchNotifications = async () => {
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', authUser.email)
+          .single()
+
+        if (userError) throw userError
+
+        const { data, error } = await supabase
+          .from('notifications')
+          .select(`
+            *,
+            documents:document_id (
+              name,
+              file_url,
+              feedback
+            )
+          `)
+          .eq('user_id', userData.id)
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        setNotifications(data)
+      } catch (error) {
+        console.error('Error fetching notifications:', error)
+        toast.error('Failed to load notifications')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNotifications()
+
+    // Subscribe to new notifications
+    const channel = supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${authUser?.id}`
+        },
+        (payload) => {
+          // Show toast notification
+          toast.success(payload.new.title, {
+            description: payload.new.message,
+          })
+          // Update notifications list
+          setNotifications(prev => [payload.new, ...prev])
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [authUser])
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id)
+
+      if (error) throw error
+
+      setNotifications(
+        notifications.map((notification) => 
+          notification.id === id ? { ...notification, read: true } : notification
+        )
+      )
+    } catch (error) {
+      console.error('Error marking notification as read:', error)
+      toast.error('Failed to mark notification as read')
     }
   }
 
-  const handleClearAllConfirm = () => {
-    setNotifications([])
-    toast({
-      title: "Notifications Cleared",
-      description: "All notifications have been removed.",
-    })
-    setClearAllDialogOpen(false)
+  const handleDeleteConfirm = async () => {
+    if (notificationToDelete) {
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .delete()
+          .eq('id', notificationToDelete)
+
+        if (error) throw error
+
+        setNotifications(notifications.filter((n) => n.id !== notificationToDelete))
+        toast.success('Notification deleted')
+        setNotificationToDelete(null)
+        setDeleteDialogOpen(false)
+      } catch (error) {
+        console.error('Error deleting notification:', error)
+        toast.error('Failed to delete notification')
+      }
+    }
   }
 
-  const handleDeleteClick = (id) => {
-    setNotificationToDelete(id)
-    setDeleteDialogOpen(true)
+  const handleClearAllConfirm = async () => {
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', authUser.email)
+        .single()
+
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userData.id)
+
+      if (error) throw error
+
+      setNotifications([])
+      toast.success('All notifications cleared')
+      setClearAllDialogOpen(false)
+    } catch (error) {
+      console.error('Error clearing notifications:', error)
+      toast.error('Failed to clear notifications')
+    }
   }
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map((notification) => ({ ...notification, read: true })))
-    toast({
-      title: "All Notifications Marked as Read",
-      description: "All notifications have been marked as read.",
-    })
+  const handleMarkAllAsRead = async () => {
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', authUser.email)
+        .single()
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', userData.id)
+
+      if (error) throw error
+
+      setNotifications(notifications.map((n) => ({ ...n, read: true })))
+      toast.success('All notifications marked as read')
+    } catch (error) {
+      console.error('Error marking all as read:', error)
+      toast.error('Failed to mark all as read')
+    }
   }
 
   const getNotificationTypeColor = (type) => {
     switch (type) {
+      case "feedback":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
       case "event":
-        return "bg-blue-100 text-blue-800"
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
       case "session":
-        return "bg-green-100 text-green-800"
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
       case "request":
-        return "bg-purple-100 text-purple-800"
-      case "resource":
-        return "bg-amber-100 text-amber-800"
+        return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
       case "info":
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
     }
   }
 
-  const getNotificationTypeLabel = (type) => {
+  const getNotificationIcon = (type) => {
     switch (type) {
+      case "feedback":
+        return MessageSquare
       case "event":
-        return "Event"
+        return Calendar
       case "session":
-        return "Session"
+        return User
       case "request":
-        return "Request"
+        return FileText
       case "resource":
-        return "Resource"
+        return BookOpen
       case "info":
-        return "Info"
+        return Info
       default:
-        return "Notification"
+        return Bell
     }
   }
 
-  const unreadCount = notifications.filter((notification) => !notification.read).length
+  const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-serif font-medium">Notifications</h1>
+          <h1 className="text-2xl font-semibold">Notifications</h1>
           <p className="text-muted-foreground mt-1">Stay updated with important information and events</p>
         </div>
 
@@ -166,19 +240,25 @@ export default function NotificationsPage() {
               className="text-red-600 hover:text-red-700 hover:bg-red-50"
               onClick={() => setClearAllDialogOpen(true)}
             >
-              <Trash className="h-4 w-4 mr-2" />
+              <Trash2 className="h-4 w-4 mr-2" />
               Clear All
             </Button>
           </div>
         )}
       </div>
 
-      {notifications.length > 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#A91827] mx-auto"></div>
+            <p className="text-muted-foreground mt-2">Loading notifications...</p>
+          </CardContent>
+        </Card>
+      ) : notifications.length > 0 ? (
         <div className="space-y-4">
           {notifications.map((notification) => {
-            const NotificationIcon = notification.icon
+            const NotificationIcon = getNotificationIcon(notification.type)
             const typeColor = getNotificationTypeColor(notification.type)
-            const typeLabel = getNotificationTypeLabel(notification.type)
 
             return (
               <Card key={notification.id} className={notification.read ? "" : "border-l-4 border-l-[#A91827]"}>
@@ -190,16 +270,38 @@ export default function NotificationsPage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${typeColor}`}
-                        >
-                          {typeLabel}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${typeColor}`}>
+                          {notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}
                         </span>
-                        <span className="text-xs text-muted-foreground">{notification.date}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(notification.created_at).toLocaleDateString()}
+                        </span>
                       </div>
 
                       <h3 className="text-base font-medium">{notification.title}</h3>
                       <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
+
+                      {/* Special handling for feedback notifications */}
+                      {notification.type === 'feedback' && notification.documents && (
+                        <div className="mt-2 p-3 bg-gray-50 dark:bg-[#161616] rounded-lg">
+                          <p className="text-sm font-medium mb-1">Resume: {notification.documents.name}</p>
+                          {notification.metadata?.fullFeedback && (
+                            <p className="text-sm text-gray-600 dark:text-neutral-400">
+                              {notification.metadata.fullFeedback}
+                            </p>
+                          )}
+                          {notification.documents.file_url && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-2"
+                              onClick={() => window.open(notification.documents.file_url, '_blank')}
+                            >
+                              View Resume
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -216,7 +318,10 @@ export default function NotificationsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDeleteClick(notification.id)}
+                        onClick={() => {
+                          setNotificationToDelete(notification.id)
+                          setDeleteDialogOpen(true)
+                        }}
                         title="Delete notification"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -230,7 +335,7 @@ export default function NotificationsPage() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-6 text-center pt-6">
+          <CardContent className="p-6 text-center">
             <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium">No Notifications</h3>
             <p className="text-muted-foreground mt-1">You're all caught up! Check back later for updates.</p>

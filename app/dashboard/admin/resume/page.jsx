@@ -262,17 +262,47 @@ export default function AdvisorDashboardPage() {
     if (!selectedResume) return
     
     try {
-      const { error } = await supabase
+      const supabase = createClient()
+      
+      // Update document with feedback
+      const { error: docError } = await supabase
         .from('documents')
         .update({ 
           feedback: feedbackText,
-          // If no feedback, set to Pending Review, otherwise Needs Edits
           status: feedbackText.trim() ? 'Needs Edits' : 'Pending Review'
         })
         .eq('id', selectedResume.id)
       
-      if (error) throw error
-      
+      if (docError) {
+        console.error('[AdvisorDashboard] Document update error:', docError)
+        toast.error('Failed to submit feedback')
+        return
+      }
+
+      // Create notification for student
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .insert([{
+          user_id: selectedResume.users.id,
+          type: 'feedback',
+          title: 'Resume Feedback Received',
+          message: feedbackText.substring(0, 100) + (feedbackText.length > 100 ? '...' : ''),
+          document_id: selectedResume.id,
+          metadata: {
+            resumeName: selectedResume.name,
+            fullFeedback: feedbackText,
+            status: selectedResume.status
+          }
+        }])
+
+      if (notifError) {
+        console.error('[AdvisorDashboard] Notification creation error:', notifError)
+        // Even if notification fails, feedback was still saved
+        toast.success('Feedback submitted successfully (notification delivery failed)')
+        setShowFeedbackModal(false)
+        return
+      }
+
       // Update local state
       const updatedResumes = resumes.map(resume => 
         resume.id === selectedResume.id 
@@ -411,12 +441,18 @@ export default function AdvisorDashboardPage() {
             </div>
             <div className="relative">
               <button
-                onClick={() => setStatusFilter(statusFilter === "All" ? "Pending Review" : "All")}
+                onClick={() => {
+                  // Cycle through status options
+                  const statusOptions = ["All", "Pending Review", "Approved", "Needs Edits"]
+                  const currentIndex = statusOptions.indexOf(statusFilter)
+                  const nextIndex = (currentIndex + 1) % statusOptions.length
+                  setStatusFilter(statusOptions[nextIndex])
+                }}
                 className="w-full sm:w-auto px-4 py-2 bg-white dark:bg-[#262626] border border-gray-300 dark:border-[#363636] rounded-lg text-gray-700 dark:text-neutral-100 hover:bg-gray-50 dark:hover:bg-[#363636] focus:outline-none focus:ring-2 focus:ring-[#A91827] focus:border-transparent flex items-center gap-2"
               >
                 <Filter className="h-4 w-4" />
                 Status: {statusFilter}
-                {statusFilter === "All" ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                <ChevronDown className="h-4 w-4" />
               </button>
             </div>
           </div>
