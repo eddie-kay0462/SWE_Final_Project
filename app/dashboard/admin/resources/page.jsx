@@ -9,7 +9,7 @@ import { TabsList } from "@/components/ui/tabs"
 import { Tabs } from "@/components/ui/tabs"
 
 import { useState } from "react"
-import { Search, Plus, FileText, Download, Upload, Trash2, Tag, Filter, X } from "lucide-react"
+import { Search, Plus, FileText, Download, Upload, Trash2, Tag, Filter, X, ChevronDown } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -344,6 +344,9 @@ export default function AdminResourcesPage() {
                   </option>
                 ))}
               </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </div>
             </div>
           </div>
 
