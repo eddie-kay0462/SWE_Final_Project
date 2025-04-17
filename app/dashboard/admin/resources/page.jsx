@@ -1,40 +1,49 @@
 "use client"
 
+import { TabsContent } from "@/components/ui/tabs"
+
+import { TabsTrigger } from "@/components/ui/tabs"
+
+import { TabsList } from "@/components/ui/tabs"
+
+import { Tabs } from "@/components/ui/tabs"
+
 import { useState } from "react"
-import { FileText, Download, Upload, Trash2, Search, Filter, Tag, Clock, Eye, CheckCircle, X } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Search, Plus, FileText, Download, Upload, Trash2, Tag, Filter, X } from "lucide-react"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import React from "react"
 
 export default function AdminResourcesPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("resources")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("All")
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
-  const [resourceFile, setResourceFile] = useState(null)
-  const [resourceDetails, setResourceDetails] = useState({
-    title: "",
-    description: "",
-    category: "Resume Templates",
-  })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [resourceToDelete, setResourceToDelete] = useState(null)
-  const [viewRequestDialogOpen, setViewRequestDialogOpen] = useState(false)
-  const [selectedRequest, setSelectedRequest] = useState(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("All")
+  const [uploadedFile, setUploadedFile] = useState(null)
+  const [resourceTitle, setResourceTitle] = useState("")
+  const [resourceDescription, setResourceDescription] = useState("")
+  const [resourceCategory, setResourceCategory] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Add this useEffect near the top of the component with the other hooks
+  React.useEffect(() => {
+    if (uploadDialogOpen || deleteDialogOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [uploadDialogOpen, deleteDialogOpen])
 
   // Mock categories
   const categories = [
@@ -47,7 +56,7 @@ export default function AdminResourcesPage() {
   ]
 
   // Mock resources data
-  const allResources = [
+  const [resources, setResources] = useState([
     {
       id: 1,
       title: "Professional Resume Template",
@@ -92,57 +101,56 @@ export default function AdminResourcesPage() {
       downloads: 102,
       starred: false,
     },
-    {
-      id: 5,
-      title: "Technology Industry Career Guide",
-      description: "Comprehensive guide to navigating careers in the technology sector.",
-      category: "Career Guides",
-      type: "PDF",
-      size: "4.5 MB",
-      updated: "2 months ago",
-      downloads: 198,
-      starred: true,
-    },
-  ]
+  ])
 
-  // Mock resource requests
-  const resourceRequests = [
+  // Change from constant to state
+  const [resourceRequests, setResourceRequests] = useState([
     {
       id: 1,
       studentName: "John Doe",
       studentId: "20242025",
-      resourceTitle: "Finance Industry Guide",
+      resourceTitle: "Finance Industry Career Guide",
       reason:
-        "I'm interested in pursuing a career in finance and would like to learn more about the industry landscape and career paths.",
+        "I'm planning to pursue a career in finance after graduation and would like resources specific to this industry.",
       importance: "High",
+      requestDate: "April 2, 2025",
       status: "pending",
-      date: "March 25, 2025",
     },
     {
       id: 2,
       studentName: "Jane Smith",
       studentId: "20242026",
-      resourceTitle: "Consulting Case Interview Guide",
-      reason: "I have upcoming interviews with consulting firms and need help preparing for case interviews.",
-      importance: "High",
-      status: "approved",
-      date: "March 20, 2025",
+      resourceTitle: "Negotiation Skills Guide",
+      reason: "I want to improve my salary negotiation skills for upcoming job offers.",
+      importance: "Medium",
+      requestDate: "March 28, 2025",
+      status: "pending",
     },
     {
       id: 3,
       studentName: "Michael Johnson",
       studentId: "20242027",
-      resourceTitle: "Data Science Resume Examples",
-      reason: "I'm transitioning to a data science role and need examples of effective resumes in this field.",
+      resourceTitle: "Remote Work Best Practices",
+      reason: "I'm targeting remote positions and want to learn how to be effective in a remote work environment.",
       importance: "Medium",
-      status: "rejected",
-      reason: "Similar resources already available in the Data Science Career Guide.",
-      date: "March 15, 2025",
+      requestDate: "March 25, 2025",
+      status: "approved",
     },
-  ]
+    {
+      id: 4,
+      studentName: "Emily Williams",
+      studentId: "20242028",
+      resourceTitle: "Networking in Tech Industry",
+      reason: "I would like to build my professional network in the tech industry but don't know where to start.",
+      importance: "High",
+      requestDate: "March 20, 2025",
+      status: "rejected",
+      rejectionReason: "Similar content already available in 'Networking 101' resource",
+    },
+  ])
 
   // Filter resources based on search query and selected category
-  const filteredResources = allResources.filter((resource) => {
+  const filteredResources = resources.filter((resource) => {
     const matchesSearch =
       resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       resource.description.toLowerCase().includes(searchQuery.toLowerCase())
@@ -150,35 +158,59 @@ export default function AdminResourcesPage() {
     return matchesSearch && matchesCategory
   })
 
-  // Filter resource requests based on search query
-  const filteredRequests = resourceRequests.filter((request) => {
-    return (
-      request.resourceTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.studentId.includes(searchQuery)
-    )
-  })
+  // Filter requests based on status
+  const pendingRequests = resourceRequests.filter((req) => req.status === "pending")
+  const approvedRequests = resourceRequests.filter((req) => req.status === "approved")
+  const rejectedRequests = resourceRequests.filter((req) => req.status === "rejected")
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setResourceFile(e.target.files[0])
+      const file = e.target.files[0]
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please upload a file smaller than 10MB.",
+          variant: "destructive",
+        })
+        return
+      }
+      setUploadedFile(file)
     }
   }
 
   const handleUploadResource = () => {
-    if (!resourceFile) {
+    if (!uploadedFile) {
       toast({
         title: "Missing File",
-        description: "Please upload a resource file.",
+        description: "Please upload a file for this resource.",
         variant: "destructive",
       })
       return
     }
 
-    if (!resourceDetails.title || !resourceDetails.description) {
+    if (!resourceTitle.trim()) {
       toast({
-        title: "Missing Information",
-        description: "Please provide a title and description for the resource.",
+        title: "Missing Title",
+        description: "Please provide a title for this resource.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!resourceDescription.trim()) {
+      toast({
+        title: "Missing Description",
+        description: "Please provide a description for this resource.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!resourceCategory) {
+      toast({
+        title: "Missing Category",
+        description: "Please select a category for this resource.",
         variant: "destructive",
       })
       return
@@ -188,14 +220,25 @@ export default function AdminResourcesPage() {
 
     // Simulate API call
     setTimeout(() => {
-      setIsSubmitting(false)
+      const newResource = {
+        id: resources.length + 1,
+        title: resourceTitle,
+        description: resourceDescription,
+        category: resourceCategory,
+        type: uploadedFile.name.split(".").pop().toUpperCase(),
+        size: `${Math.round(uploadedFile.size / 1024)} KB`,
+        updated: "Just now",
+        downloads: 0,
+        starred: false,
+      }
+
+      setResources([newResource, ...resources])
       setUploadDialogOpen(false)
-      setResourceFile(null)
-      setResourceDetails({
-        title: "",
-        description: "",
-        category: "Resume Templates",
-      })
+      setUploadedFile(null)
+      setResourceTitle("")
+      setResourceDescription("")
+      setResourceCategory("")
+      setIsSubmitting(false)
 
       toast({
         title: "Resource Uploaded",
@@ -204,57 +247,57 @@ export default function AdminResourcesPage() {
     }, 1500)
   }
 
-  const handleDeleteResource = (resource) => {
+  const handleDeleteClick = (resource) => {
     setResourceToDelete(resource)
     setDeleteDialogOpen(true)
   }
 
   const handleDeleteConfirm = () => {
-    // Simulate API call
-    setTimeout(() => {
+    if (resourceToDelete) {
+      setResources(resources.filter((resource) => resource.id !== resourceToDelete.id))
       setDeleteDialogOpen(false)
-      setResourceToDelete(null)
 
       toast({
         title: "Resource Deleted",
-        description: "The resource has been successfully deleted.",
+        description: `"${resourceToDelete.title}" has been deleted.`,
       })
-    }, 1000)
+    }
   }
 
-  const handleViewRequest = (request) => {
-    setSelectedRequest(request)
-    setViewRequestDialogOpen(true)
+  const handleClearRequest = (requestId) => {
+    // Update the state by filtering out the cleared request
+    setResourceRequests(resourceRequests.filter((req) => req.id !== requestId))
+
+    toast({
+      title: "Request Cleared",
+      description: "The resource request has been cleared from your list.",
+    })
   }
 
-  const handleApproveRequest = () => {
-    setIsSubmitting(true)
+  const handleClearAllRequests = () => {
+    // Clear all pending requests by filtering them out
+    setResourceRequests(resourceRequests.filter((req) => req.status !== "pending"))
 
+    toast({
+      title: "All Requests Cleared",
+      description: "All pending resource requests have been cleared from your list.",
+    })
+  }
+
+  const handleApproveRequest = (requestId) => {
     // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setViewRequestDialogOpen(false)
-
-      toast({
-        title: "Request Approved",
-        description: "The resource request has been approved.",
-      })
-    }, 1000)
+    toast({
+      title: "Request Approved",
+      description: "The resource request has been approved.",
+    })
   }
 
-  const handleRejectRequest = () => {
-    setIsSubmitting(true)
-
+  const handleRejectRequest = (requestId) => {
     // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setViewRequestDialogOpen(false)
-
-      toast({
-        title: "Request Rejected",
-        description: "The resource request has been rejected.",
-      })
-    }, 1000)
+    toast({
+      title: "Request Rejected",
+      description: "The resource request has been rejected.",
+    })
   }
 
   return (
@@ -262,54 +305,36 @@ export default function AdminResourcesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-serif font-medium">Resources</h1>
-          <p className="text-muted-foreground mt-1">Manage career resources for students</p>
+          <p className="text-muted-foreground mt-1">Manage resources for student career development</p>
         </div>
-
-        <Button onClick={() => setUploadDialogOpen(true)}>
-          <Upload className="h-4 w-4 mr-2" />
+        <Button onClick={() => setUploadDialogOpen(true)} className="bg-[#A91827] text-white">
+          <Plus className="h-4 w-4 mr-2" />
           Upload Resource
         </Button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-4 border-b">
-        <button
-          className={`pb-2 px-4 ${activeTab === "resources" ? "border-b-2 border-[#A91827] text-[#A91827]" : "text-muted-foreground"}`}
-          onClick={() => setActiveTab("resources")}
-        >
-          Resources
-        </button>
-        <button
-          className={`pb-2 px-4 ${activeTab === "requests" ? "border-b-2 border-[#A91827] text-[#A91827]" : "text-muted-foreground"}`}
-          onClick={() => setActiveTab("requests")}
-        >
-          Resource Requests
-        </button>
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="resources">Resources</TabsTrigger>
+          <TabsTrigger value="requests">Resource Requests</TabsTrigger>
+        </TabsList>
 
-      {/* Search & Filter Bar */}
-      <div className="bg-card rounded-lg shadow-sm p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <Search className="h-4 w-4 text-muted-foreground" />
+        <TabsContent value="resources" className="mt-6">
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search resources..."
+                className="w-full pl-10 pr-4 py-2 border rounded-md"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            <input
-              type="text"
-              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder={activeTab === "resources" ? "Search resources..." : "Search requests..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          {activeTab === "resources" && (
             <div className="relative min-w-[200px]">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-              </div>
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <select
-                className="w-full pl-10 pr-10 py-2 border border-input rounded-md bg-background appearance-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border rounded-md appearance-none"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
               >
@@ -319,339 +344,329 @@ export default function AdminResourcesPage() {
                   </option>
                 ))}
               </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Resources Tab Content */}
-      {activeTab === "resources" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredResources.length > 0 ? (
-            filteredResources.map((resource) => (
-              <Card
-                key={resource.id}
-                className="bg-card rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-              >
-                <CardContent className="p-6 pt-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                        <FileText className="h-5 w-5 text-primary" />
-                      </div>
-                      <h3 className="text-lg font-semibold">{resource.title}</h3>
-                    </div>
-                  </div>
-                  <p className="text-muted-foreground mb-4">{resource.description}</p>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="text-xs px-2 py-1 bg-accent rounded-full flex items-center">
-                      <Tag className="h-3 w-3 mr-1" />
-                      {resource.category}
-                    </span>
-                    <span className="text-xs px-2 py-1 bg-accent rounded-full flex items-center">
-                      <FileText className="h-3 w-3 mr-1" />
-                      {resource.type}
-                    </span>
-                    <span className="text-xs px-2 py-1 bg-accent rounded-full flex items-center">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {resource.updated}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">{resource.downloads} downloads</span>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeleteResource(resource)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <p className="text-lg text-muted-foreground">No resources found matching your criteria.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Resource Requests Tab Content */}
-      {activeTab === "requests" && (
-        <div className="space-y-4">
-          {filteredRequests.length > 0 ? (
-            filteredRequests.map((request) => (
-              <Card key={request.id}>
-                <CardContent className="p-6 pt-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-lg">{request.resourceTitle}</h3>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            request.status === "pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : request.status === "approved"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                        </span>
-                      </div>
-                      <p className="text-muted-foreground">
-                        Requested by: {request.studentName} (ID: {request.studentId})
-                      </p>
-                      <p className="text-muted-foreground">Date: {request.date}</p>
-                      <p className="text-muted-foreground">Importance: {request.importance}</p>
-
-                      {/* <div className="mt-4">
-                        <p className="text-sm font-medium">Reason:</p>
-                        <p className="text-sm text-muted-foreground">{request.reason}</p>
-                      </div> */}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleViewRequest(request)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                    </div>
-                  </div>
-                  
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p className="text-muted-foreground">No resource requests found.</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Upload Resource Dialog */}
-      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upload Resource</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="resource-title">Resource Title</Label>
-              <input
-                id="resource-title"
-                type="text"
-                className="w-full p-2 border rounded-md"
-                placeholder="Enter resource title"
-                value={resourceDetails.title}
-                onChange={(e) => setResourceDetails({ ...resourceDetails, title: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="resource-description">Description</Label>
-              <textarea
-                id="resource-description"
-                className="w-full p-2 border rounded-md min-h-[100px]"
-                placeholder="Enter resource description"
-                value={resourceDetails.description}
-                onChange={(e) => setResourceDetails({ ...resourceDetails, description: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="resource-category">Category</Label>
-              <select
-                id="resource-category"
-                className="w-full p-2 border rounded-md"
-                value={resourceDetails.category}
-                onChange={(e) => setResourceDetails({ ...resourceDetails, category: e.target.value })}
-              >
-                {categories
-                  .filter((cat) => cat !== "All")
-                  .map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="resource-file">Resource File</Label>
-              <div className="flex items-center justify-center w-full">
-                <label
-                  htmlFor="resource-file"
-                  className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                    resourceFile ? "border-green-300 bg-green-50" : "border-gray-300 bg-gray-50 hover:bg-gray-100"
-                  }`}
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    {resourceFile ? (
-                      <>
-                        <CheckCircle className="w-8 h-8 mb-3 text-green-500" />
-                        <p className="mb-2 text-sm text-green-700 font-medium">File selected</p>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-8 h-8 mb-3 text-gray-500" />
-                        <p className="mb-2 text-sm text-gray-500">
-                          <span className="font-semibold">Click to upload</span> or drag and drop
-                        </p>
-                      </>
-                    )}
-                    <p className="text-xs text-gray-500">PDF, DOCX, or PPTX (MAX. 10MB)</p>
-                  </div>
-                  <input
-                    id="resource-file"
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,.docx,.pptx"
-                    onChange={handleFileChange}
-                  />
-                </label>
-              </div>
-              {resourceFile && (
-                <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-sm text-green-700 truncate">{resourceFile.name}</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-red-500"
-                    onClick={() => setResourceFile(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setUploadDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUploadResource} disabled={isSubmitting}>
-              {isSubmitting ? "Uploading..." : "Upload Resource"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="space-y-4">
+            {filteredResources.length > 0 ? (
+              filteredResources.map((resource) => (
+                <Card key={resource.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-6 pt-6">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <FileText className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-lg">{resource.title}</h3>
+                          <p className="text-muted-foreground mt-1">{resource.description}</p>
 
-      {/* Delete Resource Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Resource</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this resource? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            <span className="bg-[#A91827] text-white text-xs px-2 py-1 bg-accent rounded-full flex items-center">
+                              <Tag className="h-3 w-3 mr-1" />
+                              {resource.category}
+                            </span>
+                            <span className="bg-[#A91827] text-white text-xs px-2 py-1 bg-accent rounded-full">
+                              {resource.type} • {resource.size}
+                            </span>
+                            {/* <span className="text-xs px-2 py-1 bg-accent rounded-full">Updated {resource.updated}</span> */}
+                            {/* <span className="text-xs px-2 py-1 bg-accent rounded-full">
+                              {resource.downloads} downloads
+                            </span> */}
+                          </div>
+                        </div>
+                      </div>
 
-      {/* View Request Dialog */}
-      <Dialog open={viewRequestDialogOpen} onOpenChange={setViewRequestDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Resource Request Details</DialogTitle>
-          </DialogHeader>
-
-          {selectedRequest && (
-            <div className="space-y-4 py-4">
-              <div className="p-3 bg-muted rounded-md">
-                <h3 className="font-medium">{selectedRequest.resourceTitle}</h3>
-                {/* <div className="flex justify-between items-center mt-1">
-                  <p className="text-sm text-muted-foreground">Requested by: {selectedRequest.studentName}</p>
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      selectedRequest.status === "pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : selectedRequest.status === "approved"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {selectedRequest.status.charAt(0).toUpperCase() + selectedRequest.status.slice(1)}
-                  </span>
-                </div> */}
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-medium">Student Information</h3>
-                <div className="p-3 bg-muted rounded-md">
-                  <p>
-                    <span className="font-medium">Name:</span> {selectedRequest.studentName}
-                  </p>
-                  <p>
-                    <span className="font-medium">ID:</span> {selectedRequest.studentId}
-                  </p>
-                  <p>
-                    <span className="font-medium">Date Requested:</span> {selectedRequest.date}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-medium">Reason</h3>
-                <div className="p-3 bg-muted rounded-md">
-                  {/* <p>
-                    <span className="font-medium">Resource Title:</span> {selectedRequest.resourceTitle}
-                  </p>
-                  <p>
-                    <span className="font-medium">Importance:</span> {selectedRequest.importance}
-                  </p> */}
-                  {/* <p className="mt-2">
-                    <span className="font-medium">Reason:</span>
-                  </p> */}
-                  <p className="text-sm">{selectedRequest.reason}</p>
-                </div>
-              </div>
-
-              {/* {selectedRequest.status === "pending" && (
-                <div className="flex justify-between pt-4">
-                  <Button
-                    variant="outline"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={handleRejectRequest}
-                    disabled={isSubmitting}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Reject Request
+                      <div className="flex items-center gap-2 mt-4 md:mt-0">
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                          onClick={() => handleDeleteClick(resource)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-center py-12">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground font-medium">No resources found matching your criteria.</p>
+                  <Button className="mt-4" onClick={() => setUploadDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Upload New Resource
                   </Button>
-                  <Button onClick={handleApproveRequest} disabled={isSubmitting}>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Approve Request
-                  </Button>
-                </div>
-              )} */}
-              
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="requests" className="mt-6">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center">
+              <h3 className="text-lg font-medium">Resource Requests</h3>
+              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                {pendingRequests.length} pending
+              </span>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            {pendingRequests.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearAllRequests}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear All Requests
+              </Button>
+            )}
+          </div>
+
+          <div className="bg-muted p-4 rounded-lg mb-6">
+            <p className="text-sm text-muted-foreground">
+              <strong>Note:</strong> This section shows resource requests from students. You can view the details and
+              clear requests from your list. There is no approval or rejection functionality as these are just
+              informational requests.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {pendingRequests.length > 0 ? (
+              pendingRequests.map((request) => (
+                <Card key={request.id}>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex justify-between">
+                      <span>{request.resourceTitle}</span>
+                      {/* <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {request.importance} Priority
+                      </span> */}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 pb-2">
+                    <div className="mb-4">
+                      <div className="text-sm mb-1">
+                        <span className="font-medium">Requested by:</span> {request.studentName} (ID:{" "}
+                        {request.studentId})
+                      </div>
+                      <div className="text-sm mb-2">
+                        <span className="font-medium">Date:</span> {request.requestDate}
+                      </div>
+                    </div>
+
+                    <div className="bg-muted p-3 rounded-md mb-4">
+                      <p className="font-medium mb-1">Reason for Request:</p>
+                      <p className="text-sm">{request.reason}</p>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleClearRequest(request.id)}>
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Request
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-center py-12">
+                  <p className="text-muted-foreground">No pending resource requests.</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Upload Resource Modal */}
+      {uploadDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setUploadDialogOpen(false)} />
+
+          {/* Modal Content */}
+          <div className="relative z-50 w-full max-w-md bg-background p-6 rounded-lg shadow-lg border">
+            {/* Close Button */}
+            <button
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
+              onClick={() => setUploadDialogOpen(false)}
+            >
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close</span>
+            </button>
+
+            {/* Header */}
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Upload Resource</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Fill out this form to upload a new resource for students.
+              </p>
+            </div>
+
+            {/* Form */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="resource-title">Resource Title</Label>
+                <Input
+                  id="resource-title"
+                  placeholder="Enter resource title"
+                  value={resourceTitle}
+                  onChange={(e) => setResourceTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="resource-description">Description</Label>
+                <Textarea
+                  id="resource-description"
+                  placeholder="Enter resource description"
+                  value={resourceDescription}
+                  onChange={(e) => setResourceDescription(e.target.value)}
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="resource-category">Category</Label>
+                <select
+                  id="resource-category"
+                  className="w-full p-2 border rounded-md"
+                  value={resourceCategory}
+                  onChange={(e) => setResourceCategory(e.target.value)}
+                >
+                  <option value="">Select category</option>
+                  {categories
+                    .filter((cat) => cat !== "All")
+                    .map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>File</Label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
+                    uploadedFile ? "border-green-300 bg-green-50" : "border-gray-300 hover:bg-gray-50"
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      setUploadedFile(e.dataTransfer.files[0])
+                    }
+                  }}
+                >
+                  {uploadedFile ? (
+                    <div className="flex flex-col items-center justify-center py-4">
+                      <FileText className="w-10 h-10 mb-2 text-green-500" />
+                      <p className="mb-1 text-sm font-medium text-green-700">{uploadedFile.name}</p>
+                      <p className="text-xs text-green-600">{(uploadedFile.size / 1024).toFixed(1)} KB</p>
+                      <Button variant="outline" size="sm" className="mt-2" onClick={() => setUploadedFile(null)}>
+                        <X className="h-4 w-4 mr-2" />
+                        Clear file
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                      <p className="mb-2 text-sm text-gray-500 text-center">
+                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">PDF, DOCX, or other document formats</p>
+                      <input type="file" className="hidden" id="file-upload" onChange={handleFileChange} />
+                      <Button
+                        variant="outline"
+                        className="mt-4"
+                        onClick={() => document.getElementById("file-upload").click()}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Select File
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setUploadDialogOpen(false)
+                  setUploadedFile(null)
+                  setResourceTitle("")
+                  setResourceDescription("")
+                  setResourceCategory("")
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUploadResource}
+                disabled={isSubmitting || !uploadedFile || !resourceTitle || !resourceDescription || !resourceCategory}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="mr-2">Uploading...</span>
+                    <span className="animate-spin">⏳</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Resource
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Resource Modal */}
+      {deleteDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteDialogOpen(false)} />
+
+          {/* Modal Content */}
+          <div className="relative z-50 w-full max-w-md bg-background p-6 rounded-lg shadow-lg border">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Delete Resource</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Are you sure you want to delete the resource "{resourceToDelete?.title}"? This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700 text-white">
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
