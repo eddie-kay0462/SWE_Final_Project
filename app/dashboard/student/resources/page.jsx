@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ResourcesPage() {
@@ -200,7 +200,7 @@ export default function ResourcesPage() {
           <h1 className="text-2xl font-serif font-medium">Resources</h1>
           <p className="text-muted-foreground mt-1">Access templates, guides, and tools for your career development</p>
         </div>
-        <Button onClick={() => setShowRequestModal(true)}>
+        <Button onClick={() => setShowRequestModal(true)} className="bg-[#A91827]">
           <Plus className="h-4 w-4 mr-2" />
           Request Resource
         </Button>
@@ -275,7 +275,7 @@ export default function ResourcesPage() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">{resource.downloads} downloads</span>
-                <Button variant="default" size="sm">
+                <Button variant="default" size="sm" className="bg-[#A91827] text-white text-xs font-medium">
                   <Download className="mr-2 h-4 w-4" />
                   Download
                 </Button>
@@ -302,7 +302,7 @@ export default function ResourcesPage() {
 
           {/* Modal Content */}
           <div className="relative z-50 w-full max-w-md bg-background p-6 rounded-lg shadow-lg border">
-            {/* Close Button */}
+            {/* Close Button */}            
             <button
               className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
               onClick={() => setShowRequestModal(false)}
@@ -326,7 +326,7 @@ export default function ResourcesPage() {
                 <Input
                   id="resourceTitle"
                   name="resourceTitle"
-                  placeholder="E.g., Consulting Industry Guide, Salary Negotiation Templates"
+                  placeholder="E.g., Resume Templates, Cover Letters, Interview Prep..."
                   value={requestForm.resourceTitle}
                   onChange={handleInputChange}
                 />
@@ -367,7 +367,7 @@ export default function ResourcesPage() {
               <Button type="button" variant="outline" onClick={() => setShowRequestModal(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleRequestSubmit} disabled={isSubmitting}>
+              <Button onClick={handleRequestSubmit} disabled={isSubmitting} className="bg-[#A91827] text-white">
                 {isSubmitting ? "Submitting..." : "Submit Request"}
               </Button>
             </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-// import { motion } from "framer-motion"
+import { motion } from "framer-motion"
 import { ArrowUpCircle, CheckCircle, Calendar, Award, BookOpen, Briefcase, Users, FileEdit, X, ChevronRight, ChevronLeft, Info } from "lucide-react"
 import Link from "next/link"
 
