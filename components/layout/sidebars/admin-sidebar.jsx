@@ -14,13 +14,15 @@ import {
   IconSettings,
   IconCalendarCheck,
   IconBriefcase2,
+  IconClipboardCheck,
 } from "@tabler/icons-react"
 
 // Define the navigation items for admin
 const adminNavItems = [
   { label: "Dashboard", href: "/dashboard/admin", icon: <IconLayoutDashboard className="h-6 w-6 shrink-0" /> },
-  { label: "Profile", href: "/dashboard/admin/profile", icon: <IconUserCircle className="h-6 w-6 shrink-0" /> },
+  // { label: "Profile", href: "/dashboard/admin/profile", icon: <IconUserCircle className="h-6 w-6 shrink-0" /> },
   { label: "Internship Requests", href: "/dashboard/admin/internship-request", icon: <IconFileText className="h-6 w-6 shrink-0" /> },
+  { label: "Resume Reviews", href: "/dashboard/admin/resume", icon: <IconClipboardCheck className="h-6 w-6 shrink-0" /> },
   { label: "1-on-1 Sessions", href: "/dashboard/admin/sessions", icon: <IconCalendarCheck className="h-6 w-6 shrink-0" /> },
   { label: "Events", href: "/dashboard/admin/events", icon: <IconCalendarEvent className="h-6 w-6 shrink-0" /> },
   { label: "Resources", href: "/dashboard/admin/resources", icon: <IconBriefcase2 className="h-6 w-6 shrink-0" /> },
