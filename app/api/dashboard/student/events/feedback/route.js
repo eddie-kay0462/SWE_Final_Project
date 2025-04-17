@@ -1,37 +1,51 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 
 /**
  * POST handler for submitting event feedback
  * 
  * @param {Request} request - The incoming request object
- * @returns {Promise<NextResponse>} JSON response indicating success or failure
+ * @returns {Promise<NextResponse>} JSON response with success/error message
  */
 export async function POST(request) {
   try {
-    const { eventId, rating, feedback } = await request.json();
-
-    if (!eventId || !rating) {
+    // Create a Supabase client
+    const supabase = await createClient();
+    
+    // Get the current user from the session
+    const cookieStore = cookies();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
       return NextResponse.json(
-        { error: 'Event ID and rating are required' },
+        { error: 'Unauthorized. Please log in.' },
+        { status: 401 }
+      );
+    }
+    
+    // Parse the request body
+    const { eventId, rating, comments } = await request.json();
+    
+    if (!eventId || !rating || rating < 1 || rating > 5) {
+      return NextResponse.json(
+        { error: 'Invalid feedback data. Rating must be between 1 and 5.' },
         { status: 400 }
       );
     }
-
-    const supabase = await createClient();
-
-    // Insert feedback into the database
-    const { error } = await supabase
+    
+    // Insert the feedback into the database
+    const { data, error } = await supabase
       .from('event_feedback')
-      .insert([
-        {
-          event_id: eventId,
-          rating,
-          feedback_text: feedback || '',
-          submitted_at: new Date().toISOString(),
-        }
-      ]);
-
+      .insert({
+        event_id: eventId,
+        user_id: user.id,
+        rating: rating,
+        comments: comments || null,
+        submitted_at: new Date().toISOString()
+      })
+      .select();
+    
     if (error) {
       console.error('Error submitting feedback:', error);
       return NextResponse.json(
@@ -39,9 +53,13 @@ export async function POST(request) {
         { status: 500 }
       );
     }
-
-    return NextResponse.json({ message: 'Feedback submitted successfully' });
-
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Feedback submitted successfully',
+      data: data[0]
+    });
+    
   } catch (error) {
     console.error('Error in feedback API:', error);
     return NextResponse.json(
