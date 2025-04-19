@@ -552,7 +552,7 @@ export default function AdminResourcesPage() {
       console.log("handleDeleteResource called with resource:", resource.id)
 
       // Alert for debugging
-      alert(`Attempting to delete resource: ${resource.title} (ID: ${resource.id})`)
+      // alert(`Attempting to delete resource: ${resource.title} (ID: ${resource.id})`)
 
       // Reset the resourceToDelete state
       setResourceToDelete(null)
@@ -803,8 +803,9 @@ export default function AdminResourcesPage() {
               console.log("Upload button clicked")
               setUploadDialogOpen(true)
             }}
+            className="bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors"
           >
-            <Upload className="h-4 w-4 mr-2" />
+            <Upload className="h-4 w-4 mr-2 " />
             Upload Resource
           </Button>
         </div>
@@ -923,15 +924,15 @@ export default function AdminResourcesPage() {
                       </div>
                       <p className="text-muted-foreground mb-4">{resource.description}</p>
                       <div className="flex flex-wrap gap-2 mb-4">
-                        <span className="text-xs px-2 py-1 bg-accent rounded-full flex items-center">
+                        <span className="text-xs px-2 py-1 bg-accent flex items-center text-white rounded-lg">
                           <Tag className="h-3 w-3 mr-1" />
                           {resource.category}
                         </span>
-                        <span className="text-xs px-2 py-1 bg-accent rounded-full flex items-center">
+                        <span className="text-xs px-2 py-1 bg-accent rounded-full flex items-center text-white">
                           <FileText className="h-3 w-3 mr-1" />
                           {resource.type}
                         </span>
-                        <span className="text-xs px-2 py-1 bg-accent rounded-full flex items-center">
+                        <span className="text-xs px-2 py-1 bg-accent rounded-full flex items-center text-white">
                           <Clock className="h-3 w-3 mr-1" />
                           {resource.updated}
                         </span>
@@ -1129,7 +1130,7 @@ export default function AdminResourcesPage() {
               onClick={() => setAnalyticsDialogOpen(false)}
             >
               <X className="h-5 w-5" />
-              <span className="sr-only">Close</span>
+              <span className="sr-only ">Close</span>
             </button>
 
             <h2 className="text-lg font-semibold mb-4">Resource Analytics</h2>
@@ -1198,8 +1199,8 @@ export default function AdminResourcesPage() {
               </div>
             </div>
 
-            <div className="flex justify-end mt-6">
-              <Button onClick={() => setAnalyticsDialogOpen(false)}>Close</Button>
+            <div className="flex justify-end mt-6 ">
+              <Button onClick={() => setAnalyticsDialogOpen(false)} className="bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors">Close</Button>
             </div>
           </div>
         </div>
@@ -1221,7 +1222,7 @@ export default function AdminResourcesPage() {
               <span className="sr-only">Close</span>
             </button>
 
-            <h2 className="text-lg font-semibold mb-4">Upload Resource</h2>
+            <h2 className="text-lg font-semibold mb-4 ">Upload Resource</h2>
 
             <div className="space-y-4">
               <div className="space-y-2">
@@ -1250,9 +1251,9 @@ export default function AdminResourcesPage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label htmlFor="resource-category">Category</Label>
-                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => setNewCategoryDialogOpen(true)}>
+                  {/* <Button variant="ghost" size="sm" className="text-xs" onClick={() => setNewCategoryDialogOpen(true)}>
                     + New Category
-                  </Button>
+                  </Button> */}
                 </div>
                 <select
                   id="resource-category"
@@ -1323,7 +1324,7 @@ export default function AdminResourcesPage() {
               <Button type="button" variant="outline" onClick={() => setUploadDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleUploadResource} disabled={isSubmitting}>
+              <Button onClick={handleUploadResource} disabled={isSubmitting} className="bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors">
                 {isSubmitting ? "Uploading..." : "Upload Resource"}
               </Button>
             </div>
