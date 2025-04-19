@@ -1,17 +1,26 @@
+/**
+ * Student Resources Page
+ *
+ * Allows students to browse, download, and request career resources
+ * with filtering, search, and resource request functionality.
+ */
+
 "use client"
 
-import React from "react"
-
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { FileText, Download, Search, Filter, Tag, Clock, Star, Plus, ChevronDown, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { createClient } from "@/utils/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 
 export default function ResourcesPage() {
+  const router = useRouter()
+  const { authUser, loading: authLoading } = useAuth()
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
@@ -22,118 +31,197 @@ export default function ResourcesPage() {
     importance: "medium",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [resources, setResources] = useState([])
+  const [categories, setCategories] = useState(["All"])
+  const [isLoading, setIsLoading] = useState(true)
+  const [favoriteResources, setFavoriteResources] = useState([])
+  const supabase = createClient()
+   // Add a favorites filter state
+  const [showFavorites, setShowFavorites] = useState(false)
 
-  // Mock categories
-  const categories = [
-    "All",
-    "Resume Templates",
-    "Cover Letters",
-    "Interview Prep",
-    "Career Guides",
-    "Industry Research",
-  ]
 
-  // Mock resources data
-  const allResources = [
-    {
-      id: 1,
-      title: "Professional Resume Template",
-      description: "A clean and modern resume template suitable for all professional fields.",
-      category: "Resume Templates",
-      type: "PDF",
-      size: "245 KB",
-      updated: "2 weeks ago",
-      downloads: 328,
-      starred: true,
-    },
-    {
-      id: 2,
-      title: "Cover Letter Writing Guide",
-      description: "Learn how to write compelling cover letters that grab employers' attention.",
-      category: "Cover Letters",
-      type: "PDF",
-      size: "1.2 MB",
-      updated: "1 month ago",
-      downloads: 156,
-      starred: false,
-    },
-    {
-      id: 3,
-      title: "STAR Method Interview Preparation",
-      description: "Prepare for behavioral interviews using the Situation, Task, Action, Result method.",
-      category: "Interview Prep",
-      type: "PDF",
-      size: "560 KB",
-      updated: "3 weeks ago",
-      downloads: 247,
-      starred: true,
-    },
-    {
-      id: 4,
-      title: "Creative Field Resume Template",
-      description: "Designed specifically for creative professionals to showcase their skills and experience.",
-      category: "Resume Templates",
-      type: "DOCX",
-      size: "350 KB",
-      updated: "5 days ago",
-      downloads: 102,
-      starred: false,
-    },
-    {
-      id: 5,
-      title: "Technology Industry Career Guide",
-      description: "Comprehensive guide to navigating careers in the technology sector.",
-      category: "Career Guides",
-      type: "PDF",
-      size: "4.5 MB",
-      updated: "2 months ago",
-      downloads: 198,
-      starred: true,
-    },
-    {
-      id: 6,
-      title: "Healthcare Industry Trends",
-      description: "Analysis of current trends and future outlook for careers in healthcare.",
-      category: "Industry Research",
-      type: "PDF",
-      size: "3.2 MB",
-      updated: "1 month ago",
-      downloads: 87,
-      starred: false,
-    },
-    {
-      id: 7,
-      title: "LinkedIn Profile Optimization Guide",
-      description: "Tips and strategies to make your LinkedIn profile stand out to recruiters.",
-      category: "Career Guides",
-      type: "PDF",
-      size: "2.1 MB",
-      updated: "3 weeks ago",
-      downloads: 175,
-      starred: false,
-    },
-    {
-      id: 8,
-      title: "Entry-Level Cover Letter Template",
-      description: "Perfect for students and recent graduates applying for their first professional roles.",
-      category: "Cover Letters",
-      type: "DOCX",
-      size: "280 KB",
-      updated: "2 weeks ago",
-      downloads: 143,
-      starred: true,
-    },
-  ]
 
-  // Filter resources based on search query and selected category
-  const filteredResources = allResources.filter((resource) => {
-    const matchesSearch =
-      resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      resource.description.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategory === "All" || resource.category === selectedCategory
-    return matchesSearch && matchesCategory
-  })
+  /**
+   * Checks if user is authenticated and redirects to login if not
+   */
+  useEffect(() => {
+    if (!authLoading && !authUser) {
+      console.log("[Resources] No authenticated user, redirecting to login")
+      router.push("/auth/login")
+      return
+    }
+  }, [authUser, authLoading, router])
 
+  /**
+   * Fetches resources and categories when component mounts
+   */
+  useEffect(() => {
+    if (authUser) {
+      fetchResources()
+      fetchCategories()
+      fetchFavorites()
+    }
+  }, [authUser])
+
+  /**
+   * Fetches all resources from Supabase
+   */
+  const fetchResources = async () => {
+    try {
+      setIsLoading(true)
+      const { data, error } = await supabase
+        .from("resources")
+        .select(`
+          id, 
+          title, 
+          description, 
+          file_url, 
+          file_type, 
+          file_size, 
+          uploaded_at, 
+          downloads,
+          category_id, 
+          resource_categories(name)
+        `)
+        .order("uploaded_at", { ascending: false })
+
+      if (error) throw error
+
+      // Format the resources data
+      const formattedResources = data.map((resource) => ({
+        id: resource.id,
+        title: resource.title,
+        description: resource.description,
+        category: resource.resource_categories?.name || "Uncategorized",
+        type: resource.file_type?.toUpperCase() || "PDF",
+        size: formatFileSize(resource.file_size),
+        updated: formatTimeAgo(resource.uploaded_at),
+        downloads: resource.downloads,
+        fileUrl: resource.file_url,
+        starred: false, // Will be updated after fetching favorites
+      }))
+
+      setResources(formattedResources)
+    } catch (error) {
+      console.error("[Resources] Fetch error:", error)
+      toast({
+        title: "Failed to load resources",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  /**
+   * Fetches all resource categories from Supabase
+   */
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase.from("resource_categories").select("name").order("name")
+
+      if (error) throw error
+
+      // Add "All" category at the beginning
+      setCategories(["All", ...data.map((category) => category.name)])
+    } catch (error) {
+      console.error("[Resources] Categories fetch error:", error)
+      toast({
+        title: "Failed to load categories",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  /**
+   * Fetches user's favorite resources
+   */
+  const fetchFavorites = async () => {
+    if (!authUser) return
+
+    try {
+      // First get the public.users ID
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", authUser.email)
+        .single()
+
+      if (userError || !userData) throw userError
+
+      // Then get favorites for that user
+      const { data, error } = await supabase.from("resource_favorites").select("resource_id").eq("user_id", userData.id)
+
+      if (error) throw error
+
+      // Store favorite resource IDs
+      const favoriteIds = data.map((fav) => fav.resource_id)
+      setFavoriteResources(favoriteIds)
+
+      // Update starred status in resources
+      setResources((prevResources) =>
+        prevResources.map((resource) => ({
+          ...resource,
+          starred: favoriteIds.includes(resource.id),
+        })),
+      )
+    } catch (error) {
+      console.error("[Resources] Favorites fetch error:", error)
+    }
+  }
+
+  /**
+   * Formats file size in bytes to human-readable format
+   * @param {number} bytes - File size in bytes
+   * @returns {string} Formatted file size
+   */
+  const formatFileSize = (bytes) => {
+    if (!bytes) return "Unknown size"
+
+    const kb = bytes / 1024
+    if (kb < 1024) {
+      return `${Math.round(kb)} KB`
+    } else {
+      return `${(kb / 1024).toFixed(1)} MB`
+    }
+  }
+
+  /**
+   * Formats timestamp to "time ago" format
+   * @param {string} timestamp - ISO timestamp
+   * @returns {string} Time ago string
+   */
+  const formatTimeAgo = (timestamp) => {
+    if (!timestamp) return "Unknown date"
+
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffInSeconds = Math.floor((now - date) / 1000)
+
+    if (diffInSeconds < 60) return "just now"
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60)
+    if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? "s" : ""} ago`
+
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`
+
+    const diffInDays = Math.floor(diffInHours / 24)
+    if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`
+
+    const diffInWeeks = Math.floor(diffInDays / 7)
+    if (diffInWeeks < 5) return `${diffInWeeks} week${diffInWeeks > 1 ? "s" : ""} ago`
+
+    const diffInMonths = Math.floor(diffInDays / 30)
+    return `${diffInMonths} month${diffInMonths > 1 ? "s" : ""} ago`
+  }
+
+  /**
+   * Handles form input changes
+   * @param {Event} e - Input change event
+   */
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setRequestForm((prev) => ({
@@ -142,6 +230,11 @@ export default function ResourcesPage() {
     }))
   }
 
+  /**
+   * Handles select input changes
+   * @param {string} name - Field name
+   * @param {string} value - Field value
+   */
   const handleSelectChange = (name, value) => {
     setRequestForm((prev) => ({
       ...prev,
@@ -149,22 +242,153 @@ export default function ResourcesPage() {
     }))
   }
 
-  const handleRequestSubmit = () => {
-    if (!requestForm.resourceTitle || !requestForm.reason || !requestForm.importance) {
+  /**
+   * Handles resource download
+   * @param {Object} resource - Resource to download
+   */
+  const handleDownload = async (resource) => {
+    try {
+      // First get the public.users ID
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", authUser.email)
+        .single()
+
+      if (userError || !userData) throw userError
+
+      // Increment download count
+      const { error } = await supabase.rpc("increment_resource_download", { resource_id: resource.id })
+
+      if (error) throw error
+
+      // Update local state
+      setResources((prevResources) =>
+        prevResources.map((r) => (r.id === resource.id ? { ...r, downloads: r.downloads + 1 } : r)),
+      )
+
+      // Open the file in a new tab
+      window.open(resource.fileUrl, "_blank")
+    } catch (error) {
+      console.error("[Resources] Download error:", error)
       toast({
-        title: "Missing Information",
-        description: "Please complete all fields.",
+        title: "Download failed",
+        description: "There was an error downloading this resource.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  /**
+   * Toggles resource favorite status
+   * @param {Object} resource - Resource to toggle
+   */
+  const handleToggleFavorite = async (resource) => {
+    if (!authUser) return
+
+    try {
+      // First get the public.users ID
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", authUser.email)
+        .single()
+
+      if (userError || !userData) throw userError
+
+      if (resource.starred) {
+        // Remove from favorites
+        const { error } = await supabase
+          .from("resource_favorites")
+          .delete()
+          .eq("resource_id", resource.id)
+          .eq("user_id", userData.id)
+
+        if (error) throw error
+
+        // Update local state
+        setFavoriteResources((prev) => prev.filter((id) => id !== resource.id))
+        setResources((prevResources) => prevResources.map((r) => (r.id === resource.id ? { ...r, starred: false } : r)))
+
+        toast({
+          title: "Removed from favorites",
+          description: `"${resource.title}" has been removed from your favorites.`,
+        })
+      } else {
+        // Add to favorites
+        const { error } = await supabase.from("resource_favorites").insert([
+          {
+            resource_id: resource.id,
+            user_id: userData.id,
+          },
+        ])
+
+        if (error) throw error
+
+        // Update local state
+        setFavoriteResources((prev) => [...prev, resource.id])
+        setResources((prevResources) => prevResources.map((r) => (r.id === resource.id ? { ...r, starred: true } : r)))
+
+        toast({
+          title: "Added to favorites",
+          description: `"${resource.title}" has been added to your favorites.`,
+        })
+      }
+    } catch (error) {
+      console.error("[Resources] Favorite toggle error:", error)
+      toast({
+        title: "Action failed",
+        description: "There was an error updating your favorites.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  /**
+   * Submits resource request
+   */
+  const handleRequestSubmit = async () => {
+    if (!authUser) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to request resources.",
         variant: "destructive",
       })
       return
     }
 
-    setIsSubmitting(true)
+    if (!requestForm.resourceTitle || !requestForm.reason) {
+      toast({
+        title: "Missing Information",
+        description: "Please complete all required fields.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setShowRequestModal(false)
+    try {
+      setIsSubmitting(true)
+
+      // First get the public.users ID
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", authUser.email)
+        .single()
+
+      if (userError || !userData) throw userError
+
+      // Insert resource request
+      const { error } = await supabase.from("resource_requests").insert([
+        {
+          resource_title: requestForm.resourceTitle,
+          reason: requestForm.reason,
+          importance: requestForm.importance,
+          user_id: userData.id,
+        },
+      ])
+
+      if (error) throw error
 
       toast({
         title: "Request Submitted",
@@ -177,8 +401,28 @@ export default function ResourcesPage() {
         reason: "",
         importance: "medium",
       })
-    }, 1500)
+      setShowRequestModal(false)
+    } catch (error) {
+      console.error("[Resources] Request submit error:", error)
+      toast({
+        title: "Request failed",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
+
+  // Filter resources based on search query and selected category
+  const filteredResources = resources.filter((resource) => {
+    const matchesSearch =
+      resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      resource.description.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = selectedCategory === "All" || resource.category === selectedCategory
+    const matchesFavorites = showFavorites ? resource.starred : true
+    return matchesSearch && matchesCategory && matchesFavorites
+  })
 
   // Effect to prevent body scrolling when modal is open
   React.useEffect(() => {
@@ -192,6 +436,14 @@ export default function ResourcesPage() {
       document.body.style.overflow = ""
     }
   }, [showRequestModal])
+
+  if (authLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (!authUser) {
+    return null
+  }
 
   return (
     <div className="space-y-6">
@@ -239,53 +491,103 @@ export default function ResourcesPage() {
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>
+          <Button
+            variant={showFavorites ? "default" : "outline"}
+            className={showFavorites ? "bg-[#A91827]" : ""}
+            onClick={() => setShowFavorites(!showFavorites)}
+          >
+            <Star className={`h-4 w-4 mr-2 ${showFavorites ? "fill-white" : ""}`} />
+            {showFavorites ? "All Resources" : "Favorites"}
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredResources.map((resource) => (
-          <div
-            key={resource.id}
-            className="bg-background border border-border rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-          >
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                    <FileText className="h-5 w-5 text-primary" />
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="bg-background border border-border rounded-lg shadow-sm overflow-hidden animate-pulse"
+            >
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center">
+                    <div className="h-10 w-10 rounded-full bg-gray-200 mr-3"></div>
+                    <div className="h-6 w-40 bg-gray-200 rounded"></div>
                   </div>
-                  <h3 className="text-lg font-semibold">{resource.title}</h3>
+                  <div className="h-5 w-5 bg-gray-200 rounded-full"></div>
                 </div>
-                {resource.starred && <Star className="h-5 w-5 text-amber-400 fill-amber-400" />}
-              </div>
-              <p className="text-muted-foreground mb-4">{resource.description}</p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className="text-xs px-2 py-1 bg-muted rounded-full flex items-center">
-                  <Tag className="h-3 w-3 mr-1" />
-                  {resource.category}
-                </span>
-                <span className="text-xs px-2 py-1 bg-muted rounded-full flex items-center">
-                  <FileText className="h-3 w-3 mr-1" />
-                  {resource.type}
-                </span>
-                <span className="text-xs px-2 py-1 bg-muted rounded-full flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {resource.updated}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">{resource.downloads} downloads</span>
-                <Button variant="default" size="sm" className="bg-[#A91827] text-white text-xs font-medium">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </Button>
+                <div className="h-4 w-full bg-gray-200 rounded mb-4"></div>
+                <div className="h-4 w-3/4 bg-gray-200 rounded mb-4"></div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
+                  <div className="h-6 w-16 bg-gray-200 rounded-full"></div>
+                  <div className="h-6 w-24 bg-gray-200 rounded-full"></div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                  <div className="h-8 w-24 bg-gray-200 rounded"></div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredResources.map((resource) => (
+            <div
+              key={resource.id}
+              className="bg-background border border-border rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+            >
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold">{resource.title}</h3>
+                  </div>
+                  <button
+                    onClick={() => handleToggleFavorite(resource)}
+                    className="text-gray-400 hover:text-amber-400 focus:outline-none"
+                  >
+                    <Star className={`h-5 w-5 ${resource.starred ? "text-amber-400 fill-amber-400" : ""}`} />
+                  </button>
+                </div>
+                <p className="text-muted-foreground mb-4">{resource.description}</p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <span className="text-xs px-2 py-1 bg-muted rounded-full flex items-center">
+                    <Tag className="h-3 w-3 mr-1" />
+                    {resource.category}
+                  </span>
+                  <span className="text-xs px-2 py-1 bg-muted rounded-full flex items-center">
+                    <FileText className="h-3 w-3 mr-1" />
+                    {resource.type}
+                  </span>
+                  <span className="text-xs px-2 py-1 bg-muted rounded-full flex items-center">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {resource.updated}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">{resource.downloads} downloads</span>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="bg-[#A91827] text-white text-xs font-medium"
+                    onClick={() => handleDownload(resource)}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-      {filteredResources.length === 0 && (
+      {!isLoading && filteredResources.length === 0 && (
         <div className="text-center py-12 bg-background border border-border rounded-lg shadow-sm">
           <p className="text-lg text-muted-foreground">No resources found matching your criteria.</p>
           <Button onClick={() => setShowRequestModal(true)} className="mt-4">
@@ -294,7 +596,7 @@ export default function ResourcesPage() {
         </div>
       )}
 
-      {/* Simple Modal Implementation */}
+      {/* Resource Request Modal */}
       {showRequestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop */}
@@ -302,7 +604,7 @@ export default function ResourcesPage() {
 
           {/* Modal Content */}
           <div className="relative z-50 w-full max-w-md bg-background p-6 rounded-lg shadow-lg border">
-            {/* Close Button */}            
+            {/* Close Button */}
             <button
               className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
               onClick={() => setShowRequestModal(false)}
@@ -344,22 +646,20 @@ export default function ResourcesPage() {
                 />
               </div>
 
-              {/* <div className="space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="importance">Importance</Label>
-                <Select
+                <select
+                  id="importance"
+                  name="importance"
+                  className="w-full p-2 border rounded-md"
                   value={requestForm.importance}
-                  onValueChange={(value) => handleSelectChange("importance", value)}
+                  onChange={handleInputChange}
                 >
-                  <SelectTrigger id="importance">
-                    <SelectValue placeholder="Select importance level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low - Nice to have</SelectItem>
-                    <SelectItem value="medium">Medium - Would be helpful</SelectItem>
-                    <SelectItem value="high">High - Urgently needed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div> */}
+                  <option value="low">Low - Nice to have</option>
+                  <option value="medium">Medium - Would be helpful</option>
+                  <option value="high">High - Urgently needed</option>
+                </select>
+              </div>
             </div>
 
             {/* Footer */}
