@@ -13,10 +13,19 @@ import { createClient } from "@supabase/supabase-js";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-// Initialize Supabase client
+// Check for required environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Handle missing environment variables gracefully
+if (!supabaseUrl || !supabaseKey) {
+  console.error("Missing required Supabase environment variables");
+}
+
+// Initialize Supabase client with fallback for build time
+const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 /**
  * GET handler for student internship requests
@@ -26,6 +35,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  */
 export async function GET(req) {
   try {
+    // Check if Supabase client is properly initialized
+    if (!supabase) {
+      return NextResponse.json(
+        { error: "Service configuration error" },
+        { status: 503 }
+      );
+    }
+
     // Verify authentication
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
