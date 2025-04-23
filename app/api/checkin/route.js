@@ -5,17 +5,26 @@ import { createClient } from "@supabase/supabase-js"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+// Handle missing environment variables more gracefully
 if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error(
-    'Required environment variables NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set'
-  )
+  console.error("Missing required Supabase environment variables")
 }
 
-// Initialize Supabase client
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Initialize Supabase client with fallback for build time
+const supabase = supabaseUrl && supabaseServiceKey 
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null
 
 export async function POST(request) {
   try {
+    // Check if Supabase client is properly initialized
+    if (!supabase) {
+      return NextResponse.json(
+        { error: "Service configuration error" },
+        { status: 503 }
+      )
+    }
+
     const { student_id, session_id, timestamp } = await request.json()
 
     // Verify the hash matches the expected format
