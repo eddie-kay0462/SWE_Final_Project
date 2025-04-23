@@ -1,81 +1,135 @@
 import { createClient } from '@/utils/supabase/server';
+import { NextResponse } from 'next/server';
 
-export default async function handler(req, res) {
-    const supabase = await createClient(req.cookies);
-    const { id } = req.query;
+/**
+ * GET handler for fetching users
+ */
+export async function GET() {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('users').select();
 
-    // 📌 GET - Fetch users while respecting RLS
-    if (req.method === 'GET') {
-        const { data, error } = await supabase.from('users').select();
-
-        if (error) {
-            if (error.code === '42501') {
-                return res.status(403).json({ error: "Access denied. You may not have permission to view this data." });
-            }
-            return res.status(500).json({ error: error.message });
-        }
-
-        return res.status(200).json(data);
+    if (error) {
+      if (error.code === '42501') {
+        return NextResponse.json(
+          { error: "Access denied. You may not have permission to view this data." },
+          { status: 403 }
+        );
+      }
+      throw error;
     }
 
-    // 📌 POST - Create a new user
-    if (req.method === 'POST') {
-        const { fname, lname, email, password, role_id } = req.body;
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("GET users error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
 
-        // Input validation
-        if (!fname || !lname || !email || !password || !role_id) {
-            return res.status(400).json({ error: "Missing required fields" });
-        }
+/**
+ * POST handler for creating a new user
+ */
+export async function POST(request) {
+  try {
+    const supabase = createClient();
+    const body = await request.json();
+    const { fname, lname, email, password, role_id } = body;
 
-        const { data, error } = await supabase.from('users').insert([
-            { fname, lname, email, password, role_id }
-        ]).select(); // Add .select() to return the created data
-
-        if (error) return res.status(500).json({ error: error.message });
-        return res.status(201).json(data);
+    // Input validation
+    if (!fname || !lname || !email || !password || !role_id) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
-    // 📌 PATCH - Update user (if Admin)
-    if (req.method === 'PATCH') {
-        if (!id) {
-            return res.status(400).json({ error: "User ID is required" });
-        }
+    const { data, error } = await supabase
+      .from('users')
+      .insert([{ fname, lname, email, password, role_id }])
+      .select();
 
-        const { fname, lname, email, profilePic } = req.body;
-        const updateData = {};
-        
-        // Only include fields that are provided
-        if (fname) updateData.fname = fname;
-        if (lname) updateData.lname = lname;
-        if (email) updateData.email = email;
-        if (profilePic) updateData.profilePic = profilePic;
+    if (error) throw error;
+    return NextResponse.json(data, { status: 201 });
+  } catch (error) {
+    console.error("POST user error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
 
-        const { data, error } = await supabase
-            .from('users')
-            .update(updateData)
-            .eq('id', id)
-            .select(); // Add .select() to return the updated data
+/**
+ * PATCH handler for updating a user
+ */
+export async function PATCH(request) {
+  try {
+    const supabase = createClient();
+    const body = await request.json();
+    const { id, fname, lname, email, profilePic } = body;
 
-        if (error) return res.status(500).json({ error: error.message });
-        return res.status(200).json(data);
+    if (!id) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
     }
 
-    // 📌 DELETE - Delete user
-    if (req.method === 'DELETE') {
-        if (!id) {
-            return res.status(400).json({ error: "User ID is required" });
-        }
+    const updateData = {};
+    if (fname) updateData.fname = fname;
+    if (lname) updateData.lname = lname;
+    if (email) updateData.email = email;
+    if (profilePic) updateData.profilePic = profilePic;
 
-        const { data, error } = await supabase
-            .from('users')
-            .delete()
-            .eq('id', id)
-            .select(); // Add .select() to return the deleted data
+    const { data, error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', id)
+      .select();
 
-        if (error) return res.status(500).json({ error: error.message });
-        return res.status(200).json(data); // Changed from 204 to 200 since we're returning data
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("PATCH user error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE handler for removing a user
+ */
+export async function DELETE(request) {
+  try {
+    const supabase = createClient();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
     }
 
-    res.setHeader('Allow', ['GET', 'POST', 'PATCH', 'DELETE']);
-    res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+    const { data, error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("DELETE user error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

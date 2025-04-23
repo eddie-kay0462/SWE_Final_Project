@@ -5,6 +5,7 @@ import React, { useState, createContext, useContext } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { IconMenu2, IconX } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
+import { Button } from "./button";
 
 const SidebarContext = createContext(undefined);
 
@@ -181,3 +182,100 @@ export const SidebarLink = ({
     </Link>
   );
 };
+
+export function SidebarContent({ children, className }) {
+  return (
+    <div className={cn("flex h-full w-full flex-col gap-4", className)}>
+      {children}
+    </div>
+  );
+}
+
+export function SidebarHeader({ children, className }) {
+  return (
+    <div className={cn("flex items-center gap-2 px-6 py-4", className)}>
+      {children}
+    </div>
+  );
+}
+
+export function SidebarMenu({ children, className }) {
+  return (
+    <nav className={cn("flex-1 space-y-1 px-3", className)}>
+      {children}
+    </nav>
+  );
+}
+
+export function SidebarMenuItem({ 
+  href, 
+  icon: Icon, 
+  children, 
+  isActive,
+  className,
+  ...props 
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "group flex items-center gap-x-3 rounded-md px-3 py-2 text-sm font-medium",
+        isActive 
+          ? "bg-primary/10 text-primary" 
+          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+        className
+      )}
+      {...props}
+    >
+      {Icon && (
+        <Icon
+          className={cn(
+            "h-5 w-5 shrink-0",
+            isActive ? "text-primary" : "text-muted-foreground group-hover:text-accent-foreground"
+          )}
+        />
+      )}
+      {children}
+      {isActive && (
+        <motion.div
+          layoutId="sidebar-active-indicator"
+          className="absolute left-0 w-1 h-8 bg-primary rounded-r-full"
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 30
+          }}
+        />
+      )}
+    </Link>
+  );
+}
+
+export function SidebarMenuButton({ 
+  icon: Icon, 
+  children, 
+  className,
+  ...props 
+}) {
+  return (
+    <Button
+      variant="ghost"
+      className={cn(
+        "w-full justify-start gap-x-3 px-3",
+        className
+      )}
+      {...props}
+    >
+      {Icon && <Icon className="h-5 w-5" />}
+      {children}
+    </Button>
+  );
+}
+
+export function SidebarFooter({ children, className }) {
+  return (
+    <div className={cn("mt-auto px-6 py-4", className)}>
+      {children}
+    </div>
+  );
+}

@@ -9,13 +9,14 @@
  * @page.jsx handles invitation completion flow for admin/staff accounts
  */
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { createBrowserClient } from "@supabase/ssr"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { GraduationCap } from "lucide-react"
 
-export default function AcceptInvite() {
+// Create a component for the main accept invite content
+function AcceptInviteContent() {
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [password, setPassword] = useState("")
@@ -283,7 +284,36 @@ export default function AcceptInvite() {
           </div>
         </div>
       </main>
+    </div>
+  )
+}
 
+// Main component with Suspense boundary
+export default function AcceptInvite() {
+  return (
+    <div className="min-h-screen bg-[#f3f1ea] flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <GraduationCap className="h-6 w-6 text-[#A91827]" />
+            <span className="text-xl font-bold">CSOFT</span>
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Content wrapped in Suspense */}
+      <Suspense fallback={
+        <main className="flex-1 container mx-auto p-4 md:p-8 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-lg">Loading...</p>
+          </div>
+        </main>
+      }>
+        <AcceptInviteContent />
+      </Suspense>
+
+      {/* Footer */}
       <footer className="border-t bg-[#f3f1ea]">
         <div className="container py-8 md:py-12">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">

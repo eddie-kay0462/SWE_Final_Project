@@ -8,65 +8,27 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "./button"
+import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { LoadingSpinner } from "./loading-spinner"
 
 export function LoadingButton({
   children,
-  isLoading = false,
-  loadingText = "Loading...",
-  disabled = false,
-  spinnerSize = "small",
-  spinnerOnly = false,
-  className = "",
-  onClick,
+  loading = false,
+  disabled,
+  className,
   ...props
 }) {
-  const [isProcessing, setIsProcessing] = useState(isLoading)
-  
-  // Update internal state when prop changes
-  useEffect(() => {
-    setIsProcessing(isLoading)
-  }, [isLoading])
-  
-  // Handle click with optional async processing
-  const handleClick = async (e) => {
-    if (isProcessing || !onClick) return
-    
-    if (onClick.constructor.name === 'AsyncFunction') {
-      try {
-        setIsProcessing(true)
-        await onClick(e)
-      } finally {
-        setIsProcessing(false)
-      }
-    } else {
-      onClick(e)
-    }
-  }
-  
   return (
     <Button
+      disabled={loading || disabled}
       className={cn(className)}
-      disabled={disabled || isProcessing}
-      onClick={handleClick}
       {...props}
     >
-      {isProcessing ? (
-        <span className="flex items-center justify-center gap-2">
-          <LoadingSpinner 
-            size={spinnerSize} 
-            showText={!spinnerOnly} 
-            text={loadingText} 
-          />
-          {!spinnerOnly && (
-            <span className="ml-1">{loadingText}</span>
-          )}
-        </span>
-      ) : (
-        children
+      {loading && (
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
       )}
+      {children}
     </Button>
   )
 } 

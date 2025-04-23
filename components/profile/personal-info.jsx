@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import LoadingButton from "@/components/ui/loading-button"
+import { LoadingButton } from "@/components/ui/loading-button"
 import {
     User,
     Mail,
@@ -151,7 +151,7 @@ export default function PersonalInfo({ initialData }) {
           {renderEditItem(Mail, "Email", "email", formData.email)}
 
           <div className="flex justify-end pt-4">
-            <LoadingButton type="submit" isLoading={isLoading} disabled={isLoading}>
+            <LoadingButton type="submit" loading={isLoading} disabled={isLoading}>
               Save Changes
             </LoadingButton>
           </div>
