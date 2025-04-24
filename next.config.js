@@ -29,6 +29,22 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000', 'csoft.vercel.app'],
     },
   },
+
+  // Image configuration using remotePatterns
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'miro.medium.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      }
+    ],
+  },
 }
 
-module.exports = nextConfig 
+module.exports = nextConfig
