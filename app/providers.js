@@ -1,12 +1,29 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ThemeProvider } from "next-themes"
 import { Toaster } from "sonner"
 
 export function Providers({ children }) {
-  const [queryClient] = useState(() => new QueryClient())
+  const [mounted, setMounted] = useState(false)
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 1,
+        refetchOnWindowFocus: false,
+      },
+    },
+  }))
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -15,6 +32,7 @@ export function Providers({ children }) {
         defaultTheme="system"
         enableSystem
         disableTransitionOnChange
+        suppressHydrationWarning
       >
         {children}
         <Toaster 
