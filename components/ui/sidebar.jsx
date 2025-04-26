@@ -71,13 +71,12 @@ export const DesktopSidebar = ({
           className
         )}
         animate={{
-          width: animate ? (open ? "280px" : "80px") : "280px",
+          width: "280px"
         }}
         initial={{
           width: "280px"
         }}
         onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
         {...props}
       >
         <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -105,22 +104,29 @@ export const MobileSidebar = ({
       >
         <div className="flex justify-end z-20 w-full">
           <IconMenu2
-            className="text-neutral-800 dark:text-neutral-100 h-6 w-6"
+            className="text-neutral-800 dark:text-neutral-100 h-6 w-6 cursor-pointer"
             onClick={() => setOpen(!open)}
           />
         </div>
-        <AnimatePresence>
-          {open && (
+      </div>
+      <AnimatePresence>
+        {open && (
+          <>
             <motion.div
-              initial={{ x: "-100%", opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "-100%", opacity: 0 }}
-              transition={{
-                duration: 0.3,
-                ease: "easeInOut",
-              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              onClick={() => setOpen(false)}
+            />
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
               className={cn(
-                "fixed inset-0 top-16 bg-white dark:bg-[#161616] z-[100] flex flex-col",
+                "fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-[#161616] border-r border-neutral-200 dark:border-[#262626] md:hidden",
                 className
               )}
             >
@@ -128,9 +134,9 @@ export const MobileSidebar = ({
                 {children}
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 };

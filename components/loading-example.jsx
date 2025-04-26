@@ -81,7 +81,7 @@ export function LoadingExample() {
           </div>
           
           <LoadingButton
-            isLoading={localLoading}
+            loading={localLoading}
             onClick={handleLocalAction}
             loadingText="Processing"
             className="w-full bg-[#A91827] text-white"
@@ -140,7 +140,7 @@ export function LoadingExample() {
           
           <LoadingButton
             type="submit"
-            isLoading={localLoading}
+            loading={localLoading}
             loadingText="Submitting"
             className="w-full bg-[#A91827] text-white"
           >
