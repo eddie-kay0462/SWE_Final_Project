@@ -1,11 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Calendar, Clock, MapPin, Users, QrCode, CheckCircle, MessageSquare } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
+/**
+ * AdminEventsPage displays all events for admins, including attendee feedback and QR code generation.
+ *
+ * <p>Admins can view upcoming and past events, see feedback from students (with names), and generate check-in QR codes.</p>
+ *
+ * @author SWE Team
+ * @version 2024-06
+ */
 export default function AdminEventsPage() {
   const [activeTab, setActiveTab] = useState("upcoming")
   const [selectedEvent, setSelectedEvent] = useState(null)
@@ -14,35 +22,37 @@ export default function AdminEventsPage() {
   const [feedbackText, setFeedbackText] = useState("")
   const [rating, setRating] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [upcomingEvents, setUpcomingEvents] = useState([])
+  const [pastEvents, setPastEvents] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // Mock data for events
-  const upcomingEvents = [
-    {
-      id: 1,
-      title: "Career Fair - Spring 2025",
-      date: "March 15, 2025",
-      time: "10:00 AM - 4:00 PM",
-      location: "University Center, Main Hall",
-      attendees: 123,
-      description: "Our biggest career fair of the year with over 50 companies from various industries looking to recruit students for internships and full-time positions.",
-      tags: ["All Students", "Job Fair"]
-    },
-    // ... other events
-  ]
+  // Fetch events from the API
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/dashboard/admin/events')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch events')
+        }
+        
+        const data = await response.json()
+        setUpcomingEvents(data.upcomingEvents || [])
+        setPastEvents(data.pastEvents || [])
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching events:', err)
+        setError('Failed to load events. Please try again later.')
+        toast.error("Failed to load events. Please try again later.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  const pastEvents = [
-    {
-      id: 5,
-      title: "Fall Career Fair 2024",
-      date: "October 15, 2024",
-      time: "10:00 AM - 4:00 PM",
-      location: "University Center, Main Hall",
-      attendees: 210,
-      description: "Our annual fall career fair featuring over 40 companies from various industries.",
-      tags: ["All Students", "Job Fair"]
-    },
-    // ... other events
-  ]
+    fetchEvents()
+  }, [])
 
   // Function to generate QR code data
   const generateQRData = (event) => {
@@ -69,10 +79,7 @@ export default function AdminEventsPage() {
   // Function to handle feedback submission
   const handleSubmitFeedback = async () => {
     if (rating === 0) {
-      toast({
-        title: "Rating Required",
-        description: "Please provide a rating for this event.",
-      })
+      toast.error("Please provide a rating for this event.")
       return
     }
 
@@ -101,15 +108,9 @@ export default function AdminEventsPage() {
       setFeedbackText("")
       setRating(0)
       
-      toast({
-        title: "Success",
-        description: "Thank you for your feedback!",
-      })
+      toast.success("Thank you for your feedback!")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to submit feedback. Please try again.",
-      })
+      toast.error(error.message || "Failed to submit feedback. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -117,6 +118,36 @@ export default function AdminEventsPage() {
 
   // Function to render event cards
   const renderEventCards = (events) => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-[#A91827] text-white rounded-md hover:bg-[#A91827]/90"
+          >
+            Try Again
+          </button>
+        </div>
+      )
+    }
+
+    if (events.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No {activeTab} events found.</p>
+        </div>
+      )
+    }
+
     return events.map((event) => (
       <div key={event.id} className="bg-card rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
         <div className="p-6">
@@ -139,6 +170,12 @@ export default function AdminEventsPage() {
                 <Users className="h-4 w-4 mr-2" />
                 <span>{event.attendees} attendees</span>
               </div>
+              {event.feedbackCount > 0 && (
+                <div className="flex items-center text-muted-foreground mb-1">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  <span>{event.feedbackCount} feedback • {event.averageRating} avg rating</span>
+                </div>
+              )}
             </div>
             <div className="mt-4 md:mt-0">
               <div className="flex gap-2">
@@ -162,7 +199,7 @@ export default function AdminEventsPage() {
                   className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   <MessageSquare className="h-4 w-4" />
-                  Feedback
+                  {event.feedbackCount > 0 ? `View Feedback (${event.feedbackCount})` : "No Feedback"}
                 </button>
               </div>
             </div>
@@ -179,6 +216,91 @@ export default function AdminEventsPage() {
       </div>
     ))
   }
+
+  /**
+   * Renders the feedback modal for an event, showing all feedback with student names.
+   *
+   * @returns {JSX.Element|null} The feedback modal or null if not open
+   */
+  const renderFeedbackModal = () => {
+    if (!feedbackDialogOpen) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
+          onClick={() => setFeedbackDialogOpen(false)}
+        />
+        <div className="z-50 w-full max-w-md sm:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative">
+          <button
+            className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
+            onClick={() => setFeedbackDialogOpen(false)}
+          >
+            <span className="sr-only">Close</span>
+            ×
+          </button>
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold">Event Feedback</h2>
+              <p className="text-sm text-muted-foreground">
+                Feedback from attendees for this event.
+              </p>
+            </div>
+            {selectedEvent && (
+              <div className="space-y-4 py-4">
+                <div className="p-3 bg-muted rounded-md">
+                  <h3 className="font-medium">{selectedEvent.title}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedEvent.date} • {selectedEvent.time}</p>
+                </div>
+                {selectedEvent.feedback && selectedEvent.feedback.length > 0 ? (
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Feedback from {selectedEvent.feedbackCount} attendees</h4>
+                    <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                      {selectedEvent.feedback.map((item, index) => (
+                        <div key={index} className="p-3 border rounded-md bg-white dark:bg-gray-900">
+                          <div className="flex items-center mb-1 justify-between">
+                            <div className="flex">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <span 
+                                  key={star} 
+                                  className={`text-yellow-400 ${star <= item.rating ? 'opacity-100' : 'opacity-30'}`}
+                                >
+                                  ★
+                                </span>
+                              ))}
+                            </div>
+                            <span className="text-xs text-gray-500 font-medium">
+                              {item.fname} {item.lname}
+                            </span>
+                          </div>
+                          {item.comments && (
+                            <p className="text-sm text-muted-foreground mt-1">{item.comments}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground">No feedback has been submitted for this event yet.</p>
+                  </div>
+                )}
+                {/* Optionally, admin can submit feedback here if needed */}
+              </div>
+            )}
+            <DialogFooter>
+              <button
+                type="button"
+                className="px-4 py-2 border rounded-md hover:bg-gray-100"
+                onClick={() => setFeedbackDialogOpen(false)}
+              >
+                Cancel
+              </button>
+            </DialogFooter>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -211,69 +333,8 @@ export default function AdminEventsPage() {
         </div>
       )}
 
-      {/* Feedback Dialog */}
-      <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Event Feedback</DialogTitle>
-          </DialogHeader>
-
-          {selectedEvent && (
-            <div className="space-y-4 py-4">
-              <div className="p-3 bg-muted rounded-md">
-                <h3 className="font-medium">{selectedEvent.title}</h3>
-                <p className="text-sm text-muted-foreground">{selectedEvent.date} • {selectedEvent.time}</p>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="rating" className="font-medium">Rating</label>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      className={`text-2xl ${
-                        star <= rating ? "text-yellow-400" : "text-gray-300"
-                      }`}
-                    >
-                      ★
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="feedback" className="font-medium">Comments</label>
-                <textarea
-                  id="feedback"
-                  className="w-full p-2 border rounded-md min-h-[100px]"
-                  placeholder="Share your thoughts about this event..."
-                  value={feedbackText}
-                  onChange={(e) => setFeedbackText(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <button
-              type="button"
-              className="px-4 py-2 border rounded-md hover:bg-gray-100"
-              onClick={() => setFeedbackDialogOpen(false)}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmitFeedback}
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-[#A91827] text-white rounded-md hover:bg-[#A91827]/90 disabled:opacity-50"
-            >
-              {isSubmitting ? "Submitting..." : "Submit Feedback"}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Feedback Modal */}
+      {renderFeedbackModal()}
 
       {/* Tabs */}
       <div className="flex space-x-4 border-b">

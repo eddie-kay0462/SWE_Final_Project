@@ -7,6 +7,8 @@ import { cookies } from 'next/headers';
  * 
  * @param {Request} request - The incoming request object
  * @returns {Promise<NextResponse>} JSON response with success/error message
+ *
+ * Note: event_feedback table should have a unique constraint on (event_id, user_id)
  */
 export async function POST(request) {
   try {
@@ -34,16 +36,16 @@ export async function POST(request) {
       );
     }
     
-    // Insert the feedback into the database
+    // Upsert the feedback into the database (update if exists, insert if not)
     const { data, error } = await supabase
       .from('event_feedback')
-      .insert({
+      .upsert({
         event_id: eventId,
         user_id: user.id,
         rating: rating,
         comments: comments || null,
         submitted_at: new Date().toISOString()
-      })
+      }, { onConflict: ['event_id', 'user_id'] })
       .select();
     
     if (error) {
