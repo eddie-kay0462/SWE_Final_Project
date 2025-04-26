@@ -190,7 +190,7 @@ export default function Login() {
                 <div className="animate-appear opacity-0 delay-400">
                   <LoadingButton
                     type="submit"
-                    isLoading={isLoading}
+                    loading={isLoading}
                     loadingText="Signing in"
                     spinnerSize="small"
                     className="w-full bg-[#A91827] hover:bg-[#A91827]/90 text-white font-medium py-3 px-4 rounded-lg transition-all text-lg"

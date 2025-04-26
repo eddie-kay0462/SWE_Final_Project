@@ -1,7 +1,7 @@
 /**
  * Loading Button Component
  * 
- * A button with loading state that shows a spinner when isLoading is true
+ * A button with loading state that shows a spinner when loading is true
  * Extends the base Button component with loading functionality
  */
 
@@ -22,7 +22,11 @@ export function LoadingButton({
   return (
     <Button
       disabled={loading || disabled}
-      className={cn(className)}
+      className={cn(
+        "relative",
+        loading && "cursor-not-allowed",
+        className
+      )}
       {...props}
     >
       {loading && (

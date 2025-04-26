@@ -104,7 +104,7 @@ export default function LoadingDemoPage() {
               <div className="flex flex-col items-center">
                 <p className="mb-2">With Text</p>
                 <LoadingButton 
-                  isLoading={isButtonLoading}
+                  loading={isButtonLoading}
                   onClick={simulateApiCall}
                   loadingText="Processing..."
                   className="w-full bg-[#A91827] text-white"
@@ -115,7 +115,7 @@ export default function LoadingDemoPage() {
               <div className="flex flex-col items-center">
                 <p className="mb-2">Spinner Only</p>
                 <LoadingButton 
-                  isLoading={isButtonLoading}
+                  loading={isButtonLoading}
                   onClick={simulateApiCall}
                   loadingText="Processing..."
                   spinnerOnly={true}
