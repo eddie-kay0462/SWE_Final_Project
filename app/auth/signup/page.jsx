@@ -361,7 +361,7 @@ export default function Signup() {
                 <div className="animate-appear opacity-0 delay-700">
                   <LoadingButton
                     type="submit"
-                    isLoading={isLoading}
+                    loading={isLoading}
                     loadingText="Creating Account"
                     spinnerSize="small"
                     className="w-full bg-[#A91827] hover:bg-[#A91827]/90 text-white font-medium py-3 px-4 rounded-lg transition-all text-lg"
