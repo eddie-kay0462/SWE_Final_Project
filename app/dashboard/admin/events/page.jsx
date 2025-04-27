@@ -32,10 +32,10 @@ export default function AdminEventsPage() {
   const [newEvent, setNewEvent] = useState({
     title: '',
     date: '',
-    time: '',
+    start_time: '',
+    end_time: '',
     location: '',
-    description: '',
-    tags: ['Career Development']
+    description: ''
   })
   const [isCreatingEvent, setIsCreatingEvent] = useState(false)
 
@@ -135,38 +135,66 @@ export default function AdminEventsPage() {
 
   // Function to handle input changes for the create event form
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setNewEvent(prev => ({
       ...prev,
       [name]: value
-    }))
+    }));
   }
 
-  // Function to validate time is between 9 AM and 5 PM
-  const validateTime = (time) => {
-    if (!time) return false;
-    
-    // Convert time to 24-hour format for comparison
-    const [hours, minutes] = time.split(':').map(Number);
-    const timeInMinutes = hours * 60 + minutes;
-    
-    // 9 AM = 9 * 60 = 540 minutes
-    // 5 PM = 17 * 60 = 1020 minutes
-    return timeInMinutes >= 540 && timeInMinutes <= 1020;
+  // Function to validate time range
+  const validateTimeRange = (start, end) => {
+    if (!start || !end) return false;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    const startMinutes = sh * 60 + sm;
+    const endMinutes = eh * 60 + em;
+    // 9 AM = 540, 5 PM = 1020
+    return (
+      startMinutes >= 540 && endMinutes <= 1020 && endMinutes > startMinutes
+    );
   }
 
-  // Function to handle time input change with validation
-  const handleTimeChange = (e) => {
-    const { value } = e.target;
-    
-    if (validateTime(value)) {
-      setNewEvent(prev => ({
-        ...prev,
-        time: value
-      }));
-    } else if (value) {
-      // Only show error if user has entered something
-      toast.error("Event time must be between 9:00 AM and 5:00 PM");
+  // Function to handle create event form submission
+  const handleCreateEvent = async () => {
+    if (!newEvent.title || !newEvent.date || !newEvent.start_time || !newEvent.end_time || !newEvent.location || !newEvent.description) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (!validateTimeRange(newEvent.start_time, newEvent.end_time)) {
+      toast.error("Times must be between 9:00 AM and 5:00 PM, and end time must be after start time");
+      return;
+    }
+    setIsCreatingEvent(true);
+    try {
+      const response = await fetch('/api/dashboard/admin/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...newEvent
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create event');
+      }
+      setNewEvent({
+        title: '',
+        date: '',
+        start_time: '',
+        end_time: '',
+        location: '',
+        description: ''
+      });
+      setCreateEventDialogOpen(false);
+      window.location.reload();
+      toast.success("Event created successfully!");
+    } catch (error) {
+      toast.error(error.message || "Failed to create event. Please try again.");
+    } finally {
+      setIsCreatingEvent(false);
     }
   }
 
@@ -178,63 +206,6 @@ export default function AdminEventsPage() {
     const ampm = h >= 12 ? 'PM' : 'AM';
     const displayHour = h % 12 || 12;
     return `${displayHour}:${minute} ${ampm}`;
-  }
-
-  // Function to handle create event form submission
-  const handleCreateEvent = async () => {
-    // Validate form
-    if (!newEvent.title || !newEvent.date || !newEvent.time || !newEvent.location || !newEvent.description) {
-      toast.error("Please fill in all required fields")
-      return
-    }
-    
-    // Validate time is between 9 AM and 5 PM
-    if (!validateTime(newEvent.time)) {
-      toast.error("Event time must be between 9:00 AM and 5:00 PM")
-      return
-    }
-
-    setIsCreatingEvent(true)
-
-    try {
-      const response = await fetch('/api/dashboard/admin/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...newEvent,
-          // Format time for display in the API
-          time: formatTimeForDisplay(newEvent.time)
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create event');
-      }
-      
-      // Reset form and close dialog
-      setNewEvent({
-        title: '',
-        date: '',
-        time: '',
-        location: '',
-        description: '',
-        tags: ['Career Development']
-      })
-      setCreateEventDialogOpen(false)
-      
-      // Refresh events list
-      window.location.reload()
-      
-      toast.success("Event created successfully!")
-    } catch (error) {
-      toast.error(error.message || "Failed to create event. Please try again.")
-    } finally {
-      setIsCreatingEvent(false)
-    }
   }
 
   // Function to render event cards
@@ -370,7 +341,7 @@ export default function AdminEventsPage() {
               <div className="space-y-4 py-4">
                 <div className="p-3 bg-muted rounded-md">
                   <h3 className="font-medium">{selectedEvent.title}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedEvent.date} • {selectedEvent.time}</p>
+                  <p className="text-sm text-muted-foreground">{selectedEvent.date} • {selectedEvent.start_time} - {selectedEvent.end_time}</p>
                 </div>
                 {selectedEvent.feedback && selectedEvent.feedback.length > 0 ? (
                   <div className="space-y-4">
@@ -437,7 +408,7 @@ export default function AdminEventsPage() {
           className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
           onClick={() => setCreateEventDialogOpen(false)}
         />
-        <div className="z-50 w-full max-w-md sm:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative">
+        <div className="z-50 w-full max-w-md sm:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative max-h-[90vh] overflow-y-auto">
           <button
             className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
             onClick={() => setCreateEventDialogOpen(false)}
@@ -482,22 +453,34 @@ export default function AdminEventsPage() {
               </div>
               
               <div className="space-y-2">
-                <label htmlFor="time" className="text-sm font-medium">Event Time *</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    id="time"
-                    name="time"
-                    type="time"
-                    value={newEvent.time}
-                    onChange={handleTimeChange}
-                    className="w-full px-3 py-2 border rounded-md"
-                    min="09:00"
-                    max="17:00"
-                    required
-                  />
-                  <span className="text-xs text-muted-foreground">(9 AM - 5 PM)</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Events must be scheduled between 9:00 AM and 5:00 PM</p>
+                <label htmlFor="start_time" className="text-sm font-medium">Start Time *</label>
+                <input
+                  id="start_time"
+                  name="start_time"
+                  type="time"
+                  value={newEvent.start_time}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border rounded-md"
+                  min="09:00"
+                  max="17:00"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="end_time" className="text-sm font-medium">End Time *</label>
+                <input
+                  id="end_time"
+                  name="end_time"
+                  type="time"
+                  value={newEvent.end_time}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border rounded-md"
+                  min="09:00"
+                  max="17:00"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Events must be scheduled between 9:00 AM and 5:00 PM. End time must be after start time.</p>
               </div>
               
               <div className="space-y-2">
