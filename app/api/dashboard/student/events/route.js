@@ -77,15 +77,16 @@ export async function GET() {
         
         return {
           id: event.session_id,
-          title: event.title || 'Career Session', // Use the title column
+          title: event.title || 'Career Session',
           date: new Date(event.date).toLocaleDateString('en-US', { 
             month: 'long', 
             day: 'numeric', 
             year: 'numeric' 
           }),
-          time: '10:00 AM - 4:00 PM', // Default time since it's not in the DB
-          location: 'University Center, Main Hall', // Default location since it's not in the DB
-          attendees: Math.floor(Math.random() * 100) + 50, // Random number for demo
+          start_time: event.start_time,
+          end_time: event.end_time,
+          location: event.location || 'Location not specified',
+          attendees: Math.floor(Math.random() * 100) + 50,
           description: event.description,
           tags: ['Career Development'],
           status: event.date >= today ? 'upcoming' : 'past',

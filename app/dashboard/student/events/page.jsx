@@ -8,6 +8,16 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
 
+// Helper to format time for display
+function formatTimeForDisplay(time) {
+  if (!time) return '';
+  const [hour, minute] = time.split(':');
+  const h = parseInt(hour, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const displayHour = h % 12 || 12;
+  return `${displayHour}:${minute} ${ampm}`;
+}
+
 export default function EventsPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("upcoming")
@@ -162,7 +172,7 @@ export default function EventsPage() {
               </div>
               <div className="flex items-center text-muted-foreground mb-1">
                 <Clock className="h-4 w-4 mr-2" />
-                <span>{event.time}</span>
+                <span>{formatTimeForDisplay(event.start_time)} - {formatTimeForDisplay(event.end_time)}</span>
               </div>
               <div className="flex items-center text-muted-foreground mb-1">
                 <MapPin className="h-4 w-4 mr-2" />
@@ -249,7 +259,7 @@ export default function EventsPage() {
               <div className="space-y-4 py-4">
                 <div className="p-3 bg-muted rounded-md">
                   <h3 className="font-medium">{selectedEvent.title}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedEvent.date} • {selectedEvent.time}</p>
+                  <p className="text-sm text-muted-foreground">{selectedEvent.date} • {selectedEvent.start_time} - {selectedEvent.end_time}</p>
                 </div>
 
                 <div className="space-y-2">
