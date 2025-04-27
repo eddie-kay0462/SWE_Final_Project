@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Clock, MapPin, Users, QrCode, CheckCircle, MessageSquare } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, QrCode, CheckCircle, MessageSquare, Plus } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -26,6 +26,18 @@ export default function AdminEventsPage() {
   const [pastEvents, setPastEvents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  
+  // Create event form state
+  const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false)
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    date: '',
+    time: '',
+    location: '',
+    description: '',
+    tags: ['Career Development']
+  })
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false)
 
   // Fetch events from the API
   useEffect(() => {
@@ -116,6 +128,115 @@ export default function AdminEventsPage() {
     }
   }
 
+  // Function to handle opening create event dialog
+  const handleOpenCreateEventDialog = () => {
+    setCreateEventDialogOpen(true)
+  }
+
+  // Function to handle input changes for the create event form
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setNewEvent(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  // Function to validate time is between 9 AM and 5 PM
+  const validateTime = (time) => {
+    if (!time) return false;
+    
+    // Convert time to 24-hour format for comparison
+    const [hours, minutes] = time.split(':').map(Number);
+    const timeInMinutes = hours * 60 + minutes;
+    
+    // 9 AM = 9 * 60 = 540 minutes
+    // 5 PM = 17 * 60 = 1020 minutes
+    return timeInMinutes >= 540 && timeInMinutes <= 1020;
+  }
+
+  // Function to handle time input change with validation
+  const handleTimeChange = (e) => {
+    const { value } = e.target;
+    
+    if (validateTime(value)) {
+      setNewEvent(prev => ({
+        ...prev,
+        time: value
+      }));
+    } else if (value) {
+      // Only show error if user has entered something
+      toast.error("Event time must be between 9:00 AM and 5:00 PM");
+    }
+  }
+
+  // Helper to format time for display
+  function formatTimeForDisplay(time) {
+    if (!time) return '';
+    const [hour, minute] = time.split(':');
+    const h = parseInt(hour, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const displayHour = h % 12 || 12;
+    return `${displayHour}:${minute} ${ampm}`;
+  }
+
+  // Function to handle create event form submission
+  const handleCreateEvent = async () => {
+    // Validate form
+    if (!newEvent.title || !newEvent.date || !newEvent.time || !newEvent.location || !newEvent.description) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+    
+    // Validate time is between 9 AM and 5 PM
+    if (!validateTime(newEvent.time)) {
+      toast.error("Event time must be between 9:00 AM and 5:00 PM")
+      return
+    }
+
+    setIsCreatingEvent(true)
+
+    try {
+      const response = await fetch('/api/dashboard/admin/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...newEvent,
+          // Format time for display in the API
+          time: formatTimeForDisplay(newEvent.time)
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create event');
+      }
+      
+      // Reset form and close dialog
+      setNewEvent({
+        title: '',
+        date: '',
+        time: '',
+        location: '',
+        description: '',
+        tags: ['Career Development']
+      })
+      setCreateEventDialogOpen(false)
+      
+      // Refresh events list
+      window.location.reload()
+      
+      toast.success("Event created successfully!")
+    } catch (error) {
+      toast.error(error.message || "Failed to create event. Please try again.")
+    } finally {
+      setIsCreatingEvent(false)
+    }
+  }
+
   // Function to render event cards
   const renderEventCards = (events) => {
     if (isLoading) {
@@ -160,7 +281,7 @@ export default function AdminEventsPage() {
               </div>
               <div className="flex items-center text-muted-foreground mb-1">
                 <Clock className="h-4 w-4 mr-2" />
-                <span>{event.time}</span>
+                <span>{formatTimeForDisplay(event.start_time)} - {formatTimeForDisplay(event.end_time)}</span>
               </div>
               <div className="flex items-center text-muted-foreground mb-1">
                 <MapPin className="h-4 w-4 mr-2" />
@@ -302,6 +423,134 @@ export default function AdminEventsPage() {
     );
   };
 
+  /**
+   * Renders the create event dialog
+   * 
+   * @returns {JSX.Element|null} The create event dialog or null if not open
+   */
+  const renderCreateEventDialog = () => {
+    if (!createEventDialogOpen) return null;
+    
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
+          onClick={() => setCreateEventDialogOpen(false)}
+        />
+        <div className="z-50 w-full max-w-md sm:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative">
+          <button
+            className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
+            onClick={() => setCreateEventDialogOpen(false)}
+          >
+            <span className="sr-only">Close</span>
+            ×
+          </button>
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold">Create New Event</h2>
+              <p className="text-sm text-muted-foreground">
+                Fill in the details to create a new career event.
+              </p>
+            </div>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label htmlFor="title" className="text-sm font-medium">Event Title *</label>
+                <input
+                  id="title"
+                  name="title"
+                  type="text"
+                  value={newEvent.title}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border rounded-md"
+                  placeholder="Enter event title"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="date" className="text-sm font-medium">Event Date *</label>
+                <input
+                  id="date"
+                  name="date"
+                  type="date"
+                  value={newEvent.date}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border rounded-md"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="time" className="text-sm font-medium">Event Time *</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="time"
+                    name="time"
+                    type="time"
+                    value={newEvent.time}
+                    onChange={handleTimeChange}
+                    className="w-full px-3 py-2 border rounded-md"
+                    min="09:00"
+                    max="17:00"
+                    required
+                  />
+                  <span className="text-xs text-muted-foreground">(9 AM - 5 PM)</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Events must be scheduled between 9:00 AM and 5:00 PM</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="location" className="text-sm font-medium">Event Location *</label>
+                <input
+                  id="location"
+                  name="location"
+                  type="text"
+                  value={newEvent.location}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border rounded-md"
+                  placeholder="Enter event location"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="description" className="text-sm font-medium">Event Description *</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={newEvent.description}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border rounded-md min-h-[100px]"
+                  placeholder="Enter event description"
+                  required
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <button
+                type="button"
+                className="px-4 py-2 border rounded-md hover:bg-gray-100"
+                onClick={() => setCreateEventDialogOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 bg-[#A91827] text-white rounded-md hover:bg-[#A91827]/90"
+                onClick={handleCreateEvent}
+                disabled={isCreatingEvent}
+              >
+                {isCreatingEvent ? 'Creating...' : 'Create Event'}
+              </button>
+            </DialogFooter>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* QR Code Modal */}
@@ -335,6 +584,21 @@ export default function AdminEventsPage() {
 
       {/* Feedback Modal */}
       {renderFeedbackModal()}
+      
+      {/* Create Event Modal */}
+      {renderCreateEventDialog()}
+
+      {/* Header with Create Event Button */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Career Events</h1>
+        <button
+          onClick={handleOpenCreateEventDialog}
+          className="flex items-center gap-2 px-4 py-2 bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Create Event
+        </button>
+      </div>
 
       {/* Tabs */}
       <div className="flex space-x-4 border-b">
