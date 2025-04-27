@@ -142,9 +142,9 @@ export async function POST(request) {
     const body = await request.json();
     
     // Validate required fields
-    const { title, date, time, location, description, tags } = body;
+    const { title, date, start_time, end_time, location, description } = body;
     
-    if (!title || !date || !time || !location || !description) {
+    if (!title || !date || !start_time || !end_time || !location || !description) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -158,10 +158,10 @@ export async function POST(request) {
         {
           title,
           date,
-          time,
+          start_time,
+          end_time,
           location,
           description,
-          tags: tags || ['Career Development'],
           created_by: user.id
         }
       ])
