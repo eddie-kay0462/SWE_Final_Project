@@ -34,12 +34,16 @@ export async function GET(request, context) {
       );
     }
 
-    // Fetch attendance records with student details
+    // Fetch attendance records with student details using the attendance table
+    // and joining with users table to get student information
     const { data: attendanceRecords, error: attendanceError } = await supabase
-      .from('attendance_records')
+      .from('attendance')
       .select(`
-        *,
-        users:student_id (
+        id,
+        session_id,
+        student_id,
+        signup_time,
+        users!inner (
           id,
           fname,
           lname,
@@ -47,8 +51,8 @@ export async function GET(request, context) {
           student_id
         )
       `)
-      .eq('event_id', sessionId)
-      .order('checked_in_at', { ascending: true });
+      .eq('session_id', sessionId)
+      .order('signup_time', { ascending: true });
 
     if (attendanceError) {
       console.error('Error fetching attendance records:', attendanceError);
@@ -58,17 +62,23 @@ export async function GET(request, context) {
       );
     }
 
-    // Format the attendance data
-    const formattedRecords = attendanceRecords.map(record => ({
-      id: record.id,
-      studentId: record.users.student_id,
-      studentName: `${record.users.fname} ${record.users.lname}`,
-      email: record.users.email,
-      checkedInAt: new Date(record.checked_in_at).toLocaleString('en-US', {
-        dateStyle: 'medium',
-        timeStyle: 'short'
-      })
-    }));
+    // Format the attendance data with check-in time
+    const formattedRecords = attendanceRecords.map(record => {
+      const signupDate = new Date(record.signup_time);
+      const checkInTime = signupDate.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      return {
+        id: record.id,
+        studentId: record.users.student_id,
+        studentName: `${record.users.fname} ${record.users.lname}`,
+        email: record.users.email,
+        checkInTime: checkInTime
+      };
+    });
 
     // Get event details
     const { data: event, error: eventError } = await supabase

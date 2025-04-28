@@ -1,29 +1,54 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Users, Calendar, Clock, MapPin } from "lucide-react";
+import { createClient } from '@/utils/supabase/client';
+import Confetti from 'react-confetti';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export default function TakeAttendancePage() {
   const params = useParams();
+  const router = useRouter();
   const [studentId, setStudentId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [eventDetails, setEventDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
+    checkUser();
     fetchEventDetails();
-  }, [params.token]);
+  }, [params.session_id]);
+
+  const checkUser = async () => {
+    const supabase = createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      router.push('/login?redirect=' + encodeURIComponent(window.location.pathname));
+      return;
+    }
+    
+    setUser(user);
+  };
 
   const fetchEventDetails = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/events/details/${params.token}`);
+      const response = await fetch(`/api/events/details/${params.session_id}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -50,14 +75,14 @@ export default function TakeAttendancePage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/attendance/check-in", {
+      const response = await fetch("/api/events/attendance", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           studentId: studentId.trim(),
-          token: params.token,
+          sessionId: params.session_id,
         }),
       });
 
@@ -67,8 +92,7 @@ export default function TakeAttendancePage() {
         throw new Error(data.error || "Failed to record attendance");
       }
 
-      toast.success("Attendance recorded successfully!");
-      setStudentId("");
+      setShowSuccess(true);
     } catch (error) {
       console.error("Error recording attendance:", error);
       toast.error(error.message || "Failed to record attendance. Please try again.");
@@ -99,6 +123,8 @@ export default function TakeAttendancePage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gradient-to-b from-gray-50 to-gray-100/50">
+      {showSuccess && <Confetti />}
+      
       <Card className="w-full max-w-md">
         <div className="p-6 space-y-6">
           <div className="text-center space-y-2">
@@ -163,6 +189,27 @@ export default function TakeAttendancePage() {
           )}
         </div>
       </Card>
+
+      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold text-[#A91827]">
+              Success! 🎉
+            </DialogTitle>
+            <DialogDescription className="text-center text-lg">
+              Attendance recorded for {eventDetails?.title}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-center mt-4">
+            <Button
+              onClick={() => router.push('/dashboard/student/')}
+              className="bg-[#A91827] hover:bg-[#A91827]/90 text-white"
+            >
+              Return to Dashboard
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

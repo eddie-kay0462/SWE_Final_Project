@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
-import QRCode from 'qrcode';
+
 
 /**
  * Generates a random 6-digit code for session IDs
@@ -78,34 +78,6 @@ async function verifyUserInBothTables(supabase, authUser) {
 }
 
 /**
- * Generates QR code data URL for an event
- * 
- * @param {string} eventId - The event ID to encode
- * @returns {Promise<string>} Base64 encoded QR code image
- */
-async function generateQRCode(eventId) {
-  try {
-    const timestamp = new Date().toISOString();
-    const googleFormUrl = "https://forms.gle/nE7nQsXXHxo1VUbj7";
-    const data = `${googleFormUrl}?eventId=${eventId}&timestamp=${timestamp}`;
-    
-    const qrCodeDataUrl = await QRCode.toDataURL(data, {
-      width: 300,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#ffffff'
-      }
-    });
-
-    return qrCodeDataUrl;
-  } catch (error) {
-    console.error('Error generating QR code:', error);
-    throw error;
-  }
-}
-
-/**
  * GET handler for fetching events from the database for admin view
  * 
  * @returns {Promise<NextResponse>} JSON response with events data
@@ -156,6 +128,31 @@ export async function GET() {
     const { data: feedbackData, error: feedbackError } = await supabase
       .from('event_feedback')
       .select('event_id, rating, comments, user_id, users(fname, lname)');
+
+    // Fetch attendance counts for all events
+    const { data: attendanceData, error: attendanceError } = await supabase
+      .from('attendance')
+      .select('session_id, count:id')
+      .throwOnError();
+
+    if (attendanceError) {
+      console.error('Error fetching attendance data:', attendanceError);
+      return NextResponse.json(
+        { error: 'Failed to fetch attendance data' },
+        { status: 500 }
+      );
+    }
+
+    // Create a map of event_id to attendance count
+    const attendanceCounts = {};
+    if (attendanceData) {
+      attendanceData.forEach(record => {
+        if (!attendanceCounts[record.session_id]) {
+          attendanceCounts[record.session_id] = 0;
+        }
+        attendanceCounts[record.session_id]++;
+      });
+    }
     
     // Create a map of event_id to feedback array
     let eventFeedback = {};
@@ -183,9 +180,6 @@ export async function GET() {
           ? (feedback.reduce((sum, item) => sum + item.rating, 0) / feedback.length).toFixed(1) 
           : 0;
         
-        // Generate QR code for each event
-        const qrCode = await generateQRCode(event.session_id);
-        
         return {
           id: event.session_id,
           title: event.title || 'Career Session',
@@ -197,14 +191,14 @@ export async function GET() {
           start_time: event.start_time,
           end_time: event.end_time,
           location: event.location || 'Location not specified',
-          attendees: Math.floor(Math.random() * 100) + 50,
+          attendees: attendanceCounts[event.session_id] || 0,
           description: event.description,
           tags: ['Career Development'],
           status: event.date >= today ? 'upcoming' : 'past',
           feedbackCount: feedback.length,
           averageRating: parseFloat(averageRating),
           feedback: feedback,
-          qrCode: qrCode
+          qrCode: event.qr_code
         };
       }));
       

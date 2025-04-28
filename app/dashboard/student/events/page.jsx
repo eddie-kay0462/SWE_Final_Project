@@ -216,9 +216,6 @@ export default function EventsPage() {
             </Link>
             
             <div className="flex gap-2">
-              {event.status === "upcoming" && (
-                <Button>RSVP Now</Button>
-              )}
               
               <Button 
                 variant="outline" 

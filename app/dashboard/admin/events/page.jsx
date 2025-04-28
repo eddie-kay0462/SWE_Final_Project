@@ -61,7 +61,7 @@ import {
  *
  * <p>Admins can view upcoming and past events, see feedback from students (with names), and generate check-in QR codes.</p>
  *
- * @author SWE Team
+ * @author Nana Amoako
  * @version 2024-06
  */
 export default function AdminEventsPage() {
@@ -1010,7 +1010,7 @@ export default function AdminEventsPage() {
   const renderQRModal = () => {
     if (!showQRModal) return null;
 
-    const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/take-attendance/${selectedEvent.qr_token || selectedEvent.id}`;
+    const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/take-attendance/${selectedEvent.id}`;
 
     return (
       <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
