@@ -1,11 +1,12 @@
 "use client";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import React, { useState, createContext, useContext } from "react";
+import React, { useState, createContext, useContext, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { IconMenu2, IconX } from "@tabler/icons-react";
+import { IconMenu2, IconX, IconChevronLeft } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 import { Button } from "./button";
+import { GraduationCap } from "lucide-react";
 
 const SidebarContext = createContext(undefined);
 
@@ -63,24 +64,64 @@ export const DesktopSidebar = ({
   ...props
 }) => {
   const { open, setOpen, animate } = useSidebar();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const isExpanded = !isCollapsed || isHovered;
+
+  useEffect(() => {
+    setOpen(isExpanded);
+  }, [isExpanded, setOpen]);
+
   return (
     <>
       <motion.div
         className={cn(
-          "h-screen sticky top-0 hidden md:flex md:flex-col bg-white dark:bg-[#161616] border-r border-neutral-200 dark:border-[#262626]",
+          "h-screen sticky top-0 hidden md:flex md:flex-col bg-white dark:bg-[#161616] border-r border-neutral-200 dark:border-[#262626] relative",
           className
         )}
         animate={{
-          width: "280px"
+          width: animate ? (isExpanded ? "280px" : "80px") : "280px",
         }}
         initial={{
           width: "280px"
         }}
-        onMouseEnter={() => setOpen(true)}
+        transition={{
+          duration: 0.3,
+          ease: "easeInOut"
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         {...props}
       >
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {children}
+        </div>
+        
+        {/* Footer with collapse button */}
+        <div className="px-4 py-4 border-t border-neutral-200 dark:border-[#262626]">
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={cn(
+              "w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-neutral-100 dark:hover:bg-[#262626]",
+            )}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <IconChevronLeft 
+              className={cn(
+                "h-5 w-5 text-neutral-600 dark:text-neutral-300 transition-transform",
+                isCollapsed && !isHovered ? "rotate-180" : "rotate-0"
+              )}
+            />
+            <motion.span
+              animate={{
+                opacity: animate ? (isExpanded ? 1 : 0) : 1,
+              }}
+              className="text-sm font-medium text-neutral-600 dark:text-neutral-300"
+            >
+              {isCollapsed ? "Expand" : "Collapse"}
+            </motion.span>
+          </button>
         </div>
       </motion.div>
     </>
@@ -95,41 +136,62 @@ export const MobileSidebar = ({
   const { open, setOpen } = useSidebar();
   return (
     <>
+      {/* Mobile Header with Menu Button */}
       <div
         className={cn(
-          "sticky top-0 z-50 h-16 px-4 flex flex-row md:hidden items-center justify-between bg-white dark:bg-[#161616] border-b border-neutral-200 dark:border-[#262626]",
+          "sticky top-0 z-50 h-16 md:hidden bg-white dark:bg-[#161616] border-b border-neutral-200 dark:border-[#262626]",
           className
         )}
         {...props}
       >
-        <div className="flex justify-end z-20 w-full">
-          <IconMenu2
-            className="text-neutral-800 dark:text-neutral-100 h-6 w-6 cursor-pointer"
+        <div className="flex h-full items-center px-4">
+          <button
             onClick={() => setOpen(!open)}
-          />
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 dark:border-[#262626] hover:bg-neutral-100 dark:hover:bg-[#262626] transition-colors"
+            aria-label="Toggle Navigation"
+          >
+            <IconMenu2 className="h-5 w-5 text-neutral-600 dark:text-neutral-300" />
+          </button>
         </div>
       </div>
+
+      {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {open && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              animate={{ opacity: 0.4 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/50 md:hidden"
               onClick={() => setOpen(false)}
+              className="fixed inset-0 z-50 bg-black md:hidden"
             />
             <motion.div
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={cn(
-                "fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-[#161616] border-r border-neutral-200 dark:border-[#262626] md:hidden",
+                "fixed inset-y-0 left-0 z-50 w-[280px] bg-white dark:bg-[#161616] border-r border-neutral-200 dark:border-[#262626] flex flex-col md:hidden",
                 className
               )}
             >
+              {/* Sidebar Header */}
+              <div className="flex h-16 items-center justify-between px-4 border-b border-neutral-200 dark:border-[#262626]">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="h-8 w-8 text-[#A91827]" />
+                  <span className="text-xl font-bold">CSOFT</span>
+                </div>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-[#262626] transition-colors"
+                  aria-label="Close Navigation"
+                >
+                  <IconX className="h-5 w-5 text-neutral-600 dark:text-neutral-300" />
+                </button>
+              </div>
+              
+              {/* Sidebar Content */}
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 {children}
               </div>

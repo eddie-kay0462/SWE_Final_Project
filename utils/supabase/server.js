@@ -9,6 +9,8 @@ import { cookies } from 'next/headers'
  * @returns {Object} Supabase client instance configured for server-side use
  */
 export async function createClient(reqCookies = null, customKey = null) {
+    const cookieStore = await cookies()
+    
     return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         customKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -20,7 +22,6 @@ export async function createClient(reqCookies = null, customKey = null) {
                         return reqCookies[name]
                     }
                     // For Server Components
-                    const cookieStore = cookies()
                     return cookieStore.get(name)?.value
                 },
                 set(name, value, options) {
@@ -30,7 +31,6 @@ export async function createClient(reqCookies = null, customKey = null) {
                         return
                     }
                     // For Server Components
-                    const cookieStore = cookies()
                     cookieStore.set(name, value, options)
                 },
                 remove(name, options) {
@@ -40,7 +40,6 @@ export async function createClient(reqCookies = null, customKey = null) {
                         return
                     }
                     // For Server Components
-                    const cookieStore = cookies()
                     cookieStore.delete(name, options)
                 },
             },

@@ -4,15 +4,20 @@
  * Global Loading State Provider
  * 
  * Provides context and component for managing loading states throughout the application
- * Can be used to show loading states for navigation or global actions
+ * Features animated transitions and progress tracking
  */
 
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import { LoadingSpinner } from './loading-spinner'
 
 // Create context for loading state
 const LoadingContext = createContext({
   isLoading: false,
   setIsLoading: () => {},
+  startLoading: () => {},
+  stopLoading: () => {},
+  setProgress: () => {},
 })
 
 /**
@@ -33,17 +38,84 @@ export function useLoading() {
  */
 export function LoadingProvider({ children }) {
   const [isLoading, setIsLoading] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const timeoutRef = useRef(null)
+  const maxLoadingTimeRef = useRef(null)
+
+  // Cleanup function for timeouts
+  const clearTimeouts = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    if (maxLoadingTimeRef.current) {
+      clearTimeout(maxLoadingTimeRef.current)
+      maxLoadingTimeRef.current = null
+    }
+  }, [])
+
+  // Auto-increment progress when loading
+  useEffect(() => {
+    let interval
+    if (isLoading && progress < 90) {
+      interval = setInterval(() => {
+        setProgress(prev => {
+          const increment = Math.random() * 15
+          return Math.min(prev + increment, 90)
+        })
+      }, 500)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [isLoading, progress])
+
+  const startLoading = useCallback(() => {
+    clearTimeouts()
+    setIsLoading(true)
+    setProgress(0)
+
+    // Set maximum loading time to prevent infinite loading
+    maxLoadingTimeRef.current = setTimeout(() => {
+      stopLoading()
+    }, 3000) // Reduced from 5000ms to 3000ms
+  }, [clearTimeouts])
+
+  const stopLoading = useCallback(() => {
+    clearTimeouts()
+    setProgress(100)
+    timeoutRef.current = setTimeout(() => {
+      setIsLoading(false)
+      setProgress(0)
+    }, 200) // Reduced from 300ms to 200ms
+  }, [clearTimeouts])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeouts()
+    }
+  }, [clearTimeouts])
 
   return (
-    <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
-      {isLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="flex flex-col items-center gap-2 rounded-lg bg-white p-4 shadow-lg dark:bg-neutral-800">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-neutral-300 border-t-[#A91827]"></div>
-            <p className="text-sm text-neutral-600 dark:text-neutral-300">Loading...</p>
-          </div>
-        </div>
-      )}
+    <LoadingContext.Provider 
+      value={{ 
+        isLoading, 
+        setIsLoading,
+        startLoading,
+        stopLoading,
+        setProgress,
+      }}
+    >
+      <AnimatePresence mode="wait">
+        {isLoading && (
+          <LoadingSpinner
+            fullPage
+            size="large"
+            progress={progress}
+          />
+        )}
+      </AnimatePresence>
       {children}
     </LoadingContext.Provider>
   )
