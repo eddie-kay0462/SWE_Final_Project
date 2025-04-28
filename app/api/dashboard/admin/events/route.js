@@ -278,6 +278,204 @@ export async function POST(request) {
   }
 }
 
+/**
+ * DELETE handler for removing an event
+ * 
+ * @param {Request} request - The incoming request object
+ * @param {object} context - The context object containing params
+ * @returns {Promise<NextResponse>} JSON response indicating success or failure
+ */
+export async function DELETE(request, context) {
+  try {
+    // Create a Supabase client
+    const supabase = await createClient();
+    
+    // Get the current user from the session
+    const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !authUser) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please log in.' },
+        { status: 401 }
+      );
+    }
+
+    // Extract the session_id from the URL
+    const sessionId = context.params.session_id || request.url.split('/').pop();
+    
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Event ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // First, verify the event exists
+    const { data: existingEvent, error: fetchError } = await supabase
+      .from('career_sessions')
+      .select('*')
+      .eq('session_id', sessionId)
+      .single();
+
+    if (fetchError || !existingEvent) {
+      return NextResponse.json(
+        { error: 'Event not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the event
+    const { error: deleteError } = await supabase
+      .from('career_sessions')
+      .delete()
+      .eq('session_id', sessionId);
+
+    if (deleteError) {
+      console.error('Error deleting event:', deleteError);
+      return NextResponse.json(
+        { error: 'Failed to delete event' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Event deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error in delete event API:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PUT handler for updating an existing event
+ * 
+ * @param {Request} request - The incoming request object
+ * @param {object} context - The context object containing params
+ * @returns {Promise<NextResponse>} JSON response with the updated event data
+ */
+export async function PUT(request, context) {
+  try {
+    // Create a Supabase client
+    const supabase = await createClient();
+    
+    // Get the current user from the session
+    const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !authUser) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please log in.' },
+        { status: 401 }
+      );
+    }
+
+    // Verify user exists in both tables and get public user ID
+    const publicUserId = await verifyUserInBothTables(supabase, authUser);
+    
+    if (!publicUserId) {
+      return NextResponse.json(
+        { error: 'User not found in the system. Please complete your profile setup.' },
+        { status: 403 }
+      );
+    }
+
+    // Extract the session_id from the URL
+    const sessionId = context.params.session_id || request.url.split('/').pop();
+    
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Event ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Parse the request body
+    const body = await request.json();
+    
+    // Validate required fields
+    const { title, date, start_time, end_time, location, description } = body;
+    
+    if (!title || !date || !start_time || !end_time || !location || !description) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // First, verify the event exists
+    const { data: existingEvent, error: fetchError } = await supabase
+      .from('career_sessions')
+      .select('*')
+      .eq('session_id', sessionId)
+      .single();
+
+    if (fetchError || !existingEvent) {
+      return NextResponse.json(
+        { error: 'Event not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update the event
+    const { data: updatedEvent, error: updateError } = await supabase
+      .from('career_sessions')
+      .update({
+        title,
+        date,
+        start_time,
+        end_time,
+        location,
+        description,
+        updated_at: new Date().toISOString(),
+        updated_by: publicUserId
+      })
+      .eq('session_id', sessionId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Error updating event:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to update event' },
+        { status: 500 }
+      );
+    }
+
+    // Format the response data
+    const formattedEvent = {
+      id: updatedEvent.session_id,
+      title: updatedEvent.title,
+      date: new Date(updatedEvent.date).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }),
+      start_time: updatedEvent.start_time,
+      end_time: updatedEvent.end_time,
+      location: updatedEvent.location,
+      description: updatedEvent.description,
+      status: new Date(updatedEvent.date) >= new Date() ? 'upcoming' : 'past'
+    };
+
+    return NextResponse.json({
+      success: true,
+      event: formattedEvent
+    });
+
+  } catch (error) {
+    console.error('Error in update event API:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 function formatTimeForDisplay(time) {
   if (!time) return '';
   const [hour, minute] = time.split(':');

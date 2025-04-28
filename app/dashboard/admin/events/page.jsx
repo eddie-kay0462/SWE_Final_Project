@@ -235,7 +235,92 @@ export default function AdminEventsPage() {
     }
   }
 
-  // Function to handle create event form submission
+  // Function to handle edit event
+  const handleEditEvent = async (eventData) => {
+    if (!eventData) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Update event in database
+      const response = await fetch(`/api/dashboard/admin/events/${eventData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: eventData.title,
+          date: eventData.date,
+          start_time: eventData.start_time,
+          end_time: eventData.end_time,
+          location: eventData.location,
+          description: eventData.description
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update event');
+      }
+
+      // Update local state
+      const updatedEvent = data.event;
+      const isUpcoming = new Date(updatedEvent.date) >= new Date();
+      
+      // Update the appropriate list based on event date
+      if (isUpcoming) {
+        setUpcomingEvents(upcomingEvents.map(event => 
+          event.id === eventData.id ? updatedEvent : event
+        ));
+      } else {
+        setPastEvents(pastEvents.map(event => 
+          event.id === eventData.id ? updatedEvent : event
+        ));
+      }
+
+      setCreateEventDialogOpen(false);
+      toast.success('Event updated successfully');
+    } catch (error) {
+      console.error('[AdminEvents] Update error:', error);
+      toast.error(error.message || 'Failed to update event');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to handle delete event
+  const handleDeleteEvent = async (eventId) => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(`/api/dashboard/admin/events/${eventId}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete event')
+      }
+
+      // Update local state by removing the deleted event
+      if (selectedEvent.status === "upcoming") {
+        setUpcomingEvents(upcomingEvents.filter((e) => e.id !== eventId))
+      } else {
+        setPastEvents(pastEvents.filter((e) => e.id !== eventId))
+      }
+
+      setDeleteConfirmOpen(false)
+      toast.success('Event deleted successfully')
+    } catch (error) {
+      console.error('Error deleting event:', error)
+      toast.error(error.message || 'Failed to delete event')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Function to handle create event
   const handleCreateEvent = async () => {
     if (!newEvent.title || !newEvent.date || !newEvent.start_time || !newEvent.end_time || !newEvent.location || !newEvent.description) {
       toast.error("Please fill in all required fields")
@@ -247,8 +332,14 @@ export default function AdminEventsPage() {
     }
     setIsCreatingEvent(true)
     try {
-      const response = await fetch("/api/dashboard/admin/events", {
-        method: "POST",
+      const isEditing = newEvent.id !== undefined
+      const url = isEditing 
+        ? `/api/dashboard/admin/events/${newEvent.id}`
+        : "/api/dashboard/admin/events"
+      const method = isEditing ? "PUT" : "POST"
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -258,7 +349,7 @@ export default function AdminEventsPage() {
       })
       const data = await response.json()
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create event")
+        throw new Error(data.error || `Failed to ${isEditing ? 'update' : 'create'} event`)
       }
       setNewEvent({
         title: "",
@@ -269,10 +360,23 @@ export default function AdminEventsPage() {
         description: "",
       })
       setCreateEventDialogOpen(false)
-      window.location.reload()
-      toast.success("Event created successfully!")
+      
+      // Update local state instead of reloading the page
+      if (isEditing) {
+        const updatedEvent = { ...data, status: newEvent.status }
+        if (updatedEvent.status === "upcoming") {
+          setUpcomingEvents(upcomingEvents.map(e => e.id === updatedEvent.id ? updatedEvent : e))
+        } else {
+          setPastEvents(pastEvents.map(e => e.id === updatedEvent.id ? updatedEvent : e))
+        }
+        toast.success("Event updated successfully!")
+      } else {
+        // If creating new event, add to upcoming events
+        setUpcomingEvents([...upcomingEvents, data])
+        toast.success("Event created successfully!")
+      }
     } catch (error) {
-      toast.error(error.message || "Failed to create event. Please try again.")
+      toast.error(error.message || "Failed to save event. Please try again.")
     } finally {
       setIsCreatingEvent(false)
     }
@@ -491,47 +595,17 @@ export default function AdminEventsPage() {
                             <TooltipTrigger asChild>
                               <Button
                                 onClick={() => {
-                                  const duplicatedEvent = {
-                                    ...newEvent,
-                                    title: `Copy of ${event.title}`,
-                                    date: event.date,
-                                    start_time: event.start_time,
-                                    end_time: event.end_time,
-                                    location: event.location,
-                                    description: event.description,
-                                  }
-                                  setNewEvent(duplicatedEvent)
-                                  setEventType(event.location === "Online" ? "online" : "in-person")
-                                  setCreateEventDialogOpen(true)
-                                }}
-                                size="icon"
-                                variant="ghost"
-                                className="rounded-full h-9 w-9 hover:bg-muted-foreground/5"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Duplicate event</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                onClick={() => {
-                                  const editEvent = {
+                                  setNewEvent({
+                                    id: event.id, // Add the event ID to track which event we're editing
                                     title: event.title,
                                     date: event.date,
                                     start_time: event.start_time,
                                     end_time: event.end_time,
                                     location: event.location,
                                     description: event.description,
-                                  }
-                                  setNewEvent(editEvent)
+                                  })
                                   setEventType(event.location === "Online" ? "online" : "in-person")
+                                  setEventDate(new Date(event.date))
                                   setCreateEventDialogOpen(true)
                                 }}
                                 size="icon"
@@ -1014,30 +1088,7 @@ export default function AdminEventsPage() {
                 Cancel
               </Button>
               <Button
-                onClick={async () => {
-                  try {
-                    // Implement delete event functionality
-                    const response = await fetch(`/api/dashboard/admin/events/${selectedEvent.id}`, {
-                      method: "DELETE",
-                    })
-
-                    if (!response.ok) {
-                      throw new Error("Failed to delete event")
-                    }
-
-                    toast.success("Event deleted successfully")
-                    setDeleteConfirmOpen(false)
-
-                    // Remove the event from the state
-                    if (selectedEvent.status === "upcoming") {
-                      setUpcomingEvents(upcomingEvents.filter((e) => e.id !== selectedEvent.id))
-                    } else {
-                      setPastEvents(pastEvents.filter((e) => e.id !== selectedEvent.id))
-                    }
-                  } catch (error) {
-                    toast.error("Failed to delete event. Please try again.")
-                  }
-                }}
+                onClick={() => handleDeleteEvent(selectedEvent.id)}
                 variant="destructive"
                 className="rounded-xl px-8 bg-red-600 hover:bg-red-700 text-white"
               >
