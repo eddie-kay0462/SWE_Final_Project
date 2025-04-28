@@ -39,6 +39,12 @@ export default function EventAttendancePage() {
         throw new Error(data.error || "Failed to fetch attendance data");
       }
 
+      // Format the date in the event data
+      if (data.event) {
+        const eventDate = new Date(data.event.date);
+        data.event.date = format(eventDate, "d MMM yyyy");
+      }
+
       setAttendanceData(data);
     } catch (error) {
       console.error("Error fetching attendance:", error);
@@ -57,7 +63,7 @@ export default function EventAttendancePage() {
   const downloadAttendanceCSV = () => {
     if (!attendanceData) return;
 
-    const headers = ["Student Name", "Student ID", "Email", "Check-in Time"];
+    const headers = ["Student Name", "Student ID", "Email", "Check-in Time", "Check-in Date"];
     const csvContent = [
       headers.join(","),
       ...filteredRecords.map((record) =>
@@ -66,6 +72,7 @@ export default function EventAttendancePage() {
           record.studentId,
           record.email,
           record.checkedInAt,
+          record.checkedInDate
         ].join(",")
       ),
     ].join("\n");
@@ -167,6 +174,7 @@ export default function EventAttendancePage() {
                       <TableHead>Student ID</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Check-in Time</TableHead>
+                      <TableHead>Check-in Date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -179,12 +187,13 @@ export default function EventAttendancePage() {
                           <TableCell>{record.studentId}</TableCell>
                           <TableCell>{record.email}</TableCell>
                           <TableCell>{record.checkedInAt}</TableCell>
+                          <TableCell>{record.checkedInDate}</TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
                         <TableCell
-                          colSpan={4}
+                          colSpan={5}
                           className="h-24 text-center text-muted-foreground"
                         >
                           No attendance records found
@@ -214,4 +223,4 @@ export default function EventAttendancePage() {
       </div>
     </div>
   );
-} 
+}

@@ -9,7 +9,7 @@ import { cookies } from 'next/headers';
  * @param {object} context - The context object containing params
  * @returns {Promise<NextResponse>} JSON response with attendance data
  */
-export async function GET(request, context) {
+export async function GET(request, { params }) {
   try {
     // Create a Supabase client
     const supabase = await createClient();
@@ -24,10 +24,10 @@ export async function GET(request, context) {
       );
     }
 
-    // Get the session ID from the URL params
-    const sessionId = context.params.session_id;
+    // Get the session ID from the URL params using destructuring
+    const { session_id } = params;
     
-    if (!sessionId) {
+    if (!session_id) {
       return NextResponse.json(
         { error: 'Event ID is required' },
         { status: 400 }
@@ -35,7 +35,6 @@ export async function GET(request, context) {
     }
 
     // Fetch attendance records with student details using the attendance table
-    // and joining with users table to get student information
     const { data: attendanceRecords, error: attendanceError } = await supabase
       .from('attendance')
       .select(`
@@ -51,7 +50,7 @@ export async function GET(request, context) {
           student_id
         )
       `)
-      .eq('session_id', sessionId)
+      .eq('session_id', session_id)
       .order('signup_time', { ascending: true });
 
     if (attendanceError) {
@@ -62,21 +61,38 @@ export async function GET(request, context) {
       );
     }
 
+    // Debug: Log the first record to see the timestamp format
+    if (attendanceRecords && attendanceRecords.length > 0) {
+      console.log('First record signup_time:', attendanceRecords[0].signup_time);
+      console.log('Raw record:', JSON.stringify(attendanceRecords[0], null, 2));
+    }
+
     // Format the attendance data with check-in time
     const formattedRecords = attendanceRecords.map(record => {
-      const signupDate = new Date(record.signup_time);
-      const checkInTime = signupDate.toLocaleTimeString('en-US', {
+      // Parse the ISO timestamp
+      const date = new Date(record.signup_time);
+      
+      // Format the time as "h:mm AM/PM"
+      const timeOptions = {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true
-      });
+      };
+      
+      // Format the date as "D MMM YYYY"
+      const dateOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      };
 
       return {
         id: record.id,
         studentId: record.users.student_id,
         studentName: `${record.users.fname} ${record.users.lname}`,
         email: record.users.email,
-        checkInTime: checkInTime
+        checkedInAt: date.toLocaleTimeString('en-US', timeOptions),
+        checkedInDate: date.toLocaleDateString('en-US', dateOptions)
       };
     });
 
@@ -84,7 +100,7 @@ export async function GET(request, context) {
     const { data: event, error: eventError } = await supabase
       .from('career_sessions')
       .select('*')
-      .eq('session_id', sessionId)
+      .eq('session_id', session_id)
       .single();
 
     if (eventError) {
