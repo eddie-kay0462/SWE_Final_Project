@@ -46,6 +46,15 @@ import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { QRCodeCard } from "@/components/attendance/QRCodeCard"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 /**
  * AdminEventsPage displays all events for admins, including attendee feedback and QR code generation.
@@ -84,6 +93,11 @@ export default function AdminEventsPage() {
   const [isCreatingEvent, setIsCreatingEvent] = useState(false)
   const [eventDate, setEventDate] = useState(new Date())
   const [eventType, setEventType] = useState("in-person")
+
+  // Attendance dialog state
+  const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false)
+  const [attendanceData, setAttendanceData] = useState(null)
+  const [isLoadingAttendance, setIsLoadingAttendance] = useState(false)
 
   // Function to handle opening create event dialog
   const handleOpenCreateEventDialog = () => {
@@ -173,20 +187,31 @@ export default function AdminEventsPage() {
     fetchEvents()
   }, [])
 
-  // Function to generate QR code data
-  const generateQRData = (event) => {
-    const eventId = event.id
-    const timestamp = new Date().toISOString()
-    const googleFormUrl = "https://forms.gle/nE7nQsXXHxo1VUbj7"
-    const data = `${googleFormUrl}?eventId=${eventId}&timestamp=${timestamp}`
-    return data
-  }
+  /**
+   * Generates QR code data URL for an event
+   * 
+   * @param {string} eventId - The event ID to encode
+   * @returns {Promise<string>} Base64 encoded QR code image
+   */
+  async function generateQRCode(eventId) {
+    try {
+      const timestamp = new Date().toISOString();
+      const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/take-attendance/${eventId}`;
+      
+      const qrCodeDataUrl = await QRCode.toDataURL(attendanceUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      });
 
-  // Function to handle QR code generation
-  const handleGenerateQR = (event) => {
-    setSelectedEvent(event)
-    setShowQRModal(true)
-    toast.success("QR code generated for event check-in")
+      return qrCodeDataUrl;
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      throw error;
+    }
   }
 
   // Function to handle opening feedback dialog
@@ -547,24 +572,47 @@ export default function AdminEventsPage() {
                   {/* Actions section */}
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="flex gap-2 flex-wrap flex-1">
-                      {event.status === "upcoming" && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                onClick={() => handleGenerateQR(event)}
-                                className="flex items-center gap-2 bg-[#A91827] text-white rounded-xl hover:bg-[#A91827]/90 h-9 px-3 whitespace-nowrap"
-                              >
-                                <QrCode className="h-4 w-4" />
-                                <span className="hidden sm:inline">Generate QR</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Generate check-in QR code</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* Generate check-in QR code */}
+                            <Button
+                              onClick={() => {
+                                setSelectedEvent(event);
+                                setQRDialogOpen(true);
+                              }}
+                              variant="outline" 
+                              className="flex items-center gap-2 rounded-xl h-9 px-3 border-muted-foreground/20 hover:bg-muted-foreground/5 whitespace-nowrap"
+                            >
+                              <QrCode className="h-4 w-4" />
+                              <span className="hidden sm:inline">Generate QR</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Generate check-in QR code</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              onClick={() => handleViewAttendance(event)}
+                              variant="outline"
+                              className="flex items-center gap-2 rounded-xl h-9 px-3 border-muted-foreground/20 hover:bg-muted-foreground/5 whitespace-nowrap"
+                            >
+                              <Users className="h-4 w-4" />
+                              <span className="hidden sm:inline">
+                                View Attendance ({event.attendees || 0})
+                              </span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View attendance records</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
 
                       <TooltipProvider>
                         <Tooltip>
@@ -596,7 +644,7 @@ export default function AdminEventsPage() {
                               <Button
                                 onClick={() => {
                                   setNewEvent({
-                                    id: event.id, // Add the event ID to track which event we're editing
+                                    id: event.id,
                                     title: event.title,
                                     date: event.date,
                                     start_time: event.start_time,
@@ -960,10 +1008,9 @@ export default function AdminEventsPage() {
 
   // Enhanced QR code modal
   const renderQRModal = () => {
-    if (!showQRModal) return null
+    if (!showQRModal) return null;
 
-    const qrData = generateQRData(selectedEvent)
-    const eventDateFormatted = selectedEvent?.date || ""
+    const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/take-attendance/${selectedEvent.qr_token || selectedEvent.id}`;
 
     return (
       <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
@@ -979,7 +1026,7 @@ export default function AdminEventsPage() {
             <div className="flex flex-col items-center justify-center py-6">
               <div className="bg-white p-4 rounded-xl shadow-md">
                 <QRCodeSVG
-                  value={qrData}
+                  value={attendanceUrl}
                   size={200}
                   bgColor={"#ffffff"}
                   fgColor={"#000000"}
@@ -991,7 +1038,7 @@ export default function AdminEventsPage() {
               <div className="mt-4 text-center">
                 <h3 className="font-semibold">{selectedEvent?.title}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {eventDateFormatted} • {formatTimeForDisplay(selectedEvent?.start_time)} -{" "}
+                  {selectedEvent?.date} • {formatTimeForDisplay(selectedEvent?.start_time)} -{" "}
                   {formatTimeForDisplay(selectedEvent?.end_time)}
                 </p>
               </div>
@@ -1036,13 +1083,13 @@ export default function AdminEventsPage() {
                       .share({
                         title: `Check-in QR for ${selectedEvent.title}`,
                         text: `Scan this QR code to check in to ${selectedEvent.title}`,
-                        url: window.location.href,
+                        url: attendanceUrl,
                       })
                       .catch((error) => console.log("Error sharing", error))
                   } else {
                     // Fallback - copy to clipboard
-                    navigator.clipboard.writeText(qrData)
-                    toast.success("QR code data copied to clipboard")
+                    navigator.clipboard.writeText(attendanceUrl)
+                    toast.success("QR code URL copied to clipboard")
                   }
                 }}
                 variant="outline"
@@ -1055,8 +1102,8 @@ export default function AdminEventsPage() {
           </motion.div>
         </DialogContent>
       </Dialog>
-    )
-  }
+    );
+  };
 
   // Delete confirmation dialog
   const renderDeleteConfirmation = () => {
@@ -1100,6 +1147,70 @@ export default function AdminEventsPage() {
       </Dialog>
     )
   }
+
+  const handleViewAttendance = async (event) => {
+    window.location.href = `/dashboard/admin/events/${event.id}/attendance`;
+  };
+
+  const renderAttendanceDialog = () => {
+    if (!attendanceDialogOpen) return null;
+
+    return (
+      <Dialog open={attendanceDialogOpen} onOpenChange={setAttendanceDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Event Attendance</DialogTitle>
+            {attendanceData && (
+              <DialogDescription>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">{attendanceData.event.title}</p>
+                  <p>{attendanceData.event.date}</p>
+                  <p>{attendanceData.event.time}</p>
+                  <p>{attendanceData.event.location}</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Total Attendees: {attendanceData.attendanceCount}
+                  </p>
+                </div>
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          {isLoadingAttendance ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : attendanceData?.records.length > 0 ? (
+            <div className="relative max-h-[60vh] overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Student Name</TableHead>
+                    <TableHead>Student ID</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Check-in Time</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attendanceData.records.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.studentName}</TableCell>
+                      <TableCell>{record.studentId}</TableCell>
+                      <TableCell>{record.email}</TableCell>
+                      <TableCell>{record.checkedInAt}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No attendance records found for this event.
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    );
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -1364,6 +1475,9 @@ export default function AdminEventsPage() {
       {renderFeedbackModal()}
       {renderCreateEventDialog()}
       {renderDeleteConfirmation()}
+
+      {/* Attendance Dialog */}
+      {renderAttendanceDialog()}
     </div>
   )
 }

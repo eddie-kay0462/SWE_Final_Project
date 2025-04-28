@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Bell, Calendar, FileText, BookOpen, X, Trash2, Info, MessageSquare, User } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/hooks/use-toast"
 import { createClient } from "@/utils/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
@@ -22,7 +21,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Label } from "@/components/ui/label"
 
 export default function AdminNotificationsPage() {
-  const { toast } = useToast()
   const { authUser } = useAuth()
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
@@ -97,7 +95,7 @@ export default function AdminNotificationsPage() {
         (payload) => {
           // Show toast notification for new submissions
           if (payload.new.type === 'resume_submission') {
-            toast.info('New Resume Submission', {
+            toast('New Resume Submission', {
               description: payload.new.message
             })
           }
@@ -163,7 +161,7 @@ export default function AdminNotificationsPage() {
       if (error) throw error
 
       setNotifications([])
-      toast.success('All notifications cleared')
+      toast('All notifications cleared')
       setClearAllDialogOpen(false)
     } catch (error) {
       console.error('Error clearing notifications:', error)
@@ -181,7 +179,7 @@ export default function AdminNotificationsPage() {
       if (error) throw error
 
       setNotifications(notifications.map((n) => ({ ...n, read: true })))
-      toast.success('All notifications marked as read')
+      toast('All notifications marked as read')
     } catch (error) {
       console.error('Error marking all as read:', error)
       toast.error('Failed to mark all as read')
@@ -190,10 +188,8 @@ export default function AdminNotificationsPage() {
 
   const handleCreateNotification = () => {
     if (!newNotification.title || !newNotification.message) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide both a title and message for the notification.",
-        variant: "destructive",
+      toast('Missing Information', {
+        description: "Please provide both a title and message for the notification."
       })
       return
     }
@@ -226,9 +222,8 @@ export default function AdminNotificationsPage() {
       setCreateNotificationDialogOpen(false)
       setNewNotification({ title: "", message: "", type: "info" })
 
-      toast({
-        title: "Notification Created",
-        description: "The notification has been sent to all students.",
+      toast('Notification Created', {
+        description: "The notification has been sent to all students."
       })
     }, 1000)
   }

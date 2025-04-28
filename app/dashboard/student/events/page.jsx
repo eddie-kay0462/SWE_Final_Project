@@ -2,11 +2,19 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Calendar, Clock, MapPin, Users, ChevronRight, CheckCircle, MessageSquare, X } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, ChevronRight, CheckCircle, MessageSquare, X, QrCode } from 'lucide-react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
+import { QRCodeCard } from "@/components/attendance/QRCodeCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Helper to format time for display
 function formatTimeForDisplay(time) {
@@ -22,6 +30,7 @@ export default function EventsPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("upcoming")
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false)
+  const [qrDialogOpen, setQrDialogOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [feedbackText, setFeedbackText] = useState("")
   const [rating, setRating] = useState(0)
@@ -75,6 +84,11 @@ export default function EventsPage() {
     }
     setFeedbackDialogOpen(true);
   }
+
+  const handleOpenQRDialog = (event) => {
+    setSelectedEvent(event);
+    setQrDialogOpen(true);
+  };
 
   const handleSubmitFeedback = async () => {
     if (rating === 0) {
@@ -209,6 +223,15 @@ export default function EventsPage() {
               <Button 
                 variant="outline" 
                 className="inline-flex items-center"
+                onClick={() => handleOpenQRDialog(event)}
+              >
+                <QrCode className="mr-2 h-4 w-4" />
+                {event.status === "upcoming" ? "Get QR Code" : "View QR Code"}
+              </Button>
+
+              <Button 
+                variant="outline" 
+                className="inline-flex items-center"
                 onClick={() => handleOpenFeedbackDialog(event)}
               >
                 <MessageSquare className="mr-2 h-4 w-4" />
@@ -333,6 +356,28 @@ export default function EventsPage() {
 
       {/* Feedback Modal */}
       {renderFeedbackModal()}
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Event QR Code</DialogTitle>
+            <DialogDescription>
+              Scan this QR code at the event to record your attendance.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedEvent && (
+            <QRCodeCard
+              eventId={selectedEvent.id}
+              title={selectedEvent.title}
+              date={selectedEvent.date}
+              startTime={selectedEvent.start_time}
+              endTime={selectedEvent.end_time}
+              location={selectedEvent.location}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

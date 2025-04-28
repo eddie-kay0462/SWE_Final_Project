@@ -1,102 +1,134 @@
-import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 
-// Check for required environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// Handle missing environment variables more gracefully
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error("Missing required Supabase environment variables")
-}
-
-// Initialize Supabase client with fallback for build time
-const supabase = supabaseUrl && supabaseServiceKey 
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : null
-
+/**
+ * POST handler for recording event attendance
+ * 
+ * @returns {Promise<NextResponse>} JSON response indicating success or failure
+ */
 export async function POST(request) {
   try {
-    // Check if Supabase client is properly initialized
-    if (!supabase) {
+    // Create a Supabase client
+    const supabase = await createClient();
+    
+    // Get the current user from the session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
       return NextResponse.json(
-        { error: "Service configuration error" },
-        { status: 503 }
-      )
+        { error: 'Unauthorized. Please log in.' },
+        { status: 401 }
+      );
     }
 
-    const { student_id, session_id, timestamp } = await request.json()
-
-    // Verify the hash matches the expected format
-    if (!student_id || !session_id || !timestamp) {
+    // Parse the request body
+    const { token, studentId } = await request.json();
+    
+    if (!token) {
       return NextResponse.json(
-        { error: "Missing required parameters" },
+        { error: 'Token is required' },
         { status: 400 }
-      )
+      );
     }
 
-    // Check if the session exists and is valid
-    const { data: session, error: sessionError } = await supabase
-      .from("event_sessions")
-      .select("*")
-      .eq("id", session_id)
-      .single()
+    // Get the student's ID from the users table if not provided
+    let verifiedStudentId = studentId;
+    if (!verifiedStudentId) {
+      const { data: userData, error: userDataError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', user.email)
+        .single();
 
-    if (sessionError || !session) {
+      if (userDataError || !userData) {
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 404 }
+        );
+      }
+      verifiedStudentId = userData.id;
+    }
+
+    // Verify the token and get event details
+    const { data: tokenData, error: tokenError } = await supabase
+      .from('attendance_tokens')
+      .select('*, career_sessions(*)')
+      .eq('token', token)
+      .single();
+
+    if (tokenError || !tokenData) {
       return NextResponse.json(
-        { error: "Invalid session ID" },
+        { error: 'Invalid or expired token' },
         { status: 400 }
-      )
+      );
     }
 
-    // Check if the student has already checked in
-    const { data: existingCheckIn, error: checkInError } = await supabase
-      .from("attendance_records")
-      .select("*")
-      .eq("session_id", session_id)
-      .eq("student_id", student_id)
-      .single()
-
-    if (checkInError && checkInError.code !== "PGRST116") {
+    // Check if token is expired
+    if (new Date(tokenData.expires_at) < new Date()) {
       return NextResponse.json(
-        { error: "Error checking attendance" },
-        { status: 500 }
-      )
-    }
-
-    if (existingCheckIn) {
-      return NextResponse.json(
-        { error: "Student has already checked in" },
+        { error: 'Token has expired' },
         { status: 400 }
-      )
+      );
+    }
+
+    // Check if token has already been used
+    if (tokenData.used_at) {
+      return NextResponse.json(
+        { error: 'Token has already been used' },
+        { status: 400 }
+      );
+    }
+
+    // If studentId was provided, verify it matches the token
+    if (studentId && tokenData.student_id !== studentId) {
+      return NextResponse.json(
+        { error: 'Invalid student ID' },
+        { status: 400 }
+      );
     }
 
     // Record the attendance
-    const { error: insertError } = await supabase
-      .from("attendance_records")
-      .insert({
-        student_id,
-        session_id,
-        check_in_time: new Date().toISOString(),
-        qr_hash: student_id // Store the hash for verification
-      })
+    const { error: attendanceError } = await supabase
+      .from('attendance_records')
+      .insert([
+        {
+          student_id: verifiedStudentId,
+          event_id: tokenData.event_id,
+          checked_in_at: new Date().toISOString()
+        }
+      ]);
 
-    if (insertError) {
+    if (attendanceError) {
+      console.error('Error recording attendance:', attendanceError);
       return NextResponse.json(
-        { error: "Failed to record attendance" },
+        { error: 'Failed to record attendance' },
         { status: 500 }
-      )
+      );
     }
 
-    return NextResponse.json(
-      { message: "Attendance recorded successfully" },
-      { status: 200 }
-    )
+    // Mark the token as used
+    const { error: updateError } = await supabase
+      .from('attendance_tokens')
+      .update({ used_at: new Date().toISOString() })
+      .eq('token', token);
+
+    if (updateError) {
+      console.error('Error updating token:', updateError);
+      // Don't return error since attendance was already recorded
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Attendance recorded successfully',
+      eventDetails: tokenData.career_sessions
+    });
+
   } catch (error) {
-    console.error("Check-in error:", error)
+    console.error('Error in check-in API:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: 'Internal server error' },
       { status: 500 }
-    )
+    );
   }
 } 
