@@ -1,33 +1,24 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
-import dynamic from "next/dynamic"
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { useLoading } from "@/components/ui/loading-provider"
+import { useLoadingAction } from "@/lib/hooks/use-loading-action"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import StudentDashboard from "../components/student-dashboard"
 import getTimeBasedGreeting from "@/utils/greetings"
-
-// Dynamically import the dashboard component with loading state
-const StudentDashboard = dynamic(
-  () => import("../components/student-dashboard"),
-  {
-    loading: () => (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
-      </div>
-    ),
-    ssr: false
-  }
-)
 
 export default function StudentDashboardPage() {
   const [dashboardData, setDashboardData] = useState(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [greetings, setGreetings] = useState({ greeting: "", wellWish: "" })
+  const { startLoading, stopLoading } = useLoading()
+  const { isLoading, handleLoadingAction } = useLoadingAction()
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true)
-      setError(null)
       try {
+        startLoading()
         const response = await fetch('/api/dashboard/student')
 
         if (!response.ok) {
@@ -46,35 +37,86 @@ export default function StudentDashboardPage() {
         console.error("Failed to fetch dashboard data:", e)
         setError(e.message || "An unexpected error occurred")
       } finally {
-        setLoading(false)
+        stopLoading()
       }
     }
 
     fetchData()
-  }, [])
+  }, [startLoading, stopLoading])
 
-  if (loading) {
-    return <div>Loading dashboard...</div>
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f3f1ea] dark:bg-gray-900 flex items-center justify-center">
+        <LoadingSpinner size="xl" showText={true} />
+      </div>
+    )
   }
 
   if (error) {
-    return <div className="text-red-500 p-4">Error loading dashboard: {error}</div>
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-red-500 p-4 rounded-lg bg-red-50 dark:bg-red-900/10"
+      >
+        Error loading dashboard: {error}
+      </motion.div>
+    )
   }
 
   if (!dashboardData) {
-    return <div>No data available.</div>
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="p-4 text-neutral-600 dark:text-neutral-400"
+      >
+        No data available.
+      </motion.div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Greetings Section */}
-      <div className="space-y-1 pl-4 pt-2">
-        <h1 className="text-3xl font-serif">{greetings.greeting}</h1>
-        <p className="text-neutral-600 dark:text-neutral-400">{greetings.wellWish}</p>
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6"
+    >
+      <AnimatePresence mode="wait">
+        {/* Greetings Section */}
+        <motion.div
+          key="greetings"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-1 pl-4 pt-2"
+        >
+          <motion.h1 
+            className="text-3xl font-serif"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            {greetings.greeting}
+          </motion.h1>
+          <motion.p 
+            className="text-neutral-600 dark:text-neutral-400"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            {greetings.wellWish}
+          </motion.p>
+        </motion.div>
+      </AnimatePresence>
       
-      <StudentDashboard dashboardData={dashboardData} loading={loading} />
-    </div>
+      <StudentDashboard 
+        dashboardData={dashboardData} 
+        loading={isLoading}
+        onAction={(action) => handleLoadingAction(action)}
+      />
+    </motion.div>
   )
 }
 

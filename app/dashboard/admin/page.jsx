@@ -1,9 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import DashboardLayout from "@/components/layout/dashboard-layout"
+import { motion } from "framer-motion"
+import { useLoading } from "@/components/ui/loading-provider"
+import { useLoadingAction } from "@/lib/hooks/use-loading-action"
 import AdminDashboard from "../components/admin-dashboard"
 import { getGreeting } from "@/app/utils/greetings"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 // Mock data for demonstration (you can import this from a shared file)
 const mockData = {
@@ -30,21 +33,47 @@ const mockData = {
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [greeting, setGreeting] = useState("")
+  const { startLoading, stopLoading } = useLoading()
+  const { isLoading, handleLoadingAction } = useLoadingAction()
 
-  // Initial load animation and greeting setup
+  // Simulate data loading
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 500)
+    const loadDashboard = async () => {
+      try {
+        startLoading()
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        setGreeting(getGreeting("Admin"))
+      } finally {
+        stopLoading()
+        setLoading(false)
+      }
+    }
 
-    // Set the greeting with a mock name (replace with actual user name from auth)
-    setGreeting(getGreeting("Admin"))
+    loadDashboard()
+  }, [startLoading, stopLoading])
 
-    return () => clearTimeout(timer)
-  }, [])
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f3f1ea] dark:bg-gray-900 flex items-center justify-center">
+        <LoadingSpinner size="xl" showText={true} />
+      </div>
+    )
+  }
 
   return (
-    <AdminDashboard mockData={mockData} loading={loading} greeting={greeting} />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <AdminDashboard 
+        mockData={mockData} 
+        loading={isLoading} 
+        greeting={greeting}
+        onAction={(action) => handleLoadingAction(action)}
+      />
+    </motion.div>
   )
 }
 
