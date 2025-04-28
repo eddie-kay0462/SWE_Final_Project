@@ -3,6 +3,80 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
 /**
+ * Generates a random 6-digit code for session IDs
+ * 
+ * @returns {string} A 6-digit numeric code
+ */
+function generateSessionId() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+/**
+ * Checks if a session ID already exists in the database
+ * 
+ * @param {object} supabase - Supabase client instance
+ * @param {string} sessionId - Session ID to check
+ * @returns {Promise<boolean>} True if session ID exists, false otherwise
+ */
+async function isSessionIdTaken(supabase, sessionId) {
+  const { data, error } = await supabase
+    .from('career_sessions')
+    .select('session_id')
+    .eq('session_id', sessionId)
+    .single();
+  
+  return !error && data !== null;
+}
+
+/**
+ * Generates a unique session ID that doesn't exist in the database
+ * 
+ * @param {object} supabase - Supabase client instance
+ * @returns {Promise<string>} A unique 6-digit session ID
+ */
+async function generateUniqueSessionId(supabase) {
+  let sessionId;
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  do {
+    sessionId = generateSessionId();
+    const isTaken = await isSessionIdTaken(supabase, sessionId);
+    if (!isTaken) return sessionId;
+    attempts++;
+  } while (attempts < maxAttempts);
+
+  throw new Error('Unable to generate unique session ID after multiple attempts');
+}
+
+/**
+ * Verifies if a user exists in both auth.users and public.users tables
+ * 
+ * @param {object} supabase - Supabase client instance
+ * @param {object} authUser - The authenticated user object
+ * @returns {Promise<string|null>} Returns the public user ID if found, null otherwise
+ */
+async function verifyUserInBothTables(supabase, authUser) {
+  if (!authUser || !authUser.email) {
+    return null;
+  }
+
+  // Check if the user exists in public.users table
+  const { data: publicUser, error: publicUserError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('email', authUser.email)
+    .single();
+
+  if (publicUserError || !publicUser) {
+    console.error('User not found in public.users table:', publicUserError);
+    return null;
+  }
+
+  return publicUser.id;
+}
+
+/**
  * GET handler for fetching events from the database for admin view
  * 
  * @returns {Promise<NextResponse>} JSON response with events data
@@ -129,12 +203,22 @@ export async function POST(request) {
     
     // Get the current user from the session
     const cookieStore = cookies();
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
     
-    if (userError || !user) {
+    if (userError || !authUser) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.' },
         { status: 401 }
+      );
+    }
+
+    // Verify user exists in both tables and get public user ID
+    const publicUserId = await verifyUserInBothTables(supabase, authUser);
+    
+    if (!publicUserId) {
+      return NextResponse.json(
+        { error: 'User not found in the system. Please complete your profile setup.' },
+        { status: 403 }
       );
     }
     
@@ -150,19 +234,24 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    // Generate a unique session ID
+    const session_id = await generateUniqueSessionId(supabase);
     
-    // Insert the new event into the database
+    // Insert the new event into the database using the public user ID
     const { data, error } = await supabase
       .from('career_sessions')
       .insert([
         {
+          session_id,
           title,
           date,
           start_time,
           end_time,
           location,
           description,
-          created_by: user.id
+          created_by: publicUserId,
+          qr_code: `event-${session_id}` // Generate a basic QR code value
         }
       ])
       .select();
