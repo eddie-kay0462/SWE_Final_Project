@@ -153,7 +153,7 @@ export default function TakeAttendancePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-[#A91827]" />
-                    <span>{eventDetails.attendees} attendees</span>
+                    <span>{eventDetails.attendees.count} attendees</span>
                   </div>
                 </div>
               </div>

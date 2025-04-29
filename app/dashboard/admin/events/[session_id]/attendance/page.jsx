@@ -14,8 +14,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QRCodeCard } from "@/components/attendance/QRCodeCard";
-import { Users, Search, Download, QrCode } from "lucide-react";
+import { Users, Search, Download, QrCode, Link } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 export default function EventAttendancePage() {
   const params = useParams();
@@ -117,6 +118,20 @@ export default function EventAttendancePage() {
           >
             <QrCode className="h-4 w-4 mr-2" />
             {showQRCode ? "Hide QR Code" : "Show QR Code"}
+          </Button>
+          <Button
+            onClick={() => {
+              const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/take-attendance/${params.session_id}`;
+              navigator.clipboard.writeText(attendanceUrl);
+              toast.success("URL copied to clipboard", {
+                description: "The attendance URL has been copied to your clipboard"
+              });
+            }}
+            variant="outline"
+            className="border-muted-foreground/20"
+          >
+            <Link className="h-4 w-4 mr-2" />
+            Copy URL
           </Button>
           <Button
             onClick={downloadAttendanceCSV}
