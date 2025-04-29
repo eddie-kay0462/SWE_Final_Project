@@ -26,6 +26,30 @@ export default function Login() {
   const router = useRouter()
 
   /**
+   * Formats the email input by handling domain automatically
+   * @param {string} input - Raw email input
+   * @returns {string} Formatted email with domain
+   */
+  const formatEmail = (input) => {
+    // Remove any existing domain if present
+    const parts = input.split('@')
+    const username = parts[0]
+    
+    // Return username with default domain
+    return `${username}@ashesi.edu.gh`
+  }
+
+  /**
+   * Handles email input changes
+   * @param {Event} e - Input change event
+   */
+  const handleEmailChange = (e) => {
+    const input = e.target.value.trim()
+    // Store only the username part in state
+    setEmail(input.split('@')[0])
+  }
+
+  /**
    * Handles form submission for user login
    * Makes API call to the backend login endpoint
    * Redirects user based on their role
@@ -37,13 +61,7 @@ export default function Login() {
     setIsLoading(true)
     setError(null)
 
-    // Validate Ashesi email domain
-    const parts = email.split('@')
-    if (parts.length !== 2 || (parts[1] !== 'ashesi.edu.gh' && parts[1] !== 'aucampus.onmicrosoft.com')) {
-      setError('Only Ashesi email addresses are allowed (ashesi.edu.gh or aucampus.onmicrosoft.com)')
-      setIsLoading(false)
-      return
-    }
+    const formattedEmail = formatEmail(email)
 
     try {
       // Call the backend API
@@ -53,7 +71,7 @@ export default function Login() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email,
+          email: formattedEmail,
           password,
         }),
       })
@@ -156,14 +174,17 @@ export default function Login() {
                   </label>
                   <input
                     id="email"
-                    type="email"
+                    type="text"
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black"
-                    placeholder="yourname@ashesi.edu.gh"
+                    placeholder="Username"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={handleEmailChange}
                     required
                     disabled={isLoading}
                   />
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    Don't worry, @ashesi.edu.gh will be added automatically
+                  </div>
                 </div>
 
                 <div className="animate-appear opacity-0 delay-300">
