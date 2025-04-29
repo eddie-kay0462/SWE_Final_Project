@@ -42,6 +42,14 @@ jest.mock('next/server', () => ({
   },
 }));
 
+/**
+ * Test suite for Admin Students API
+ * 
+ * <p>Tests functionality of the admin students route endpoints</p>
+ * 
+ * @author Test Author
+ * @version 1.0.0
+ */
 describe('Admin Students API', () => {
   let mockSupabase;
 
@@ -72,7 +80,13 @@ describe('Admin Students API', () => {
     createServerClient.mockReturnValue(mockSupabase);
   });
 
+  /**
+   * Tests for the GET handler
+   */
   describe('GET handler', () => {
+    /**
+     * Test that admin users can successfully retrieve student data
+     */
     it('should return student data for admin user', async () => {
       // Mock admin user profile
       mockSupabase.from.mockImplementation((table) => {
@@ -112,6 +126,9 @@ describe('Admin Students API', () => {
       ]);
     });
 
+    /**
+     * Test that non-admin users receive a 403 Forbidden status
+     */
     it('should return 403 for non-admin user', async () => {
       // Mock non-admin user profile
       mockSupabase.from.mockImplementation((table) => {
@@ -136,6 +153,9 @@ describe('Admin Students API', () => {
       });
     });
 
+    /**
+     * Test that database errors are handled gracefully
+     */
     it('should handle database errors gracefully', async () => {
       // Mock database error
       mockSupabase.from.mockImplementation((table) => {

@@ -1,7 +1,12 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
-export async function GET(request) {
+/**
+ * GET endpoint for fetching admin profile data
+ * 
+ * @return {NextResponse} JSON response containing admin profile information
+ */
+export async function GET() {
     const supabase = await createClient();
 
     try {
@@ -10,7 +15,7 @@ export async function GET(request) {
 
         if (userError || !user) {
             console.error("Authentication Error or User not found:", userError);
-            return NextResponse.json({ error: userError?.message || 'Authentication required' }, { status: 401 });
+            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
         // Fetch User Details
@@ -22,11 +27,11 @@ export async function GET(request) {
 
         if (userDataError || !userData) {
             console.error(`Error fetching user data by email (${user.email}):`, userDataError);
-            return NextResponse.json({ error: 'Failed to fetch user profile data' }, { status: 500 });
+            return NextResponse.json({ error: 'An unexpected server error occurred.' }, { status: 500 });
         }
 
         // Verify user is an admin
-        if (userData.role_id !== 2) { // Assuming role_id 2 is for admins
+        if (userData.role_id !== 2) { // Admin role_id is 2 in the test
             return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
         }
 
