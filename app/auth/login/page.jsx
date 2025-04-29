@@ -94,20 +94,20 @@ export default function Login() {
       {isPageLoading && <LoadingSpinner fullPage size="large" text="Redirecting to dashboard" />}
       
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b bg-white">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <GraduationCap className="h-6 w-6 text-[#A91827]" />
-            <span className="text-xl font-bold">CSOFT</span>
+            <span className="text-xl font-bold text-black">CSOFT</span>
           </Link>
           <nav className="hidden md:flex gap-6">
-            <Link href="/" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+            <Link href="/" className="text-sm font-medium text-black hover:text-[#A91827] transition-colors">
               Home
             </Link>
-            <Link href="/#features" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+            <Link href="/#features" className="text-sm font-medium text-black hover:text-[#A91827] transition-colors">
               Services
             </Link>
-            <Link href="/#benefits" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+            <Link href="/#benefits" className="text-sm font-medium text-black hover:text-[#A91827] transition-colors">
               About Us
             </Link>
           </nav>
@@ -122,7 +122,7 @@ export default function Login() {
             {/* Left Side - Login Form */}
             <div className="w-full md:w-1/2 p-6 md:p-10">
               <div className="mb-6">
-                <h2 className="text-3xl font-serif font-normal mb-2">
+                <h2 className="text-3xl font-serif font-normal mb-2 text-black">
                   Welcome <span className="font-serif italic">back</span>
                 </h2>
                 <p className="text-[#000000]/70 text-lg">Please enter your details to access your account</p>
@@ -133,9 +133,9 @@ export default function Login() {
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-[#A91827] mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium">{error}</p>
+                      <p className="font-medium text-[#A91827]">{error}</p>
                       {error.includes('User profile not found') && (
-                        <div className="mt-2 text-sm">
+                        <div className="mt-2 text-sm text-[#A91827]">
                           <p>If you're trying to log in for the first time:</p>
                           <ul className="list-disc ml-5 mt-1 space-y-1">
                             <li>Make sure you've completed the signup process</li>
@@ -157,7 +157,7 @@ export default function Login() {
                   <input
                     id="email"
                     type="email"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black"
                     placeholder="yourname@ashesi.edu.gh"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -173,7 +173,7 @@ export default function Login() {
                   <input
                     id="password"
                     type="password"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black"
                     placeholder="••••••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -237,7 +237,7 @@ export default function Login() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
               <GraduationCap className="h-6 w-6 text-[#A91827]" />
-              <span className="text-xl font-bold">CSOFT</span>
+              <span className="text-xl font-bold text-black">CSOFT</span>
             </div>
             <div className="text-center md:text-right">
               <p className="text-sm text-[#000000]/70">

@@ -172,7 +172,7 @@ export default function Signup() {
             {/* Left Side - Signup Form */}
             <div className="w-full md:w-1/2 p-6 md:p-10">
               <div className="mb-6">
-                <h2 className="text-3xl font-serif font-normal mb-2">
+                <h2 className="text-3xl font-serif font-normal mb-2 text-black">
                   Create <span className="font-serif italic">Account</span>
                 </h2>
                 <p className="text-[#000000]/70 text-lg">Join our platform to access career services</p>
@@ -202,7 +202,7 @@ export default function Signup() {
                       />
                       <div className="flex items-center gap-2">
                         <div className={`w-4 h-4 rounded-full border ${role === 'student' ? 'border-[#A91827] bg-[#A91827]' : 'border-gray-400'}`}></div>
-                        <span className="font-medium">Student</span>
+                        <span className="font-medium text-black">Student</span>
                       </div>
                     </label>
                     <label className={`flex-1 border rounded-lg p-4 cursor-pointer transition-all ${role === 'admin' ? 'border-[#A91827] bg-[#A91827]/5' : 'border-gray-200'}`}>
@@ -216,7 +216,7 @@ export default function Signup() {
                       />
                       <div className="flex items-center gap-2">
                         <div className={`w-4 h-4 rounded-full border ${role === 'admin' ? 'border-[#A91827] bg-[#A91827]' : 'border-gray-400'}`}></div>
-                        <span className="font-medium">Staff/Admin</span>
+                        <span className="font-medium text-black">Staff/Admin</span>
                       </div>
                     </label>
                   </div>
@@ -231,7 +231,7 @@ export default function Signup() {
                     <input
                       id="firstName"
                       type="text"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black"
                       placeholder="Eddie"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
@@ -246,7 +246,7 @@ export default function Signup() {
                     <input
                       id="lastName"
                       type="text"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black"
                       placeholder="Kay"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
@@ -264,13 +264,13 @@ export default function Signup() {
                     <input
                       id="studentId"
                       type="text"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black"
                       placeholder="12342023"
                       value={studentId}
                       onChange={(e) => setStudentId(e.target.value)}
                       required={role === 'student'}
                     />
-                    <p className="text-sm text-gray-500 mt-1">Format: XXXX20XX (e.g., 12342023)</p>
+                    <p className="text-sm text-[#000000]/70 mt-1">Format: XXXX20XX (e.g., 12342023)</p>
                   </div>
                 )}
 
@@ -282,7 +282,7 @@ export default function Signup() {
                   <input
                     id="email"
                     type="email"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black"
                     placeholder="yourname@ashesi.edu.gh"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -299,7 +299,7 @@ export default function Signup() {
                     <input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black"
                       placeholder="••••••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -309,7 +309,7 @@ export default function Signup() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-2.5 text-[#000000]/70 hover:text-[#000000]"
                     >
                       {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
                     </button>
@@ -326,7 +326,7 @@ export default function Signup() {
                     <input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black"
                       placeholder="••••••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -336,13 +336,13 @@ export default function Signup() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-2.5 text-[#000000]/70 hover:text-[#000000]"
                     >
                       {showConfirmPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
                     </button>
                   </div>
                   {touched.confirmPassword && password !== confirmPassword && (
-                    <p className="mt-1 text-sm text-red-500">Passwords don't match</p>
+                    <p className="mt-1 text-sm text-[#A91827]">Passwords don't match</p>
                   )}
                 </div>
 

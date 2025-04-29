@@ -17,16 +17,16 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-[#f3f1ea]">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b bg-white">
         <div className="container flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
             <GraduationCap className="h-6 w-6 text-[#A91827]" />
-            <span className="text-xl font-bold">CSOFT</span>
+            <span className="text-xl font-bold text-black">CSOFT</span>
           </Link>
 
           {/* Mobile Menu Button */}
           <button 
-            className="md:hidden"
+            className="md:hidden text-black"
             onClick={toggleMobileMenu}
             aria-label="Toggle menu"
           >
@@ -36,19 +36,19 @@ export default function LandingPage() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             <div className="flex gap-6">
-              <Link href="/" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+              <Link href="/" className="text-sm font-medium text-black hover:text-[#A91827] transition-colors">
                 Home
               </Link>
-              <Link href="#features" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+              <Link href="#features" className="text-sm font-medium text-black hover:text-[#A91827] transition-colors">
                 Services
               </Link>
-              <Link href="#benefits" className="text-sm font-medium hover:text-[#A91827] transition-colors">
+              <Link href="#benefits" className="text-sm font-medium text-black hover:text-[#A91827] transition-colors">
                 About Us
               </Link>
             </div>
 
             <div className="flex items-center gap-3 ml-6">
-              <Link href="/auth/login" className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              <Link href="/auth/login" className="text-sm font-medium text-black px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
                 Sign In
               </Link>
               <Link href="/auth/signup" className="text-sm font-medium px-4 py-2 bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors">
@@ -63,21 +63,21 @@ export default function LandingPage() {
               <nav className="flex flex-col p-4">
                 <Link 
                   href="/" 
-                  className="py-2 text-sm font-medium hover:text-[#A91827] transition-colors"
+                  className="py-2 text-sm font-medium text-black hover:text-[#A91827] transition-colors"
                   onClick={toggleMobileMenu}
                 >
                   Home
                 </Link>
                 <Link 
                   href="#features" 
-                  className="py-2 text-sm font-medium hover:text-[#A91827] transition-colors"
+                  className="py-2 text-sm font-medium text-black hover:text-[#A91827] transition-colors"
                   onClick={toggleMobileMenu}
                 >
                   Services
                 </Link>
                 <Link 
                   href="#benefits" 
-                  className="py-2 text-sm font-medium hover:text-[#A91827] transition-colors"
+                  className="py-2 text-sm font-medium text-black hover:text-[#A91827] transition-colors"
                   onClick={toggleMobileMenu}
                 >
                   About Us
@@ -85,7 +85,7 @@ export default function LandingPage() {
                 <div className="flex flex-col gap-2 mt-4 pt-4 border-t">
                   <Link 
                     href="/auth/login" 
-                    className="py-2 text-sm font-medium text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="py-2 text-sm font-medium text-black text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     onClick={toggleMobileMenu}
                   >
                     Sign In
@@ -135,7 +135,7 @@ export default function LandingPage() {
 
       <section id="benefits" className="py-16 md:py-32 bg-[#f3f1ea]">
         <div className="container px-4 max-w-7xl">
-          <h2 className="text-3xl md:text-[52px] text-center font-medium mb-6">
+          <h2 className="text-3xl md:text-[52px] text-center font-medium mb-6 text-black">
             Why choose CSOFT?
           </h2>
           <p className="text-lg md:text-2xl text-center text-[#000000]/70 max-w-3xl mx-auto mb-12 md:mb-20">
@@ -144,21 +144,21 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 mt-8 md:mt-16">
             <div className="bg-white p-6 md:p-10 rounded-xl shadow-sm">
-              <h3 className="text-xl md:text-2xl font-medium mb-4 md:mb-6">For Students</h3>
+              <h3 className="text-xl md:text-2xl font-medium mb-4 md:mb-6 text-black">For Students</h3>
               <ul className="space-y-3 md:space-y-4">
-                <li className="flex items-start gap-3 text-base md:text-lg">
+                <li className="flex items-start gap-3 text-base md:text-lg text-black">
                   <span className="text-[#A91827] font-bold">→</span>
                   <span>Easy access to career resources and events</span>
                 </li>
-                <li className="flex items-start gap-3 text-base md:text-lg">
+                <li className="flex items-start gap-3 text-base md:text-lg text-black">
                   <span className="text-[#A91827] font-bold">→</span>
                   <span>Streamlined internship letter requests</span>
                 </li>
-                <li className="flex items-start gap-3 text-base md:text-lg">
+                <li className="flex items-start gap-3 text-base md:text-lg text-black">
                   <span className="text-[#A91827] font-bold">→</span>
                   <span>Track your career development progress</span>
                 </li>
-                <li className="flex items-start gap-3 text-base md:text-lg">
+                <li className="flex items-start gap-3 text-base md:text-lg text-black">
                   <span className="text-[#A91827] font-bold">→</span>
                   <span>Receive timely notifications about opportunities</span>
                 </li>
@@ -166,21 +166,21 @@ export default function LandingPage() {
             </div>
 
             <div className="bg-white p-6 md:p-10 rounded-xl shadow-sm">
-              <h3 className="text-xl md:text-2xl font-medium mb-4 md:mb-6">For Career Advisors</h3>
+              <h3 className="text-xl md:text-2xl font-medium mb-4 md:mb-6 text-black">For Career Advisors</h3>
               <ul className="space-y-3 md:space-y-4">
-                <li className="flex items-start gap-3 text-base md:text-lg">
+                <li className="flex items-start gap-3 text-base md:text-lg text-black">
                   <span className="text-[#A91827] font-bold">→</span>
                   <span>Efficient attendance tracking for events</span>
                 </li>
-                <li className="flex items-start gap-3 text-base md:text-lg">
+                <li className="flex items-start gap-3 text-base md:text-lg text-black">
                   <span className="text-[#A91827] font-bold">→</span>
                   <span>Streamlined approval process for internship letters</span>
                 </li>
-                <li className="flex items-start gap-3 text-base md:text-lg">
+                <li className="flex items-start gap-3 text-base md:text-lg text-black">
                   <span className="text-[#A91827] font-bold">→</span>
                   <span>Comprehensive analytics and reporting</span>
                 </li>
-                <li className="flex items-start gap-3 text-base md:text-lg">
+                <li className="flex items-start gap-3 text-base md:text-lg text-black">
                   <span className="text-[#A91827] font-bold">→</span>
                   <span>Improved communication with students</span>
                 </li>
@@ -192,17 +192,17 @@ export default function LandingPage() {
 
       <section className="py-16 md:py-32 bg-white">
         <div className="container px-4 max-w-7xl text-center">
-          <h2 className="text-3xl md:text-[52px] font-medium mb-4 md:mb-6">
+          <h2 className="text-3xl md:text-[52px] font-medium mb-4 md:mb-6 text-black">
             Ready to transform your career services?
           </h2>
           <p className="text-lg md:text-2xl text-[#000000]/70 max-w-3xl mx-auto mb-8 md:mb-10">
             Join CSOFT today and experience the future of career development management
           </p>
           <Link href="/auth/signup">
-            <div className="inline-flex items-center bg-[#A91827] text-[#ffffff] rounded-[10px] hover:bg-[#A91827]/90 transition-colors w-full md:w-[227px] h-[49px] mx-auto">
+            <div className="inline-flex items-center bg-[#A91827] text-white rounded-[10px] hover:bg-[#A91827]/90 transition-colors w-full md:w-[227px] h-[49px] mx-auto">
               <div className="flex items-center justify-between w-full px-4 md:pl-[22px] md:pr-[17px]">
                 <span className="text-[17px] md:text-[19px] whitespace-nowrap">Get Started</span>
-                <MoveRight className="h-5 w-5 md:h-6 md:w-6 text-[#ffffff]" />
+                <MoveRight className="h-5 w-5 md:h-6 md:w-6 text-white" />
               </div>
             </div>
           </Link>

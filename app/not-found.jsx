@@ -13,11 +13,11 @@ export default function NotFound() {
   return (
     <div className="min-h-screen flex flex-col bg-[#f3f1ea]">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b bg-white">
         <div className="container flex h-16 items-center">
           <Link href="/" className="flex items-center gap-2">
             <GraduationCap className="h-6 w-6 text-[#A91827]" />
-            <span className="text-xl font-bold">CSOFT</span>
+            <span className="text-xl font-bold text-black">CSOFT</span>
           </Link>
         </div>
       </header>
@@ -34,9 +34,9 @@ export default function NotFound() {
             </div>
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Page Not Found</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4 text-black">Page Not Found</h1>
           
-          <p className="text-lg text-gray-600 mb-8">
+          <p className="text-lg text-[#000000]/70 mb-8">
             Looks like you've wandered off the career path! 
             The page you're looking for doesn't exist or has been moved.
           </p>
@@ -49,7 +49,7 @@ export default function NotFound() {
             <span>Back to Home</span>
           </Link>
 
-          <p className="text-sm text-gray-500 mt-4">
+          <p className="text-sm text-[#000000]/70 mt-4">
             If you believe this is an error, please contact support.
           </p>
         </div>
@@ -61,10 +61,10 @@ export default function NotFound() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-[#A91827]" />
-              <span className="text-lg font-bold">CSOFT</span>
+              <span className="text-lg font-bold text-black">CSOFT</span>
             </div>
             <div className="text-center md:text-right">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[#000000]/70">
                 &copy; {new Date().getFullYear()} CSOFT. All rights reserved.
               </p>
             </div>
