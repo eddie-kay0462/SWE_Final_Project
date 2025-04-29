@@ -121,7 +121,7 @@ export default function EventAttendancePage() {
           </Button>
           <Button
             onClick={() => {
-              const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/take-attendance/${params.session_id}`;
+              const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://csoft-vert.vercel.app/'}/take-attendance/${params.session_id}`;
               navigator.clipboard.writeText(attendanceUrl);
               toast.success("URL copied to clipboard", {
                 description: "The attendance URL has been copied to your clipboard"

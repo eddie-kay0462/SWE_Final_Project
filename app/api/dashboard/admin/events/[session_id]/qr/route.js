@@ -45,7 +45,7 @@ export async function GET(request, { params }) {
 
     // Return the QR code data with the attendance URL
     return NextResponse.json({
-      qrUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/take-attendance/${sessionId}`,
+      qrUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://csoft-vert.vercel.app/'}/take-attendance/${sessionId}`,
       expiresAt: new Date(event.date + ' ' + event.end_time).toISOString()
     });
 
@@ -100,7 +100,7 @@ export async function POST(request, context) {
     }
 
     // Generate the QR code URL that will be used for attendance
-    const qrUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/take-attendance/${sessionId}`;
+    const qrUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://csoft-vert.vercel.app/'}/take-attendance/${sessionId}`;
 
     return NextResponse.json({
       qrUrl,

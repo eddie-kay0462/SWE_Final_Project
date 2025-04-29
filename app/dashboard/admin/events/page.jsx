@@ -196,7 +196,7 @@ export default function AdminEventsPage() {
   async function generateQRCode(eventId) {
     try {
       const timestamp = new Date().toISOString();
-      const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/take-attendance/${eventId}`;
+      const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://csoft-vert.vercel.app/'}/take-attendance/${eventId}`;
       
       const qrCodeDataUrl = await QRCode.toDataURL(attendanceUrl, {
         width: 300,
@@ -1010,7 +1010,7 @@ export default function AdminEventsPage() {
   const renderQRModal = () => {
     if (!showQRModal) return null;
 
-    const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/take-attendance/${selectedEvent.id}`;
+    const attendanceUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://csoft-vert.vercel.app/'}/take-attendance/${selectedEvent.id}`;
 
     return (
       <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
