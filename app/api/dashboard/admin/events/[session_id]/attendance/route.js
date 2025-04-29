@@ -6,10 +6,13 @@ import { cookies } from 'next/headers';
  * GET handler for fetching attendance records for a specific event
  * 
  * @param {Request} request - The incoming request object
- * @param {object} context - The context object containing params
- * @returns {Promise<NextResponse>} JSON response with attendance data
+ * @param {{ params: Promise<{ session_id: string }> }} context - The context object containing params promise
+ * @returns {Promise<Response>} JSON response with attendance data
  */
-export async function GET(request, { params }) {
+export async function GET(
+  request,
+  context
+) {
   try {
     // Create a Supabase client
     const supabase = await createClient();
@@ -24,8 +27,8 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Get the session ID from the URL params using destructuring
-    const { session_id } = params;
+    // Get the session ID from params promise
+    const { session_id } = await context.params;
     
     if (!session_id) {
       return NextResponse.json(
