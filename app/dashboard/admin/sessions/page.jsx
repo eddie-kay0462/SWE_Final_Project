@@ -48,6 +48,7 @@ export default function AdminOneOnOnePage() {
   const [students, setStudents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [showStudentDropdown, setShowStudentDropdown] = useState(false)
+  const [formError, setFormError] = useState("")
 
   // Time slots
   const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"]
@@ -145,12 +146,22 @@ export default function AdminOneOnOnePage() {
   }
 
   const handleCreateSession = async () => {
-    if (!selectedStudent || !selectedDate || !selectedTime) {
-      toast({
-        title: "Missing Information",
-        description: "Please select a student, date, and time for the session.",
-        variant: "destructive",
-      })
+    // Clear previous errors
+    setFormError("")
+
+    // Validate form
+    if (!selectedStudent) {
+      setFormError("Please select a student")
+      return
+    }
+
+    if (!selectedDate) {
+      setFormError("Please select a date")
+      return
+    }
+
+    if (!selectedTime) {
+      setFormError("Please select a time")
       return
     }
 
@@ -184,10 +195,6 @@ export default function AdminOneOnOnePage() {
           description: `1-on-1 session with ${selectedStudentName} has been scheduled for ${format(selectedDate, "MMMM d, yyyy")} at ${formatTimeForDisplay(selectedTime)}.`,
         })
 
-        // Refresh the sessions
-        const sessionsData = await getUserSessions()
-        setSessions(sessionsData)
-
         // Reset form
         setCreateSessionDialogOpen(false)
         setSelectedStudent(null)
@@ -195,15 +202,31 @@ export default function AdminOneOnOnePage() {
         setSelectedDate(null)
         setSelectedTime("")
         setSearchQuery("")
+
+        // Force page refresh to show the new session
+        window.location.reload()
       } else {
-        toast({
-          title: "Creation Failed",
-          description: result.message || "Failed to create session. Please try again.",
-          variant: "destructive",
-        })
+        // Show the specific error message from the server
+        setFormError(result.message || "Failed to create session. Please try again.")
+
+        // If it's an authentication error, suggest logging in again
+        if (result.message && result.message.includes("authentication")) {
+          toast({
+            title: "Authentication Error",
+            description: "Your session may have expired. Please try logging out and back in.",
+            variant: "destructive",
+          })
+        } else {
+          toast({
+            title: "Creation Failed",
+            description: result.message || "Failed to create session. Please try again.",
+            variant: "destructive",
+          })
+        }
       }
     } catch (error) {
       console.error("Error creating session:", error)
+      setFormError("An unexpected error occurred. Please try again.")
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -347,6 +370,7 @@ export default function AdminOneOnOnePage() {
     setSelectedTime("")
     setSelectedLocation("Career Center, Room 203")
     setSearchQuery("")
+    setFormError("")
     setCreateSessionDialogOpen(true)
   }
 
@@ -609,21 +633,29 @@ export default function AdminOneOnOnePage() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {formError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{formError}</AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <Label>Select Student</Label>
               <Select
                 value={selectedStudent ? selectedStudent.toString() : ""}
                 onValueChange={(value) => {
-                  const student = students.find((s) => s.id.toString() === value);
+                  const student = students.find((s) => s.id.toString() === value)
                   if (student) {
-                    setSelectedStudent(student.id);
-                    const fullName = `${student.fname} ${student.lname}`;
-                    setSelectedStudentName(fullName);
-                    console.log("Selected student:", student.id, "Name:", fullName);
+                    setSelectedStudent(student.id)
+                    const fullName = `${student.fname} ${student.lname}`
+                    setSelectedStudentName(fullName)
+                    console.log("Selected student:", student.id, "Name:", fullName)
                   } else {
-                    setSelectedStudent(null);
-                    setSelectedStudentName("");
-                    console.log("No student found for value:", value);
+                    setSelectedStudent(null)
+                    setSelectedStudentName("")
+                    console.log("No student found for value:", value)
                   }
                 }}
               >
@@ -675,7 +707,7 @@ export default function AdminOneOnOnePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="date-select">Select Date</Label><br></br>
+              <Label htmlFor="date-select">Select Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -751,10 +783,7 @@ export default function AdminOneOnOnePage() {
             <Button type="button" variant="outline" onClick={() => setCreateSessionDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleCreateSession}
-              disabled={isSubmitting || !selectedStudent || !selectedDate || !selectedTime}
-            >
+            <Button onClick={handleCreateSession} disabled={isSubmitting}>
               {isSubmitting ? "Booking..." : "Book Session"}
             </Button>
           </DialogFooter>
