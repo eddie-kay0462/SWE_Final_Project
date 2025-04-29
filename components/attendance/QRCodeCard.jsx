@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import QRCode from 'qrcode';
 import { motion } from 'framer-motion';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,9 @@ export function QRCodeCard({ eventId, title, date, startTime, endTime, location 
         throw new Error(data.error || 'Failed to generate attendance QR code');
       }
 
+      // Dynamically import QRCode
+      const QRCode = await import('qrcode');
+      
       // Generate QR code from the token URL
       const qrDataUrl = await QRCode.toDataURL(data.qrUrl, {
         width: 1080,

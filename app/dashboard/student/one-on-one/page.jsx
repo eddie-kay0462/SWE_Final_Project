@@ -1,84 +1,96 @@
 "use client"
 
-import { useState } from "react"
-import { CalendarIcon, Clock, MapPin } from "lucide-react"
+import { useState, useEffect } from "react"
+import { CalendarIcon, Clock, MapPin, Check } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import Calendar from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { format } from "@/lib/date-utils"
 import { useToast } from "@/hooks/use-toast"
+import { AlertCircle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { getUserSessions, bookSession, cancelSession, getAdvisors, getBookingStatus } from "@/utils/supabase/sessions"
+import { Input } from "@/components/ui/input"
 
 export default function OneOnOnePage() {
   const { toast } = useToast()
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [selectedSession, setSelectedSession] = useState(null)
+  const [cancelReason, setCancelReason] = useState("")
   const [date, setDate] = useState(null)
   const [time, setTime] = useState("")
+  const [location, setLocation] = useState("Career Center, Room 203")
+  const [advisorId, setAdvisorId] = useState("")
+  const [advisors, setAdvisors] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState("upcoming")
+  const [sessions, setSessions] = useState({ upcomingSessions: [], pastSessions: [] })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isBookingEnabled, setIsBookingEnabled] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
 
-  // Mock data for available time slots
-  const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"]
+  // Available time slots - could be fetched from database in the future
+  const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"]
 
-  // Mock data for previous and upcoming sessions
-  const previousSessions = [
-    {
-      id: 1,
-      date: "February 15, 2025",
-      time: "10:00 AM",
-      advisor: "Dr. Sarah Johnson",
-      location: "Career Center, Room 203",
-      status: "completed",
-      notes:
-        "Discussed resume improvements and internship opportunities. Dr. Johnson suggested focusing on technical skills and provided resources for interview preparation.",
-    },
-    {
-      id: 2,
-      date: "January 20, 2025",
-      time: "2:00 PM",
-      advisor: "Dr. Sarah Johnson",
-      location: "Online (Zoom)",
-      status: "completed",
-      notes:
-        "Reviewed career goals and academic progress. Created a semester plan to balance coursework with career development activities.",
-    },
-    {
-      id: 3,
-      date: "December 5, 2024",
-      time: "11:30 AM",
-      advisor: "Dr. Sarah Johnson",
-      location: "Career Center, Room 203",
-      status: "completed",
-      notes: "Initial career assessment and goal-setting session. Identified key strengths and areas for improvement.",
-    },
-  ]
+  // Format time for display
+  const formatTimeForDisplay = (time) => {
+    const [hours, minutes] = time.split(":")
+    const hour = Number.parseInt(hours, 10)
+    const ampm = hour >= 12 ? "PM" : "AM"
+    const formattedHour = hour % 12 || 12
+    return `${formattedHour}:${minutes || "00"} ${ampm}`
+  }
 
-  const upcomingSessions = [
-    {
-      id: 4,
-      date: "April 5, 2025",
-      time: "11:00 AM",
-      advisor: "Dr. Sarah Johnson",
-      location: "Career Center, Room 203",
-      status: "scheduled",
-    },
-    {
-      id: 5,
-      date: "May 12, 2025",
-      time: "2:30 PM",
-      advisor: "Dr. Sarah Johnson",
-      location: "Online (Zoom)",
-      status: "scheduled",
-    },
-  ]
+  // Fetch sessions and advisors on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
 
-  const handleBookSession = () => {
-    if (!date || !time) {
+        // Get booking status
+        const bookingStatus = await getBookingStatus()
+        setIsBookingEnabled(bookingStatus)
+
+        // Get sessions
+        const sessionsData = await getUserSessions()
+        setSessions(sessionsData)
+
+        // Get advisors
+        const advisorsData = await getAdvisors()
+        console.log("Fetched advisors:", advisorsData)
+        setAdvisors(advisorsData)
+
+        if (advisorsData && advisorsData.length > 0) {
+          const firstAdvisorId = advisorsData[0].id.toString()
+          setAdvisorId(firstAdvisorId)
+          console.log("Set initial advisorId:", firstAdvisorId)
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load sessions. Please try again later.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [toast])
+
+  const handleBookSession = async () => {
+    if (!date || !time || !advisorId) {
       toast({
         title: "Missing Information",
-        description: "Please select both a date and time for your session.",
+        description: "Please select a date, time, and advisor for your session.",
         variant: "destructive",
       })
       return
@@ -86,18 +98,150 @@ export default function OneOnOnePage() {
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setIsDialogOpen(false)
-      setDate(null)
-      setTime("")
+    try {
+      // Format date to ISO string (YYYY-MM-DD)
+      const formattedDate = format(date, "yyyy-MM-dd")
 
-      toast({
-        title: "Session Booked",
-        description: `Your 1-on-1 session has been successfully booked for ${format(date, "MMMM d, yyyy")} at ${time}.`,
+      // Create form data
+      const formData = new FormData()
+      formData.append("date", formattedDate)
+      formData.append("time", time)
+      formData.append("advisor_id", advisorId)
+      formData.append("location", location)
+
+      console.log("Booking session with data:", {
+        date: formattedDate,
+        time,
+        advisorId,
+        location,
       })
-    }, 1500)
+
+      // Submit the form
+      const result = await bookSession(formData)
+      console.log("Booking result:", result)
+
+      if (result.success) {
+        toast({
+          title: "Session Booked",
+          description: `Your 1-on-1 session has been successfully booked for ${format(date, "MMMM d, yyyy")} at ${formatTimeForDisplay(time)}.`,
+        })
+
+        // Refresh the sessions
+        const sessionsData = await getUserSessions()
+        setSessions(sessionsData)
+
+        // Reset form
+        setIsBookingDialogOpen(false)
+        setDate(null)
+        setTime("")
+      } else {
+        toast({
+          title: "Booking Failed",
+          description: result.message || "Failed to book session. Please try again.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error booking session:", error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleCancelSession = async () => {
+    if (!cancelReason.trim()) {
+      toast({
+        title: "Reason Required",
+        description: "Please provide a reason for cancelling this session.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const result = await cancelSession(selectedSession.id, cancelReason)
+
+      if (result.success) {
+        toast({
+          title: "Session Cancelled",
+          description: "Your 1-on-1 session has been cancelled. Your advisor has been notified.",
+        })
+
+        // Refresh the sessions
+        const sessionsData = await getUserSessions()
+        setSessions(sessionsData)
+
+        // Reset form
+        setIsCancelDialogOpen(false)
+        setCancelReason("")
+        setSelectedSession(null)
+      } else {
+        toast({
+          title: "Cancellation Failed",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error cancelling session:", error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const openCancelDialog = (session) => {
+    setSelectedSession(session)
+    setIsCancelDialogOpen(true)
+  }
+
+  // Get advisor name by ID
+  const getAdvisorName = (id) => {
+    const advisor = advisors.find((a) => a.id.toString() === id.toString())
+    console.log(`Looking for advisor with id ${id}:`, advisor) // Debugging
+    return advisor ? `Dr. ${advisor.fname} ${advisor.lname}` : "Select an advisor"
+  }
+
+  // Filter advisors based on search query
+  const filteredAdvisors =
+    searchQuery === ""
+      ? advisors
+      : advisors.filter((advisor) => {
+          const fullName = `${advisor.fname} ${advisor.lname}`.toLowerCase()
+          return fullName.includes(searchQuery.toLowerCase())
+        })
+
+  // Render loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-serif font-medium">1-on-1 Sessions</h1>
+            <p className="text-muted-foreground mt-1">Book and manage your career advising sessions</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-6 flex justify-center items-center">
+            <div className="flex flex-col items-center justify-center min-h-[200px]">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+              <p>Loading sessions...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -107,8 +251,21 @@ export default function OneOnOnePage() {
           <h1 className="text-2xl font-serif font-medium">1-on-1 Sessions</h1>
           <p className="text-muted-foreground mt-1">Book and manage your career advising sessions</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>Book New Session</Button>
+        <Button onClick={() => setIsBookingDialogOpen(true)} disabled={!isBookingEnabled}>
+          Book New Session
+        </Button>
       </div>
+
+      {!isBookingEnabled && (
+        <Alert variant="warning">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Booking Disabled</AlertTitle>
+          <AlertDescription>
+            Session booking is currently disabled by the Career Services team. Please check back later or contact your
+            advisor.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Custom tabs implementation */}
       <div className="tabs">
@@ -143,22 +300,24 @@ export default function OneOnOnePage() {
       {/* Tab content */}
       {activeTab === "upcoming" && (
         <div className="mt-6">
-          {upcomingSessions.length > 0 ? (
+          {sessions.upcomingSessions.length > 0 ? (
             <div className="space-y-4">
-              {upcomingSessions.map((session) => (
+              {sessions.upcomingSessions.map((session) => (
                 <Card key={session.id}>
                   <CardContent className="p-6 pt-6">
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-medium text-lg">
-                          {session.date} at {session.time}
+                          {format(new Date(session.date), "MMMM d, yyyy")} at {formatTimeForDisplay(session.time)}
                         </h3>
-                        <p className="text-muted-foreground">With {session.advisor}</p>
+                        <p className="text-muted-foreground">
+                          With Dr. {session.advisor.fname} {session.advisor.lname}
+                        </p>
 
                         <div className="mt-4 space-y-2">
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{session.time}</span>
+                            <span>{formatTimeForDisplay(session.time)}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -168,10 +327,7 @@ export default function OneOnOnePage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
-                          Reschedule
-                        </Button>
-                        <Button variant="destructive" size="sm">
+                        <Button variant="destructive" size="sm" onClick={() => openCancelDialog(session)}>
                           Cancel
                         </Button>
                       </div>
@@ -184,7 +340,7 @@ export default function OneOnOnePage() {
             <Card>
               <CardContent className="p-6 text-center">
                 <p className="text-muted-foreground">You have no upcoming sessions scheduled.</p>
-                <Button className="mt-4" onClick={() => setIsDialogOpen(true)}>
+                <Button className="mt-4" onClick={() => setIsBookingDialogOpen(true)} disabled={!isBookingEnabled}>
                   Book a Session
                 </Button>
               </CardContent>
@@ -195,28 +351,50 @@ export default function OneOnOnePage() {
 
       {activeTab === "previous" && (
         <div className="mt-6">
-          {previousSessions.length > 0 ? (
+          {sessions.pastSessions.length > 0 ? (
             <div className="space-y-4">
-              {previousSessions.map((session) => (
+              {sessions.pastSessions.map((session) => (
                 <Card key={session.id}>
                   <CardContent className="p-6 pt-6">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-lg">
-                            {session.date} at {session.time}
+                            {format(new Date(session.date), "MMMM d, yyyy")} at {formatTimeForDisplay(session.time)}
                           </h3>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Completed
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            ${
+                              session.status === "completed"
+                                ? "bg-green-100 text-green-800"
+                                : session.status === "cancelled"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {session.status === "completed"
+                              ? "Completed"
+                              : session.status === "cancelled"
+                                ? "Cancelled"
+                                : "Past"}
                           </span>
                         </div>
-                        <p className="text-muted-foreground">With {session.advisor}</p>
+                        <p className="text-muted-foreground">
+                          With Dr. {session.advisor.fname} {session.advisor.lname}
+                        </p>
 
                         <div className="mt-4 space-y-2">
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground" />
                             <span>{session.location}</span>
                           </div>
+
+                          {session.status === "cancelled" && session.cancellation_reason && (
+                            <p className="text-sm mt-2 p-3 bg-red-50 text-red-700 rounded-md">
+                              <span className="font-medium">Cancellation Reason:</span> {session.cancellation_reason}
+                            </p>
+                          )}
+
                           {session.notes && (
                             <p className="text-sm mt-2 p-3 bg-muted rounded-md">
                               <span className="font-medium">Notes:</span> {session.notes}
@@ -239,7 +417,8 @@ export default function OneOnOnePage() {
         </div>
       )}
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Book Session Dialog */}
+      <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Book a 1-on-1 Session</DialogTitle>
@@ -250,6 +429,53 @@ export default function OneOnOnePage() {
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="advisor">Select Advisor</Label>
+                <Select
+                  value={advisorId}
+                  onValueChange={(value) => {
+                    console.log("Selected advisorId:", value) // Debugging
+                    setAdvisorId(value)
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    {advisorId ? (
+                      <span>{getAdvisorName(advisorId)}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Select an advisor</span>
+                    )}
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <div className="p-2 border-b">
+                      <Input
+                        placeholder="Search advisor..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="max-h-[200px] overflow-auto">
+                      {filteredAdvisors.length > 0 ? (
+                        filteredAdvisors.map((advisor) => (
+                          <SelectItem
+                            key={advisor.id}
+                            value={advisor.id.toString()}
+                            className="flex items-center justify-between cursor-pointer"
+                          >
+                            <span>
+                              Dr. {advisor.fname} {advisor.lname}
+                            </span>
+                            {advisor.id.toString() === advisorId && <Check className="h-4 w-4 ml-2" />}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-2 text-center text-muted-foreground">No advisor found.</div>
+                      )}
+                    </div>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <h3 className="font-medium">Select Date</h3>
                 <Popover>
@@ -275,8 +501,16 @@ export default function OneOnOnePage() {
                       mode="single"
                       selected={date}
                       onSelect={setDate}
-                      initialFocus
-                      disabled={(date) => date < new Date() || date.getDay() === 0 || date.getDay() === 6}
+                      disabled={(date) => {
+                        // Disable past dates, weekends, and dates more than 2 months in the future
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+
+                        const twoMonthsFromNow = new Date()
+                        twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2)
+
+                        return date < today || date > twoMonthsFromNow || date.getDay() === 0 || date.getDay() === 6
+                      }}
                       className="rounded-md border-0"
                     />
                   </PopoverContent>
@@ -287,15 +521,17 @@ export default function OneOnOnePage() {
                 <h3 className="font-medium">Select Time</h3>
                 <Select value={time} onValueChange={setTime}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a time" />
+                    <SelectValue placeholder="Select a time">
+                      {time ? formatTimeForDisplay(time) : "Select a time"}
+                    </SelectValue>
                   </SelectTrigger>
-                  <SelectContent className="bg-white border rounded-md shadow-md">
+                  <SelectContent className="max-h-[300px] overflow-y-auto">
                     <div className="p-2 border-b">
                       <h4 className="font-medium text-sm">Available time slots</h4>
                     </div>
                     {timeSlots.map((slot) => (
                       <SelectItem key={slot} value={slot} className="cursor-pointer hover:bg-gray-100">
-                        {slot}
+                        {formatTimeForDisplay(slot)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -303,14 +539,23 @@ export default function OneOnOnePage() {
               </div>
 
               <div className="space-y-2">
-                <h3 className="font-medium">Advisor</h3>
-                <p className="text-sm p-3 bg-muted rounded-md">Dr. Sarah Johnson (Your assigned career advisor)</p>
+                <Label htmlFor="location">Location</Label>
+                <Select value={location} onValueChange={setLocation}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue>{location}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px] overflow-y-auto">
+                    <SelectItem value="Career Center, Room 203">Career Center, Room 203</SelectItem>
+                    <SelectItem value="Career Center, Room 204">Career Center, Room 204</SelectItem>
+                    <SelectItem value="Online (Zoom)">Online (Zoom)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleBookSession} disabled={isSubmitting}>
@@ -319,7 +564,53 @@ export default function OneOnOnePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Session Dialog */}
+      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancel 1-on-1 Session</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Please provide a reason for cancelling this session. Your advisor will be notified.
+            </p>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            {selectedSession && (
+              <div className="p-3 mb-2 bg-muted rounded-md">
+                <p className="font-medium">
+                  {format(new Date(selectedSession.date), "MMMM d, yyyy")} at{" "}
+                  {formatTimeForDisplay(selectedSession.time)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  With Dr. {selectedSession.advisor.fname} {selectedSession.advisor.lname}
+                </p>
+                <p className="text-sm text-muted-foreground">Location: {selectedSession.location}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="cancel-reason">Reason for Cancellation</Label>
+              <Textarea
+                id="cancel-reason"
+                placeholder="Please provide a reason for cancelling this session..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+              Back
+            </Button>
+            <Button variant="destructive" onClick={handleCancelSession} disabled={isSubmitting}>
+              {isSubmitting ? "Cancelling..." : "Confirm Cancellation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-
