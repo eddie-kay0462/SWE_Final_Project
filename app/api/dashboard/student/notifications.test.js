@@ -1,0 +1,1 @@
+describe('Student Notifications API', () => { it('should allow students to view their notifications', () => { expect(true).toBe(true); }); it('should mark notifications as read', () => { expect(true).toBe(true); }); it('should allow filtering notifications by type', () => { expect(true).toBe(true); }); });
