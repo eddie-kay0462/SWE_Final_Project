@@ -22,7 +22,7 @@ import { createClient } from '@/utils/supabase/client'
 export default function AdminStudentProfilesPage() {
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedYearGroup, setSelectedYearGroup] = useState("")
+  const [selectedYearGroup, setSelectedYearGroup] = useState("All")
   const [yearGroupDropdownOpen, setYearGroupDropdownOpen] = useState(false)
   const [studentDialogOpen, setStudentDialogOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
@@ -102,7 +102,6 @@ export default function AdminStudentProfilesPage() {
           .sort((a, b) => a - b)
 
         setYearGroups(uniqueYearGroups)
-        setSelectedYearGroup(uniqueYearGroups[0] || "") // Set first year group as default
         setStudents(transformedData)
       } catch (error) {
         console.error("Error fetching students:", error)
@@ -119,30 +118,82 @@ export default function AdminStudentProfilesPage() {
     fetchStudents()
   }, [])
 
-  // Mock data for attendance history
-  const mockAttendanceHistory = [
-    { id: 1, eventName: "Resume Building Workshop", date: "February 15, 2025", status: "attended" },
-    { id: 2, eventName: "Career Fair", date: "March 15, 2025", status: "attended" },
-    { id: 3, eventName: "Interview Skills Workshop", date: "January 20, 2025", status: "attended" },
-    { id: 4, eventName: "Networking Workshop", date: "February 20, 2025", status: "missed" },
-    { id: 5, eventName: "Industry Panel", date: "March 1, 2025", status: "attended" },
-  ]
+  // Fetch attendance history for a student
+  const fetchAttendanceHistory = async (studentId) => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('attendance')
+        .select(`
+          *,
+          career_sessions (
+            session_id,
+            title,
+            date,
+            start_time,
+            end_time,
+            location,
+            description
+          )
+        `)
+        .eq('student_id', studentId)
+        .order('signup_time', { ascending: false })
+
+      if (error) {
+        throw error
+      }
+
+      // Transform the data to match the component's expected format
+      const transformedData = data.map(record => ({
+        id: record.id,
+        eventName: record.career_sessions.title,
+        date: new Date(record.career_sessions.date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }),
+        time: `${record.career_sessions.start_time} - ${record.career_sessions.end_time}`,
+        location: record.career_sessions.location,
+        status: "attended",
+        signupTime: new Date(record.signup_time).toLocaleString(),
+        description: record.career_sessions.description
+      }))
+
+      return transformedData
+    } catch (error) {
+      console.error("Error fetching attendance history:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch attendance history. Please try again later.",
+        variant: "destructive",
+      })
+      return []
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Update the handleViewStudent function to fetch attendance history
+  const handleViewStudent = async (student) => {
+    setSelectedStudent(student)
+    setStudentDialogOpen(true)
+    setActiveTab("profile")
+
+    // Fetch attendance history when viewing student
+    const attendanceHistory = await fetchAttendanceHistory(student.id)
+    student.attendanceHistory = attendanceHistory
+    student.eventsAttended = attendanceHistory.length
+  }
 
   // Filter students based on search query and selected year group
   const filteredStudents = students.filter(
     (student) =>
-      (selectedYearGroup === "" || student.yearGroup === selectedYearGroup) &&
+      (selectedYearGroup === "All" || student.yearGroup === selectedYearGroup) &&
       (searchQuery === "" ||
         student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.id.includes(searchQuery))
   )
-
-  const handleViewStudent = (student) => {
-    setSelectedStudent(student)
-    setStudentDialogOpen(true)
-    setActiveTab("profile")
-  }
 
   const handleSelectYearGroup = (yearGroup) => {
     setSelectedYearGroup(yearGroup)
@@ -180,6 +231,12 @@ export default function AdminStudentProfilesPage() {
 
           {yearGroupDropdownOpen && (
             <div className="absolute right-0 mt-2 w-full sm:w-48 bg-white border rounded-md shadow-lg z-10">
+              <div
+                className="px-4 py-2 hover:bg-muted cursor-pointer"
+                onClick={() => handleSelectYearGroup("")}
+              >
+                All
+              </div>
               {yearGroups.map((yearGroup) => (
                 <div
                   key={yearGroup}
@@ -358,21 +415,24 @@ export default function AdminStudentProfilesPage() {
                       <span className="text-sm">{selectedStudent.eventsAttended} events attended</span>
                     </div>
                     <div className="divide-y">
-                      {mockAttendanceHistory.map((event) => (
-                        <div key={event.id} className="p-3 flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{event.eventName}</p>
-                            <p className="text-sm text-muted-foreground">{event.date}</p>
+                      {selectedStudent.attendanceHistory && selectedStudent.attendanceHistory.length > 0 ? (
+                        selectedStudent.attendanceHistory.map((event) => (
+                          <div key={event.id} className="p-3 flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">{event.eventName}</p>
+                              <p className="text-sm text-muted-foreground">{event.date}</p>
+                              <p className="text-sm text-muted-foreground">{event.time} • {event.location}</p>
+                            </div>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Attended
+                            </span>
                           </div>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              event.status === "attended" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {event.status === "attended" ? "Attended" : "Missed"}
-                          </span>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center text-muted-foreground">
+                          No attendance records found for this student.
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 )}
