@@ -64,12 +64,30 @@ export default function OneOnOnePage() {
         // Get advisors
         const advisorsData = await getAdvisors()
         console.log("Fetched advisors:", advisorsData)
-        setAdvisors(advisorsData)
 
-        if (advisorsData && advisorsData.length > 0) {
-          const firstAdvisorId = advisorsData[0].id.toString()
-          setAdvisorId(firstAdvisorId)
-          console.log("Set initial advisorId:", firstAdvisorId)
+        // Check availability for each advisor
+        const advisorsWithAvailability = await Promise.all(
+          advisorsData.map(async (advisor) => {
+            const isAvailable = await getBookingStatus(advisor.id)
+            return { ...advisor, isAvailable }
+          }),
+        )
+
+        setAdvisors(advisorsWithAvailability)
+
+        if (advisorsWithAvailability && advisorsWithAvailability.length > 0) {
+          // Find the first available advisor
+          const firstAvailableAdvisor = advisorsWithAvailability.find((a) => a.isAvailable)
+          if (firstAvailableAdvisor) {
+            const firstAdvisorId = firstAvailableAdvisor.id.toString()
+            setAdvisorId(firstAdvisorId)
+            console.log("Set initial advisorId:", firstAdvisorId)
+          } else if (advisorsWithAvailability.length > 0) {
+            // If no advisors are available, still set the first one as selected
+            const firstAdvisorId = advisorsWithAvailability[0].id.toString()
+            setAdvisorId(firstAdvisorId)
+            console.log("Set initial advisorId (unavailable):", firstAdvisorId)
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error)
@@ -91,6 +109,17 @@ export default function OneOnOnePage() {
       toast({
         title: "Missing Information",
         description: "Please select a date, time, and advisor for your session.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if the selected advisor is available
+    const advisor = advisors.find((a) => a.id.toString() === advisorId.toString())
+    if (advisor && !advisor.isAvailable) {
+      toast({
+        title: "Advisor Unavailable",
+        description: `Dr. ${advisor.fname} ${advisor.lname} is not currently accepting bookings. Please select another advisor.`,
         variant: "destructive",
       })
       return
@@ -445,6 +474,7 @@ export default function OneOnOnePage() {
                       <span className="text-muted-foreground">Select an advisor</span>
                     )}
                   </SelectTrigger>
+
                   <SelectContent className="max-h-[300px]">
                     <div className="p-2 border-b">
                       <Input
@@ -460,11 +490,17 @@ export default function OneOnOnePage() {
                           <SelectItem
                             key={advisor.id}
                             value={advisor.id.toString()}
-                            className="flex items-center justify-between cursor-pointer"
+                            className={`flex items-center justify-between cursor-pointer ${!advisor.isAvailable ? "opacity-50" : ""}`}
+                            disabled={!advisor.isAvailable}
                           >
-                            <span>
-                              Dr. {advisor.fname} {advisor.lname}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span>
+                                Dr. {advisor.fname} {advisor.lname}
+                              </span>
+                              {!advisor.isAvailable && (
+                                <span className="text-xs text-red-500 ml-2">(Not available)</span>
+                              )}
+                            </div>
                             {advisor.id.toString() === advisorId && <Check className="h-4 w-4 ml-2" />}
                           </SelectItem>
                         ))

@@ -22,6 +22,7 @@ import {
   markSessionCompleted,
   addSessionNotes,
   getBookingStatus,
+  getCurrentUserId,
 } from "@/utils/supabase/sessions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -49,6 +50,7 @@ export default function AdminOneOnOnePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showStudentDropdown, setShowStudentDropdown] = useState(false)
   const [formError, setFormError] = useState("")
+  const [isPersonalBookingEnabled, setIsPersonalBookingEnabled] = useState(true)
 
   // Time slots
   const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"]
@@ -68,9 +70,14 @@ export default function AdminOneOnOnePage() {
       try {
         setIsLoading(true)
 
-        // Get booking status
+        // Get global booking status (for display only)
         const bookingStatus = await getBookingStatus()
         setIsBookingEnabled(bookingStatus)
+
+        // Get personal booking status
+        const userId = await getCurrentUserId()
+        const personalBookingStatus = await getBookingStatus(userId)
+        setIsPersonalBookingEnabled(personalBookingStatus)
 
         // Get sessions
         const sessionsData = await getUserSessions()
@@ -94,43 +101,6 @@ export default function AdminOneOnOnePage() {
 
     fetchData()
   }, [toast])
-
-  const handleToggleBooking = async () => {
-    setIsSubmitting(true)
-
-    try {
-      const newState = !isBookingEnabled
-      const result = await updateBookingStatus(newState)
-
-      if (result.success) {
-        setIsBookingEnabled(newState)
-
-        toast({
-          title: newState ? "Booking Enabled" : "Booking Disabled",
-          description: newState
-            ? "Students can now book 1-on-1 sessions."
-            : "Students cannot book 1-on-1 sessions until you enable it again.",
-        })
-
-        setSettingsDialogOpen(false)
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to update booking status. Please try again.",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("Error updating booking status:", error)
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const filteredStudents = () => {
     if (!searchQuery.trim()) return students
@@ -419,10 +389,21 @@ export default function AdminOneOnOnePage() {
       {!isBookingEnabled && (
         <Alert variant="warning">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Booking Disabled</AlertTitle>
+          <AlertTitle>Global Booking Disabled</AlertTitle>
           <AlertDescription>
-            Session booking is currently disabled for students. They will not be able to book new sessions until you
-            enable it.
+            Session booking is currently disabled for all advisors by the system administrator. Students will not be
+            able to book new sessions until it is enabled again.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!isPersonalBookingEnabled && (
+        <Alert variant="warning">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle className="pt-4">Your Booking Disabled</AlertTitle>
+          <AlertDescription>
+            You have disabled session booking for yourself. Students will not be able to book sessions with you until
+            you enable it again in Settings.
           </AlertDescription>
         </Alert>
       )}
@@ -605,12 +586,18 @@ export default function AdminOneOnOnePage() {
           <div className="space-y-4 py-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="booking-toggle">Allow Student Booking</Label>
+                <Label htmlFor="personal-booking-toggle">Allow Students to Book With You</Label>
                 <p className="text-sm text-muted-foreground">
-                  {isBookingEnabled ? "Students can book 1-on-1 sessions" : "Students cannot book 1-on-1 sessions"}
+                  {isPersonalBookingEnabled
+                    ? "Students can book 1-on-1 sessions with you"
+                    : "Students cannot book 1-on-1 sessions with you"}
                 </p>
               </div>
-              <Switch id="booking-toggle" checked={isBookingEnabled} onCheckedChange={setIsBookingEnabled} />
+              <Switch
+                id="personal-booking-toggle"
+                checked={isPersonalBookingEnabled}
+                onCheckedChange={setIsPersonalBookingEnabled}
+              />
             </div>
           </div>
 
@@ -618,8 +605,45 @@ export default function AdminOneOnOnePage() {
             <Button type="button" variant="outline" onClick={() => setSettingsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleToggleBooking} disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save Changes"}
+            <Button
+              onClick={async () => {
+                try {
+                  setIsSubmitting(true)
+                  const userId = await getCurrentUserId()
+                  console.log("Updating booking status for user:", userId, "to:", isPersonalBookingEnabled)
+
+                  const result = await updateBookingStatus(isPersonalBookingEnabled, userId)
+                  console.log("Update result:", result)
+
+                  if (result.success) {
+                    toast({
+                      title: isPersonalBookingEnabled ? "Booking Enabled" : "Booking Disabled",
+                      description: isPersonalBookingEnabled
+                        ? "Students can now book 1-on-1 sessions with you."
+                        : "Students cannot book 1-on-1 sessions with you until you enable it again.",
+                    })
+                    setSettingsDialogOpen(false)
+                  } else {
+                    toast({
+                      title: "Error",
+                      description: "Failed to update booking status. Please try again.",
+                      variant: "destructive",
+                    })
+                  }
+                } catch (error) {
+                  console.error("Error updating booking status:", error)
+                  toast({
+                    title: "Error",
+                    description: "An unexpected error occurred. Please try again.",
+                    variant: "destructive",
+                  })
+                } finally {
+                  setIsSubmitting(false)
+                }
+              }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : "Save Settings"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -707,7 +731,8 @@ export default function AdminOneOnOnePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="date-select">Select Date</Label><br></br>
+              <Label htmlFor="date-select">Select Date</Label>
+              <br></br>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">

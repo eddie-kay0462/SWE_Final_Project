@@ -5,7 +5,7 @@ import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
 
 // Get current user ID from session
-async function getCurrentUserId() {
+export async function getCurrentUserId() {
   const cookieStore = cookies()
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
@@ -66,7 +66,7 @@ export async function getUserRole() {
 }
 
 // Get booking enabled status
-export async function getBookingStatus() {
+export async function getBookingStatus(advisorId) {
   const cookieStore = cookies()
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
@@ -74,23 +74,45 @@ export async function getBookingStatus() {
     },
   })
 
+  // If no advisorId is provided, return the global setting
+  if (!advisorId) {
+    const { data, error } = await supabase
+      .from("session_settings")
+      .select("is_booking_enabled")
+      .is("advisor_id", null) // Get the global setting (where advisor_id is null)
+      .order("id", { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error) {
+      console.error("Error fetching global booking status:", error)
+      return true // Default to enabled if there's an error
+    }
+
+    return data?.is_booking_enabled
+  }
+
+  // Check for advisor-specific setting
   const { data, error } = await supabase
     .from("session_settings")
     .select("is_booking_enabled")
+    .eq("advisor_id", advisorId)
     .order("id", { ascending: false })
     .limit(1)
     .single()
 
   if (error) {
-    console.error("Error fetching booking status:", error)
-    return true // Default to enabled if there's an error
+    // If no specific setting exists for this advisor, fall back to global setting
+    return getBookingStatus(null)
   }
 
   return data?.is_booking_enabled
 }
 
+// Add debug logging to the updateBookingStatus function to help diagnose issues
+
 // Update booking status (admin only)
-export async function updateBookingStatus(isEnabled) {
+export async function updateBookingStatus(isEnabled, advisorId = null) {
   const cookieStore = cookies()
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
@@ -98,22 +120,114 @@ export async function updateBookingStatus(isEnabled) {
     },
   })
 
+  // Debug logging
+  console.log("updateBookingStatus called with:", { isEnabled, advisorId })
+
   // Verify user is admin
   const role = await getUserRole()
+  console.log("Current user role:", role)
+
   if (role !== 2) {
+    console.error("Unauthorized: User role is not admin")
     throw new Error("Unauthorized")
   }
 
-  const { error } = await supabase.from("session_settings").update({ is_booking_enabled: isEnabled }).eq("id", 1)
+  try {
+    // If updating for a specific advisor
+    if (advisorId) {
+      console.log("Updating for specific advisor:", advisorId)
 
-  if (error) {
-    throw new Error("Failed to update booking status")
+      // Check if a record already exists for this advisor
+      const { data, error: checkError } = await supabase
+        .from("session_settings")
+        .select("id")
+        .eq("advisor_id", advisorId)
+        .limit(1)
+
+      if (checkError) {
+        console.error("Error checking for existing settings:", checkError)
+        throw new Error("Failed to check existing settings")
+      }
+
+      console.log("Existing settings check result:", data)
+
+      if (data && data.length > 0) {
+        // Update existing record
+        console.log("Updating existing record:", data[0].id)
+        const { error } = await supabase
+          .from("session_settings")
+          .update({ is_booking_enabled: isEnabled })
+          .eq("id", data[0].id)
+
+        if (error) {
+          console.error("Error updating booking status:", error)
+          throw new Error("Failed to update booking status")
+        }
+      } else {
+        // Create new record for this advisor
+        console.log("Creating new record for advisor:", advisorId)
+        const { error } = await supabase.from("session_settings").insert({
+          advisor_id: advisorId,
+          is_booking_enabled: isEnabled,
+        })
+
+        if (error) {
+          console.error("Error creating booking status:", error)
+          throw new Error("Failed to create booking status")
+        }
+      }
+    } else {
+      // Update global setting
+      console.log("Updating global setting")
+      const { data, error: checkError } = await supabase
+        .from("session_settings")
+        .select("id")
+        .is("advisor_id", null)
+        .limit(1)
+
+      if (checkError) {
+        console.error("Error checking for global settings:", checkError)
+        throw new Error("Failed to check global settings")
+      }
+
+      console.log("Existing global settings check result:", data)
+
+      if (data && data.length > 0) {
+        // Update existing global record
+        console.log("Updating existing global record:", data[0].id)
+        const { error } = await supabase
+          .from("session_settings")
+          .update({ is_booking_enabled: isEnabled })
+          .eq("id", data[0].id)
+
+        if (error) {
+          console.error("Error updating global booking status:", error)
+          throw new Error("Failed to update global booking status")
+        }
+      } else {
+        // Create new global record
+        console.log("Creating new global record")
+        const { error } = await supabase.from("session_settings").insert({
+          advisor_id: null,
+          is_booking_enabled: isEnabled,
+        })
+
+        if (error) {
+          console.error("Error creating global booking status:", error)
+          throw new Error("Failed to create global booking status")
+        }
+      }
+    }
+
+    console.log("Successfully updated booking status")
+    revalidatePath("/dashboard/admin/one-on-one")
+    revalidatePath("/dashboard/student/one-on-one")
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error in updateBookingStatus:", error)
+    return { success: false, message: error.message }
   }
-
-  revalidatePath("/dashboard/admin/one-on-one")
-  revalidatePath("/dashboard/student/one-on-one")
-
-  return { success: true }
 }
 
 // Get all advisors (for student booking)
@@ -160,10 +274,16 @@ export async function bookSession(formData) {
     const endHours = (hours + 1) % 24
     const endTime = `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
 
-    // Check if booking is enabled
-    const isBookingEnabled = await getBookingStatus()
-    if (!isBookingEnabled) {
+    // Check if global booking is enabled
+    const isGlobalBookingEnabled = await getBookingStatus(null)
+    if (!isGlobalBookingEnabled) {
       throw new Error("Booking is currently disabled by the career services team")
+    }
+
+    // Check if this specific advisor allows bookings
+    const isAdvisorBookingEnabled = await getBookingStatus(advisorId)
+    if (!isAdvisorBookingEnabled) {
+      throw new Error("This advisor is not currently accepting bookings")
     }
 
     // Check for double booking
@@ -243,6 +363,14 @@ export async function createSessionForStudent(formData) {
     const endHours = (hours + 1) % 24
     const endTime = `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
 
+    // Debug log for double booking check
+    console.log("Checking for double booking with params:", {
+      advisorId,
+      date,
+      time,
+      status: "scheduled",
+    })
+
     // Check for double booking
     const { data: existingSession, error: checkError } = await supabase
       .from("sessions")
@@ -257,6 +385,8 @@ export async function createSessionForStudent(formData) {
       console.error("Error checking for existing sessions:", checkError)
       throw new Error(`Failed to check for existing sessions: ${checkError.message}`)
     }
+
+    console.log("Existing session check result:", existingSession)
 
     if (existingSession && existingSession.length > 0) {
       throw new Error("This time slot is already booked")
