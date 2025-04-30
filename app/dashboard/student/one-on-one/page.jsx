@@ -28,6 +28,7 @@ export default function OneOnOnePage() {
   const [location, setLocation] = useState("Career Center, Room 203")
   const [advisorId, setAdvisorId] = useState("")
   const [advisors, setAdvisors] = useState([])
+  const [availableAdvisors, setAvailableAdvisors] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState("upcoming")
   const [sessions, setSessions] = useState({ upcomingSessions: [], pastSessions: [] })
@@ -75,19 +76,18 @@ export default function OneOnOnePage() {
 
         setAdvisors(advisorsWithAvailability)
 
-        if (advisorsWithAvailability && advisorsWithAvailability.length > 0) {
-          // Find the first available advisor
-          const firstAvailableAdvisor = advisorsWithAvailability.find((a) => a.isAvailable)
-          if (firstAvailableAdvisor) {
-            const firstAdvisorId = firstAvailableAdvisor.id.toString()
-            setAdvisorId(firstAdvisorId)
-            console.log("Set initial advisorId:", firstAdvisorId)
-          } else if (advisorsWithAvailability.length > 0) {
-            // If no advisors are available, still set the first one as selected
-            const firstAdvisorId = advisorsWithAvailability[0].id.toString()
-            setAdvisorId(firstAdvisorId)
-            console.log("Set initial advisorId (unavailable):", firstAdvisorId)
-          }
+        // Filter only available advisors
+        const onlyAvailableAdvisors = advisorsWithAvailability.filter((advisor) => advisor.isAvailable)
+        setAvailableAdvisors(onlyAvailableAdvisors)
+
+        if (onlyAvailableAdvisors.length > 0) {
+          // Set the first available advisor as selected
+          const firstAvailableAdvisorId = onlyAvailableAdvisors[0].id.toString()
+          setAdvisorId(firstAvailableAdvisorId)
+          console.log("Set initial advisorId to first available:", firstAvailableAdvisorId)
+        } else {
+          // Reset advisor ID if no advisors are available
+          setAdvisorId("")
         }
       } catch (error) {
         console.error("Error fetching data:", error)
@@ -116,10 +116,10 @@ export default function OneOnOnePage() {
 
     // Check if the selected advisor is available
     const advisor = advisors.find((a) => a.id.toString() === advisorId.toString())
-    if (advisor && !advisor.isAvailable) {
+    if (!advisor || !advisor.isAvailable) {
       toast({
         title: "Advisor Unavailable",
-        description: `Dr. ${advisor.fname} ${advisor.lname} is not currently accepting bookings. Please select another advisor.`,
+        description: `The selected advisor is not currently accepting bookings. Please select another advisor.`,
         variant: "destructive",
       })
       return
@@ -238,15 +238,14 @@ export default function OneOnOnePage() {
   // Get advisor name by ID
   const getAdvisorName = (id) => {
     const advisor = advisors.find((a) => a.id.toString() === id.toString())
-    console.log(`Looking for advisor with id ${id}:`, advisor) // Debugging
     return advisor ? `Dr. ${advisor.fname} ${advisor.lname}` : "Select an advisor"
   }
 
-  // Filter advisors based on search query
+  // Filter advisors based on search query - ONLY from available advisors
   const filteredAdvisors =
     searchQuery === ""
-      ? advisors
-      : advisors.filter((advisor) => {
+      ? availableAdvisors
+      : availableAdvisors.filter((advisor) => {
           const fullName = `${advisor.fname} ${advisor.lname}`.toLowerCase()
           return fullName.includes(searchQuery.toLowerCase())
         })
@@ -273,6 +272,9 @@ export default function OneOnOnePage() {
     )
   }
 
+  // Check if there are any available advisors
+  const hasAvailableAdvisors = availableAdvisors.length > 0
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
@@ -280,7 +282,7 @@ export default function OneOnOnePage() {
           <h1 className="text-2xl font-serif font-medium">1-on-1 Sessions</h1>
           <p className="text-muted-foreground mt-1">Book and manage your career advising sessions</p>
         </div>
-        <Button onClick={() => setIsBookingDialogOpen(true)} disabled={!isBookingEnabled}>
+        <Button onClick={() => setIsBookingDialogOpen(true)} disabled={!isBookingEnabled || !hasAvailableAdvisors}>
           Book New Session
         </Button>
       </div>
@@ -292,6 +294,16 @@ export default function OneOnOnePage() {
           <AlertDescription>
             Session booking is currently disabled by the Career Services team. Please check back later or contact your
             advisor.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isBookingEnabled && !hasAvailableAdvisors && (
+        <Alert variant="warning">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Advisors Available</AlertTitle>
+          <AlertDescription>
+            There are currently no advisors available for booking. Please check back later.
           </AlertDescription>
         </Alert>
       )}
@@ -369,7 +381,11 @@ export default function OneOnOnePage() {
             <Card>
               <CardContent className="p-6 text-center">
                 <p className="text-muted-foreground">You have no upcoming sessions scheduled.</p>
-                <Button className="mt-4" onClick={() => setIsBookingDialogOpen(true)} disabled={!isBookingEnabled}>
+                <Button
+                  className="mt-4"
+                  onClick={() => setIsBookingDialogOpen(true)}
+                  disabled={!isBookingEnabled || !hasAvailableAdvisors}
+                >
                   Book a Session
                 </Button>
               </CardContent>
@@ -456,145 +472,153 @@ export default function OneOnOnePage() {
             </p>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="advisor">Select Advisor</Label>
-                <Select
-                  value={advisorId}
-                  onValueChange={(value) => {
-                    console.log("Selected advisorId:", value) // Debugging
-                    setAdvisorId(value)
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    {advisorId ? (
-                      <span>{getAdvisorName(advisorId)}</span>
-                    ) : (
-                      <span className="text-muted-foreground">Select an advisor</span>
-                    )}
-                  </SelectTrigger>
-
-                  <SelectContent className="max-h-[300px]">
-                    <div className="p-2 border-b">
-                      <Input
-                        placeholder="Search advisor..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="max-h-[200px] overflow-auto">
-                      {filteredAdvisors.length > 0 ? (
-                        filteredAdvisors.map((advisor) => (
-                          <SelectItem
-                            key={advisor.id}
-                            value={advisor.id.toString()}
-                            className={`flex items-center justify-between cursor-pointer ${!advisor.isAvailable ? "opacity-50" : ""}`}
-                            disabled={!advisor.isAvailable}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>
-                                Dr. {advisor.fname} {advisor.lname}
-                              </span>
-                              {!advisor.isAvailable && (
-                                <span className="text-xs text-red-500 ml-2">(Not available)</span>
-                              )}
-                            </div>
-                            {advisor.id.toString() === advisorId && <Check className="h-4 w-4 ml-2" />}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <div className="p-2 text-center text-muted-foreground">No advisor found.</div>
-                      )}
-                    </div>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-medium">Select Date</h3>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                      style={{ minWidth: "100%" }}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, "PPP") : "Select a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto p-0 bg-white border rounded-md shadow-md"
-                    style={{ minWidth: "300px" }}
+          {hasAvailableAdvisors ? (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="advisor">Select Advisor</Label>
+                  <Select
+                    value={advisorId}
+                    onValueChange={(value) => {
+                      console.log("Selected advisorId:", value)
+                      setAdvisorId(value)
+                    }}
                   >
-                    <div className="p-2 border-b">
-                      <h4 className="font-medium text-sm">Select an available date</h4>
-                      <p className="text-xs text-muted-foreground">Weekends are not available</p>
-                    </div>
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      disabled={(date) => {
-                        // Disable past dates, weekends, and dates more than 2 months in the future
-                        const today = new Date()
-                        today.setHours(0, 0, 0, 0)
+                    <SelectTrigger className="w-full">
+                      {advisorId ? (
+                        <span>{getAdvisorName(advisorId)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">Select an advisor</span>
+                      )}
+                    </SelectTrigger>
 
-                        const twoMonthsFromNow = new Date()
-                        twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2)
+                    <SelectContent className="max-h-[300px]">
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search advisor..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="max-h-[200px] overflow-auto">
+                        {filteredAdvisors.length > 0 ? (
+                          filteredAdvisors.map((advisor) => (
+                            <SelectItem
+                              key={advisor.id}
+                              value={advisor.id.toString()}
+                              className="flex items-center justify-between cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span>
+                                  Dr. {advisor.fname} {advisor.lname}
+                                </span>
+                              </div>
+                              {advisor.id.toString() === advisorId && <Check className="h-4 w-4 ml-2" />}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-center text-muted-foreground">No advisor found.</div>
+                        )}
+                      </div>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                        return date < today || date > twoMonthsFromNow || date.getDay() === 0 || date.getDay() === 6
-                      }}
-                      className="rounded-md border-0"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+                <div className="space-y-2">
+                  <h3 className="font-medium">Select Date</h3>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                        style={{ minWidth: "100%" }}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date ? format(date, "PPP") : "Select a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto p-0 bg-white border rounded-md shadow-md"
+                      style={{ minWidth: "300px" }}
+                    >
+                      <div className="p-2 border-b">
+                        <h4 className="font-medium text-sm">Select an available date</h4>
+                        <p className="text-xs text-muted-foreground">Weekends are not available</p>
+                      </div>
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        disabled={(date) => {
+                          // Disable past dates, weekends, and dates more than 2 months in the future
+                          const today = new Date()
+                          today.setHours(0, 0, 0, 0)
 
-              <div className="space-y-2">
-                <h3 className="font-medium">Select Time</h3>
-                <Select value={time} onValueChange={setTime}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a time">
-                      {time ? formatTimeForDisplay(time) : "Select a time"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px] overflow-y-auto">
-                    <div className="p-2 border-b">
-                      <h4 className="font-medium text-sm">Available time slots</h4>
-                    </div>
-                    {timeSlots.map((slot) => (
-                      <SelectItem key={slot} value={slot} className="cursor-pointer hover:bg-gray-100">
-                        {formatTimeForDisplay(slot)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                          const twoMonthsFromNow = new Date()
+                          twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2)
 
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>{location}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px] overflow-y-auto">
-                    <SelectItem value="Career Center, Room 203">Career Center, Room 203</SelectItem>
-                    <SelectItem value="Career Center, Room 204">Career Center, Room 204</SelectItem>
-                    <SelectItem value="Online (Zoom)">Online (Zoom)</SelectItem>
-                  </SelectContent>
-                </Select>
+                          return date < today || date > twoMonthsFromNow || date.getDay() === 0 || date.getDay() === 6
+                        }}
+                        className="rounded-md border-0"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="font-medium">Select Time</h3>
+                  <Select value={time} onValueChange={setTime}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a time">
+                        {time ? formatTimeForDisplay(time) : "Select a time"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] overflow-y-auto">
+                      <div className="p-2 border-b">
+                        <h4 className="font-medium text-sm">Available time slots</h4>
+                      </div>
+                      {timeSlots.map((slot) => (
+                        <SelectItem key={slot} value={slot} className="cursor-pointer hover:bg-gray-100">
+                          {formatTimeForDisplay(slot)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Select value={location} onValueChange={setLocation}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue>{location}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] overflow-y-auto">
+                      <SelectItem value="Career Center, Room 203">Career Center, Room 203</SelectItem>
+                      <SelectItem value="Career Center, Room 204">Career Center, Room 204</SelectItem>
+                      <SelectItem value="Online (Zoom)">Online (Zoom)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="py-6">
+              <Alert variant="warning">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>No Advisors Available</AlertTitle>
+                <AlertDescription>
+                  There are currently no advisors available for booking. Please check back later.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleBookSession} disabled={isSubmitting}>
+            <Button onClick={handleBookSession} disabled={isSubmitting || !hasAvailableAdvisors}>
               {isSubmitting ? "Booking..." : "Book Session"}
             </Button>
           </DialogFooter>
