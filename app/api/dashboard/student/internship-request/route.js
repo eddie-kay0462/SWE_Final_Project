@@ -9,131 +9,128 @@
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from 'next/headers';
 
-// Check for required environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Handle missing environment variables gracefully
-if (!supabaseUrl || !supabaseKey) {
-  console.error("Missing required Supabase environment variables");
-}
-
-// Initialize Supabase client with fallback for build time
-const supabase = supabaseUrl && supabaseKey 
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+const MINIMUM_REQUIREMENTS = {
+  WORKSHOPS: 3,
+  FEEDBACK: 3,
+  SESSIONS: 1
+};
 
 /**
  * GET handler for student internship requests
  * 
  * @return {Object} Internship request data including requirements and status
- * @throws {Error} If unauthorized or database error occurs
  */
 export async function GET(req) {
   try {
-    // Check if Supabase client is properly initialized
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Service configuration error" },
-        { status: 503 }
-      );
+    // Create Supabase client
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error("Auth error:", userError);
+      return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
     }
 
-    // Verify authentication
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userId = session.user.id;
-    const studentId = session.user.student_id;
-    
-    // Get student's request if it exists
-    const { data: requestData, error: requestError } = await supabase
-      .from("internship_requests")
-      .select("*, users!approved_by(fname, lname)")
-      .eq("user_id", userId)
-      .order("request_date", { ascending: false })
-      .limit(1)
+    // Get user details from users table
+    const { data: userData, error: userDataError } = await supabase
+      .from('users')
+      .select('id, student_id')
+      .eq('email', user.email)
       .single();
-      
-    if (requestError && requestError.code !== "PGRST116") {
-      console.error("Error fetching internship request:", requestError);
-      return NextResponse.json({ error: "Failed to fetch internship request" }, { status: 500 });
+
+    if (userDataError) {
+      console.error("Error fetching user data:", userDataError);
+      return NextResponse.json({ error: "Failed to fetch user data" }, { status: 500 });
     }
+
+    const studentId = userData.student_id;
     
-    // Check attendance requirements
-    const { data: attendanceData, error: attendanceError } = await supabase
+    // Get workshop attendance count
+    const { count: attendanceCount, error: attendanceError } = await supabase
       .from("attendance")
-      .select("session_id")
-      .eq("student_id", userId);
+      .select("*", { count: 'exact', head: true })
+      .eq('student_id', studentId);
       
     if (attendanceError) {
       console.error("Error fetching attendance:", attendanceError);
       return NextResponse.json({ error: "Failed to fetch attendance" }, { status: 500 });
     }
     
-    const uniqueSessionsAttended = new Set(attendanceData?.map(a => a.session_id) || []).size;
-    
-    // Check 1-on-1 session completion
-    const { data: sessionData, error: sessionError } = await supabase
-      .from("sessions")
-      .select("id, status")
-      .eq("student_id", userId)
-      .eq("status", "completed")
-      .single();
-      
-    if (sessionError && sessionError.code !== "PGRST116") {
-      console.error("Error fetching session:", sessionError);
-      return NextResponse.json({ error: "Failed to fetch session" }, { status: 500 });
-    }
-    
-    // Check feedback submissions
-    const { data: feedbackData, error: feedbackError } = await supabase
-      .from("feedback")
-      .select("session_id")
-      .eq("student_id", userId);
+    // Get feedback submissions count
+    const { count: feedbackCount, error: feedbackError } = await supabase
+      .from("event_feedback")
+      .select("*", { count: 'exact', head: true })
+      .eq('user_id', user.id);
       
     if (feedbackError) {
       console.error("Error fetching feedback:", feedbackError);
       return NextResponse.json({ error: "Failed to fetch feedback" }, { status: 500 });
     }
     
-    const feedbackSubmitted = new Set(feedbackData?.map(f => f.session_id) || []).size;
+    // Get completed one-on-one sessions count
+    const { count: sessionsCount, error: sessionsError } = await supabase
+      .from("sessions")
+      .select("*", { count: 'exact', head: true })
+      .eq("student_id", user.id)
+      .eq("status", "completed");
+      
+    if (sessionsError) {
+      console.error("Error fetching sessions:", sessionsError);
+      return NextResponse.json({ error: "Failed to fetch sessions" }, { status: 500 });
+    }
+
+    // Get existing internship request if any
+    const { data: existingRequest, error: requestError } = await supabase
+      .from("internship_requests")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("request_date", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (requestError && requestError.code !== 'PGRST116') { // Ignore "no rows returned" error
+      console.error("Error fetching existing request:", requestError);
+      return NextResponse.json({ error: "Failed to fetch existing request" }, { status: 500 });
+    }
+
+    // Format the requirements data with completion status
+    const formattedData = {
+      request: existingRequest || null,
+      stats: {
+        totalAttendance: attendanceCount || 0,
+        completedSessions: sessionsCount || 0,
+        totalFeedback: feedbackCount || 0
+      },
+      requirements: [
+        {
+          id: 1,
+          description: "Career services workshops/events attendance",
+          total: attendanceCount || 0,
+          details: `Total workshop attendances (minimum ${MINIMUM_REQUIREMENTS.WORKSHOPS} required)`,
+          completed: (attendanceCount || 0) >= MINIMUM_REQUIREMENTS.WORKSHOPS
+        },
+        {
+          id: 2,
+          description: "Workshop feedback submissions",
+          total: feedbackCount || 0,
+          details: `Total feedback submissions (minimum ${MINIMUM_REQUIREMENTS.FEEDBACK} required)`,
+          completed: (feedbackCount || 0) >= MINIMUM_REQUIREMENTS.FEEDBACK
+        },
+        {
+          id: 3,
+          description: "1-on-1 sessions completed",
+          total: sessionsCount || 0,
+          details: `Total completed sessions (minimum ${MINIMUM_REQUIREMENTS.SESSIONS} required)`,
+          completed: (sessionsCount || 0) >= MINIMUM_REQUIREMENTS.SESSIONS
+        }
+      ]
+    };
     
-    // Format requirements with completion status
-    const requirements = [
-      {
-        id: 1,
-        description: "Attended at least 3 career services workshops/events",
-        completed: uniqueSessionsAttended >= 3,
-        details: `${uniqueSessionsAttended}/3 workshops`,
-      },
-      {
-        id: 2,
-        description: "Completed feedback form for all attended workshops",
-        completed: feedbackSubmitted >= uniqueSessionsAttended,
-        details: feedbackSubmitted >= uniqueSessionsAttended 
-          ? "All feedback forms submitted" 
-          : `${feedbackSubmitted}/${uniqueSessionsAttended} feedback forms submitted`,
-      },
-      {
-        id: 3,
-        description: "Attended a 1-on-1 session and completed feedback",
-        completed: !!sessionData,
-        details: sessionData ? "1/1 sessions completed" : "0/1 sessions completed",
-      },
-    ];
-    
-    return NextResponse.json({
-      request: requestData || null,
-      requirements,
-      allRequirementsMet: requirements.every(req => req.completed)
-    });
+    return NextResponse.json(formattedData);
   } catch (error) {
     console.error("Error in GET internship request:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
