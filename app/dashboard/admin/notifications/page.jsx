@@ -236,6 +236,8 @@ export default function AdminNotificationsPage() {
         return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
       case "status_update":
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+      case "request":
+        return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
     }
@@ -268,6 +270,8 @@ export default function AdminNotificationsPage() {
         return MessageSquare
       case "status_update":
         return Info
+      case "request":
+        return BookOpen
       default:
         return Bell
     }
@@ -363,6 +367,37 @@ export default function AdminNotificationsPage() {
                               View Resume
                             </Button>
                           )}
+                        </div>
+                      )}
+
+                      {/* Show resource request details */}
+                      {notification.type === "request" && notification.metadata && (
+                        <div className="mt-2 p-3 bg-gray-50 dark:bg-[#161616] rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <User className="h-4 w-4 text-gray-500" />
+                            <p className="text-sm font-medium">{notification.metadata.studentName}</p>
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-sm font-medium">Requested Resource</p>
+                              <p className="text-sm text-gray-600 dark:text-neutral-400">{notification.metadata.resourceTitle}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Reason</p>
+                              <p className="text-sm text-gray-600 dark:text-neutral-400">{notification.metadata.reason}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                notification.metadata.importance === 'high' 
+                                  ? 'bg-red-100 text-red-800' 
+                                  : notification.metadata.importance === 'medium'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {notification.metadata.importance.charAt(0).toUpperCase() + notification.metadata.importance.slice(1)} Priority
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

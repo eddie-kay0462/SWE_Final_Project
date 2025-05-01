@@ -25,6 +25,8 @@ import {
   CheckCircle,
   BarChart2,
   Clock,
+  User,
+  RefreshCcw,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -64,6 +66,7 @@ export default function AdminResourcesPage() {
   const supabase = createClient()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [resourceToDelete, setResourceToDelete] = useState(null)
+  const [requestsLoading, setRequestsLoading] = useState(true)
 
   /**
    * Checks if user is authenticated and has admin privileges
@@ -164,145 +167,27 @@ export default function AdminResourcesPage() {
    */
   const fetchResourceRequests = async () => {
     try {
-      setIsLoadingRequests(true)
-      console.log("Fetching resource requests...")
-
-      // Fetch the requests with proper error handling
+      setRequestsLoading(true)
       const { data, error } = await supabase
-        .from("resource_requests")
+        .from('resource_requests')
         .select(`
-        id, 
-        resource_title, 
-        reason, 
-        importance, 
-        status, 
-        submitted_at,
-        user_id
-      `)
-        .not("status", "eq", "cleared") // This line excludes cleared requests
-        .order("submitted_at", { ascending: false })
+          *,
+          users (
+            fname,
+            lname,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      console.log("Fetched resource requests:", data.length)
-
-      // Get user details separately to avoid join issues
-      const formattedRequests = []
-
-      for (const request of data) {
-        let studentName = "Unknown"
-        let studentId = "Unknown"
-
-        if (request.user_id) {
-          const { data: userData, error: userError } = await supabase
-            .from("users")
-            .select("fname, lname, student_id")
-            .eq("id", request.user_id)
-            .single()
-
-          if (!userError && userData) {
-            studentName = `${userData.fname || ""} ${userData.lname || ""}`.trim()
-            studentId = userData.student_id || "Unknown"
-          }
-        }
-
-        formattedRequests.push({
-          id: request.id,
-          resourceTitle: request.resource_title,
-          reason: request.reason,
-          importance: request.importance || "medium",
-          status: request.status || "pending",
-          date: formatDate(request.submitted_at),
-          studentName,
-          studentId,
-        })
-      }
-
-      setResourceRequests(formattedRequests)
+      setResourceRequests(data)
     } catch (error) {
-      console.error("[AdminResources] Requests fetch error:", error)
-      toast({
-        title: "Failed to load resource requests",
-        description: error.message || "An unknown error occurred",
-        variant: "destructive",
-      })
+      console.error('Error fetching resource requests:', error)
+      toast.error('Failed to load resource requests')
     } finally {
-      setIsLoadingRequests(false)
-    }
-  }
-
-  /**
-   * Forces a refresh of resource requests data
-   */
-  const forceRefreshRequests = async () => {
-    console.log("Force refreshing resource requests data")
-    setIsLoadingRequests(true)
-
-    try {
-      // Clear the current requests first
-      setResourceRequests([])
-
-      // Fetch fresh data from the database
-      const { data, error } = await supabase
-        .from("resource_requests")
-        .select(`
-        id, 
-        resource_title, 
-        reason, 
-        importance, 
-        status, 
-        submitted_at,
-        user_id
-      `)
-        .order("submitted_at", { ascending: false })
-
-      if (error) throw error
-
-      console.log("Fresh request data fetched:", data)
-
-      // Get user details separately to avoid join issues
-      const formattedRequests = []
-
-      for (const request of data) {
-        let studentName = "Unknown"
-        let studentId = "Unknown"
-
-        if (request.user_id) {
-          const { data: userData, error: userError } = await supabase
-            .from("users")
-            .select("fname, lname, student_id")
-            .eq("id", request.user_id)
-            .single()
-
-          if (!userError && userData) {
-            studentName = `${userData.fname || ""} ${userData.lname || ""}`.trim()
-            studentId = userData.student_id || "Unknown"
-          }
-        }
-
-        formattedRequests.push({
-          id: request.id,
-          resourceTitle: request.resource_title,
-          reason: request.reason,
-          importance: request.importance || "medium",
-          status: request.status || "pending",
-          date: formatDate(request.submitted_at),
-          studentName,
-          studentId,
-        })
-      }
-
-      console.log("Formatted requests after refresh:", formattedRequests)
-      setResourceRequests(formattedRequests)
-    } catch (error) {
-      console.error("[AdminResources] Force refresh error:", error)
-      toast({
-        title: "Refresh Failed",
-        description: error.message || "An unknown error occurred",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoadingRequests(false)
+      setRequestsLoading(false)
     }
   }
 
@@ -761,14 +646,165 @@ export default function AdminResourcesPage() {
   // Filter resource requests based on search query
   const filteredRequests = resourceRequests.filter((request) => {
     return (
-      request.resourceTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.studentId.includes(searchQuery)
+      request.resource_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.users.fname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.users.lname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.users.email.includes(searchQuery)
     )
   })
 
   // Get pending requests count
   const pendingRequestsCount = resourceRequests.filter((req) => req.status === "pending").length
+
+  // Add Supabase subscription for real-time updates
+  useEffect(() => {
+    if (!authUser) return
+
+    // Subscribe to resource requests
+    const channel = supabase
+      .channel('admin-resource-requests')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'resource_requests'
+        },
+        (payload) => {
+          // Show toast notification for new requests
+          toast.info("New Resource Request", {
+            description: `A new resource has been requested: ${payload.new.resource_title}`,
+            action: {
+              label: "View",
+              onClick: () => setActiveTab("requests")
+            }
+          })
+          // Update requests list
+          fetchResourceRequests()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [authUser])
+
+  // Add this to your existing useEffect that runs on component mount
+  useEffect(() => {
+    if (authUser) {
+      fetchResourceRequests()
+    }
+  }, [authUser])
+
+  // Handle request status update
+  const handleUpdateRequestStatus = async (requestId, newStatus) => {
+    try {
+      const { error } = await supabase
+        .from('resource_requests')
+        .update({ status: newStatus })
+        .eq('id', requestId)
+
+      if (error) throw error
+
+      // Update local state
+      setResourceRequests(prevRequests =>
+        prevRequests.map(request =>
+          request.id === requestId ? { ...request, status: newStatus } : request
+        )
+      )
+
+      toast.success(`Request ${newStatus}`)
+    } catch (error) {
+      console.error('Error updating request status:', error)
+      toast.error('Failed to update request status')
+    }
+  }
+
+  // Add this section to your JSX where you want to display the requests
+  const renderResourceRequests = () => {
+    if (requestsLoading) {
+      return (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Loading requests...</p>
+        </div>
+      )
+    }
+
+    if (resourceRequests.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-lg text-muted-foreground">No resource requests found.</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-4">
+        {resourceRequests.map((request) => (
+          <Card key={request.id}>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-lg font-semibold">{request.resource_title}</h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      request.importance === 'high' 
+                        ? 'bg-red-100 text-red-800' 
+                        : request.importance === 'medium'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {request.importance.charAt(0).toUpperCase() + request.importance.slice(1)} Priority
+                    </span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      request.status === 'pending' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : request.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">{request.reason}</p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <User className="h-4 w-4" />
+                    <span>{request.users.fname} {request.users.lname}</span>
+                    <span>•</span>
+                    <span>{new Date(request.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {request.status === 'pending' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-green-600 hover:text-green-700"
+                        onClick={() => handleUpdateRequestStatus(request.id, 'approved')}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleUpdateRequestStatus(request.id, 'rejected')}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
 
   if (authLoading) {
     return <div>Loading...</div>
@@ -979,106 +1015,19 @@ export default function AdminResourcesPage() {
 
       {/* Resource Requests Tab Content */}
       {activeTab === "requests" && (
-        <div className="space-y-4">
-          {isLoadingRequests ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="h-6 w-40 bg-gray-200 rounded mb-2"></div>
-                        <div className="h-4 w-60 bg-gray-200 rounded mb-2"></div>
-                        <div className="h-4 w-32 bg-gray-200 rounded"></div>
-                      </div>
-                      <div className="h-8 w-16 bg-gray-200 rounded"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <>
-              {pendingRequestsCount > 0 && (
-                <div className="flex justify-between items-center mb-4">
-                  <p className="text-sm text-muted-foreground">Showing {filteredRequests.length} resource requests</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 border-red-200 hover:bg-red-50"
-                    onClick={handleClearAllRequests}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete All Requests
-                  </Button>
-                </div>
-              )}
-
-              {filteredRequests.length > 0 ? (
-                filteredRequests.map((request) => (
-                  <Card key={request.id}>
-                    <CardContent className="p-6 pt-5">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium text-lg">{request.resourceTitle}</h3>
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                request.status === "pending"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : request.status === "approved"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                            </span>
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                request.importance === "high"
-                                  ? "bg-red-100 text-red-800"
-                                  : request.importance === "medium"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-blue-100 text-blue-800"
-                              }`}
-                            >
-                              {request.importance.charAt(0).toUpperCase() + request.importance.slice(1)} Priority
-                            </span>
-                          </div>
-                          <p className="text-muted-foreground">
-                            Requested by: {request.studentName} (ID: {request.studentId})
-                          </p>
-                          <p className="text-muted-foreground">Date: {request.date}</p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleViewRequest(request)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleClearRequest(request.id)}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <Card>
-                  <CardContent className="p-6 text-center">
-                    <p className="text-muted-foreground">No resource requests found.</p>
-                  </CardContent>
-                </Card>
-              )}
-            </>
-          )}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Resource Requests</h2>
+            <Button
+              variant="outline"
+              onClick={fetchResourceRequests}
+              className="gap-2"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
+          {renderResourceRequests()}
         </div>
       )}
 
