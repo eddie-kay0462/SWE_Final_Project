@@ -55,13 +55,13 @@ const DashboardLayout = ({ children, userRole }) => {
 
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#f3f1ea] dark:bg-gray-900">
+      <div className="min-h-screen bg-[#f3f1ea] dark:bg-background">
         <div className="flex items-center justify-center h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
         </div>
       </div>
     }>
-      <div className="min-h-screen bg-[#f3f1ea] dark:bg-gray-900 flex">
+      <div className="min-h-screen bg-[#f3f1ea] dark:bg-background flex">
         {/* Mobile sidebar backdrop */}
         {sidebarOpen && (
           <div className="fixed inset-0 z-40 bg-black/30 lg:hidden" onClick={() => setSidebarOpen(false)} />

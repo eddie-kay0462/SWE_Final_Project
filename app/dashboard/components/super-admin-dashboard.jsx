@@ -42,7 +42,7 @@ const SuperAdminDashboard = ({ mockData, loading, greeting }) => {
         ].map((stat, index) => (
           <div
             key={stat.title}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1"
+            className="bg-white dark:bg-card rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1"
             style={{ animationDelay: `${index * 100}ms` }}
           >
             <div className="flex items-center justify-between">
@@ -69,7 +69,7 @@ const SuperAdminDashboard = ({ mockData, loading, greeting }) => {
       {/* System Health & Recent Users */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* System Health */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
+        <div className="bg-white dark:bg-card rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
           <h3 className="text-lg font-medium mb-4">System Health</h3>
           <div className="space-y-4">
             <div>
@@ -118,7 +118,7 @@ const SuperAdminDashboard = ({ mockData, loading, greeting }) => {
         </div>
 
         {/* Recent Users */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
+        <div className="bg-white dark:bg-card rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
           <h3 className="text-lg font-medium mb-4">Recent Users</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -174,10 +174,10 @@ const SuperAdminDashboard = ({ mockData, loading, greeting }) => {
       </div>
 
       {/* Internship Requests Overview */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
+      <div className="bg-white dark:bg-card rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
         <h3 className="text-lg font-medium mb-4">Internship Requests Overview</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+          <div className="bg-gray-50 dark:bg-background/60 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Pending</p>
@@ -188,7 +188,7 @@ const SuperAdminDashboard = ({ mockData, loading, greeting }) => {
               </div>
             </div>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+          <div className="bg-gray-50 dark:bg-background/60 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Approved</p>
@@ -199,7 +199,7 @@ const SuperAdminDashboard = ({ mockData, loading, greeting }) => {
               </div>
             </div>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+          <div className="bg-gray-50 dark:bg-background/60 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Rejected</p>
