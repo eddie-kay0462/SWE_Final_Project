@@ -106,11 +106,20 @@ const getAdvisors = async () => {
 
 const bookSession = async (formData) => {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
 
   if (!user) throw new Error("Not authenticated")
 
   try {
+    // First, get the user's ID from the public.users table using email
+    const { data: userData, error: userDataError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', user.email)
+      .single()
+
+    if (userDataError) throw new Error('Failed to get user data')
+
     // Calculate end time (1 hour after start time)
     const [hours, minutes] = formData.get("time").split(":").map(Number)
     const endHours = (hours + 1) % 24
@@ -131,17 +140,49 @@ const bookSession = async (formData) => {
     }
 
     // Create the session
-    const { error } = await supabase.from("sessions").insert({
-      student_id: user.id,
-      advisor_id: formData.get("advisor_id"),
-      date: formData.get("date"),
-      time: formData.get("time"),
-      end_time: endTime,
-      location: formData.get("location"),
-      status: "scheduled",
-    })
+    const { data: newSession, error: sessionError } = await supabase
+      .from("sessions")
+      .insert({
+        student_id: userData.id, // Use the ID from public.users table
+        advisor_id: formData.get("advisor_id"),
+        date: formData.get("date"),
+        time: formData.get("time"),
+        end_time: endTime,
+        location: formData.get("location"),
+        status: "scheduled",
+      })
+      .select()
+      .single()
 
-    if (error) throw error
+    if (sessionError) throw sessionError
+
+    // Create notifications for both student and advisor
+    const notifications = [
+      {
+        user_id: userData.id, // Student notification
+        type: 'session',
+        title: 'Session Booked',
+        message: `Your career advising session has been scheduled for ${formData.get("date")} at ${formData.get("time")}.`,
+        metadata: { session_id: newSession.id }
+      },
+      {
+        user_id: formData.get("advisor_id"), // Advisor notification
+        type: 'session',
+        title: 'New Session Booking',
+        message: `A new career advising session has been scheduled for ${formData.get("date")} at ${formData.get("time")}.`,
+        metadata: { session_id: newSession.id }
+      }
+    ]
+
+    // Insert notifications
+    const { error: notificationError } = await supabase
+      .from('notifications')
+      .insert(notifications)
+
+    if (notificationError) {
+      console.error('Error creating notifications:', notificationError)
+      // Don't fail the booking if notifications fail
+    }
 
     return { success: true }
   } catch (error) {
