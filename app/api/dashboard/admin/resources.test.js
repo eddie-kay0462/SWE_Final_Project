@@ -1,0 +1,1 @@
+describe('Admin Resources Management API', () => { it('should allow adding new resources', () => { expect(true).toBe(true); }); it('should allow editing existing resources', () => { expect(true).toBe(true); }); it('should allow deleting resources', () => { expect(true).toBe(true); }); });

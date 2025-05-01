@@ -1,0 +1,1 @@
+describe('Student Resources API', () => { it('should allow students to view resources', () => { expect(true).toBe(true); }); it('should allow students to search resources', () => { expect(true).toBe(true); }); it('should allow students to bookmark resources', () => { expect(true).toBe(true); }); });

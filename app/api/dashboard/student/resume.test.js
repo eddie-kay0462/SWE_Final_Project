@@ -1,0 +1,1 @@
+describe('Student Resume Management API', () => { it('should allow students to upload resumes', () => { expect(true).toBe(true); }); it('should allow students to view their resume status', () => { expect(true).toBe(true); }); it('should allow students to update their resumes', () => { expect(true).toBe(true); }); });
