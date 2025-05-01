@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Check, X, AlertCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,38 +21,65 @@ import { cn } from "@/lib/utils"
 
 export default function InternshipRequestPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [requirements, setRequirements] = useState([])
+  const [existingRequest, setExistingRequest] = useState(null)
   const [formData, setFormData] = useState({
-    fullName: "",
-    yearGroup: "",
-    major: "",
+    companyName: "",
     companyAddress: "",
     employerName: "",
     internshipDuration: "",
+    skillsRequired: "",
+    preferredStartDate: "",
   })
 
-  // Mock data - in a real app, this would come from your API
-  const requirements = [
-    {
-      id: 1,
-      description: "Attended at least 3 career services workshops/events",
-      completed: true,
-      details: "Completed 3/3 workshops",
-    },
-    {
-      id: 2,
-      description: "Completed feedback form for all attended workshops",
-      completed: true,
-      details: "All feedback forms submitted",
-    },
-    {
-      id: 3,
-      description: "Attended a 1-on-1 session and completed feedback",
-      completed: false,
-      details: "0/1 sessions completed",
-    },
-  ]
+  // Fetch requirements data from the API
+  useEffect(() => {
+    const fetchRequirements = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/dashboard/student/internship-request', {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch requirements')
+        }
+        
+        const data = await response.json()
+        setRequirements(data.requirements || [])
+        setExistingRequest(data.request)
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching requirements:', err)
+        setError('Failed to load requirements. Please try again later.')
+        toast({
+          title: "Error",
+          description: "Failed to load requirements. Please try again later.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchRequirements()
+  }, [toast])
+
+  // If loading data, show loading spinner
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
+      </div>
+    )
+  }
 
   const completedRequirements = requirements.filter((req) => req.completed).length
   const totalRequirements = requirements.length
@@ -66,7 +94,7 @@ export default function InternshipRequestPage() {
     })
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!allRequirementsMet) {
       toast({
         title: "Requirements Not Met",
@@ -78,7 +106,7 @@ export default function InternshipRequestPage() {
     }
 
     // Validate form data
-    const requiredFields = ["fullName", "yearGroup", "major", "companyAddress", "employerName", "internshipDuration"]
+    const requiredFields = ["companyName", "companyAddress", "employerName", "internshipDuration"]
     const missingFields = requiredFields.filter((field) => !formData[field])
 
     if (missingFields.length > 0) {
@@ -92,16 +120,126 @@ export default function InternshipRequestPage() {
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setIsDialogOpen(false)
+    try {
+      const response = await fetch("/api/dashboard/student/internship-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          details: formData,
+        }),
+      })
 
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to submit internship request")
+      }
+
+      setIsDialogOpen(false)
       toast({
         title: "Request Submitted",
         description: "Your internship request has been successfully submitted.",
       })
-    }, 1500)
+      
+      // Refresh the requirements data
+      window.location.reload()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button onClick={() => window.location.reload()} className="mt-4">
+          Try Again
+        </Button>
+      </div>
+    )
+  }
+
+  // Show existing request status if there is one
+  if (existingRequest && existingRequest.status !== 'rejected') {
+    return (
+      <div className="space-y-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-serif font-medium">Internship Request</h1>
+          <p className="text-muted-foreground mt-1">Your internship request status</p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Request Status: {existingRequest.status.charAt(0).toUpperCase() + existingRequest.status.slice(1)}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Alert variant={existingRequest.status === 'approved' ? 'default' : 'warning'}>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>
+                  {existingRequest.status === 'approved' 
+                    ? 'Request Approved' 
+                    : 'Request Pending'}
+                </AlertTitle>
+                <AlertDescription>
+                  {existingRequest.status === 'approved'
+                    ? 'Your internship request has been approved. You can proceed with your internship.'
+                    : 'Your internship request is currently under review. We will notify you once it has been processed.'}
+                </AlertDescription>
+              </Alert>
+
+              {existingRequest.details && (
+                <div className="mt-6 space-y-4">
+                  <h3 className="font-medium">Request Details</h3>
+                  <div className="grid gap-2">
+                    <div>
+                      <Label>Company Name</Label>
+                      <p className="text-sm text-muted-foreground">{existingRequest.details.companyName}</p>
+                    </div>
+                    <div>
+                      <Label>Company Address</Label>
+                      <p className="text-sm text-muted-foreground">{existingRequest.details.companyAddress}</p>
+                    </div>
+                    <div>
+                      <Label>Employer Name</Label>
+                      <p className="text-sm text-muted-foreground">{existingRequest.details.employerName}</p>
+                    </div>
+                    <div>
+                      <Label>Internship Duration</Label>
+                      <p className="text-sm text-muted-foreground">{existingRequest.details.internshipDuration}</p>
+                    </div>
+                    {existingRequest.details.skillsRequired && (
+                      <div>
+                        <Label>Skills Required</Label>
+                        <p className="text-sm text-muted-foreground">{existingRequest.details.skillsRequired}</p>
+                      </div>
+                    )}
+                    {existingRequest.details.preferredStartDate && (
+                      <div>
+                        <Label>Preferred Start Date</Label>
+                        <p className="text-sm text-muted-foreground">{existingRequest.details.preferredStartDate}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -158,7 +296,7 @@ export default function InternshipRequestPage() {
               )}
               disabled={!allRequirementsMet}
             >
-              {allRequirementsMet ? "Submit Internship Request" : "Complete All Requirements"}
+              {allRequirementsMet ? "Apply for Letter" : "Complete All Requirements"}
             </Button>
             {!allRequirementsMet && (
               <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
@@ -196,42 +334,13 @@ export default function InternshipRequestPage() {
             <>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="companyName">Company Name</Label>
                   <input
-                    id="fullName"
-                    name="fullName"
+                    id="companyName"
+                    name="companyName"
                     type="text"
                     className="w-full p-2 border rounded-md"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="yearGroup">Year Group</Label>
-                  <select
-                    id="yearGroup"
-                    name="yearGroup"
-                    className="w-full p-2 border rounded-md"
-                    value={formData.yearGroup}
-                    onChange={handleInputChange}
-                  >
-                    <option value="">Select Year Group</option>
-                    <option value="2025">2025</option>
-                    <option value="2026">2026</option>
-                    <option value="2027">2027</option>
-                    <option value="2028">2028</option>
-                  </select>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="major">Major</Label>
-                  <input
-                    id="major"
-                    name="major"
-                    type="text"
-                    className="w-full p-2 border rounded-md"
-                    value={formData.major}
+                    value={formData.companyName}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -268,6 +377,32 @@ export default function InternshipRequestPage() {
                     className="w-full p-2 border rounded-md"
                     placeholder="e.g., 3 months (June - August 2025)"
                     value={formData.internshipDuration}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="skillsRequired">Skills Required (Optional)</Label>
+                  <input
+                    id="skillsRequired"
+                    name="skillsRequired"
+                    type="text"
+                    className="w-full p-2 border rounded-md"
+                    placeholder="e.g., JavaScript, React, Node.js"
+                    value={formData.skillsRequired}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="preferredStartDate">Preferred Start Date (Optional)</Label>
+                  <input
+                    id="preferredStartDate"
+                    name="preferredStartDate"
+                    type="text"
+                    className="w-full p-2 border rounded-md"
+                    placeholder="e.g., June 1, 2025"
+                    value={formData.preferredStartDate}
                     onChange={handleInputChange}
                   />
                 </div>

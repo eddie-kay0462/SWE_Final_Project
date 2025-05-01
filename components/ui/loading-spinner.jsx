@@ -29,7 +29,7 @@ export function LoadingSpinner({
   useEffect(() => {
     const interval = setInterval(() => {
       setMessage(getRandomMessage())
-    }, 2000) // Reduced from 3500ms to 2000ms
+    }, 2000)
     
     return () => clearInterval(interval)
   }, [])
@@ -47,14 +47,14 @@ export function LoadingSpinner({
       opacity: 1, 
       scale: 1,
       transition: {
-        duration: 0.2 // Reduced from 0.3s to 0.2s
+        duration: 0.2
       }
     },
     exit: { 
       opacity: 0,
       scale: 0.8,
       transition: {
-        duration: 0.15, // Reduced from 0.2s to 0.15s
+        duration: 0.15,
         ease: "easeOut"
       }
     }
@@ -66,14 +66,14 @@ export function LoadingSpinner({
       opacity: 1, 
       y: 0,
       transition: {
-        duration: 0.2 // Reduced from 0.3s to 0.2s
+        duration: 0.2
       }
     },
     exit: { 
       opacity: 0,
       y: -10,
       transition: {
-        duration: 0.15 // Reduced from 0.2s to 0.15s
+        duration: 0.15
       }
     }
   }
@@ -84,7 +84,7 @@ export function LoadingSpinner({
       scale: [0, 1, 0],
       rotate: [0, 180, 360],
       transition: {
-        duration: 1.2, // Reduced from 1.5s to 1.2s
+        duration: 1.2,
         repeat: Infinity,
         ease: "easeInOut"
       }
@@ -109,14 +109,14 @@ export function LoadingSpinner({
             rotate: 360,
           }}
           transition={{ 
-            duration: 1.5, // Reduced from 2s to 1.5s
+            duration: 1.5,
             repeat: Infinity,
             ease: "linear"
           }}
         >
           <div className={cn(
             "absolute inset-0 rounded-full border-2 border-solid border-r-transparent",
-            isDark ? "border-white" : "border-[#A91827]"
+            isDark ? "border-neutral-100" : "border-[#A91827]"
           )}/>
         </motion.div>
         
@@ -126,14 +126,14 @@ export function LoadingSpinner({
             rotate: [0, 5, -5, 0]
           }}
           transition={{ 
-            duration: 1.5, // Reduced from 2s to 1.5s
+            duration: 1.5,
             repeat: Infinity,
             ease: "easeInOut"
           }}
         >
           <GraduationCap className={cn(
             sizeClasses[size] || sizeClasses.default,
-            isDark ? "text-white" : "text-[#A91827]"
+            isDark ? "text-neutral-100" : "text-[#A91827]"
           )} />
         </motion.div>
 
@@ -155,7 +155,7 @@ export function LoadingSpinner({
             key={message}
             className={cn(
               "font-medium text-center",
-              isDark ? "text-white" : "text-[#A91827]",
+              isDark ? "text-neutral-100" : "text-[#A91827]",
               size === "small" ? "text-xs" : 
               size === "large" ? "text-lg" : 
               size === "xl" ? "text-xl" : "text-sm"
@@ -174,7 +174,7 @@ export function LoadingSpinner({
         <motion.div 
           className={cn(
             "w-48 h-1 rounded-full overflow-hidden",
-            isDark ? "bg-gray-700" : "bg-gray-200"
+            isDark ? "bg-neutral-800" : "bg-gray-200"
           )}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -182,11 +182,11 @@ export function LoadingSpinner({
           <motion.div 
             className={cn(
               "h-full",
-              isDark ? "bg-white" : "bg-[#A91827]"
+              isDark ? "bg-neutral-100" : "bg-[#A91827]"
             )}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3 }} // Reduced from 0.5s to 0.3s
+            transition={{ duration: 0.3 }}
           />
         </motion.div>
       )}
@@ -198,12 +198,12 @@ export function LoadingSpinner({
       <motion.div 
         className={cn(
           "fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm",
-          isDark ? "bg-gray-900/90" : "bg-[#f3f1ea]/90"
+          isDark ? "bg-background/90" : "bg-[#f3f1ea]/90"
         )}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }} // Reduced from undefined to 0.2s
+        transition={{ duration: 0.2 }}
       >
         {spinnerContent}
       </motion.div>

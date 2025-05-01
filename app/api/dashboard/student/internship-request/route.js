@@ -9,133 +9,128 @@
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from 'next/headers';
 
-// Check for required environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Handle missing environment variables gracefully
-if (!supabaseUrl || !supabaseKey) {
-  console.error("Missing required Supabase environment variables");
-}
-
-// Initialize Supabase client with fallback for build time
-const supabase = supabaseUrl && supabaseKey 
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+const MINIMUM_REQUIREMENTS = {
+  WORKSHOPS: 3,
+  FEEDBACK: 3,
+  SESSIONS: 1
+};
 
 /**
  * GET handler for student internship requests
  * 
  * @return {Object} Internship request data including requirements and status
- * @throws {Error} If unauthorized or database error occurs
  */
 export async function GET(req) {
   try {
-    // Check if Supabase client is properly initialized
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Service configuration error" },
-        { status: 503 }
-      );
+    // Create Supabase client
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error("Auth error:", userError);
+      return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
     }
 
-    // Verify authentication
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Get user details from users table
+    const { data: userData, error: userDataError } = await supabase
+      .from('users')
+      .select('id, student_id')
+      .eq('email', user.email)
+      .single();
+
+    if (userDataError) {
+      console.error("Error fetching user data:", userDataError);
+      return NextResponse.json({ error: "Failed to fetch user data" }, { status: 500 });
     }
 
-    const userId = session.user.id;
-    const studentId = session.user.student_id;
+    const studentId = userData.student_id;
     
-    // Get student's request if it exists
-    const { data: requestData, error: requestError } = await supabase
+    // Get workshop attendance count
+    const { count: attendanceCount, error: attendanceError } = await supabase
+      .from("attendance")
+      .select("*", { count: 'exact', head: true })
+      .eq('student_id', studentId);
+      
+    if (attendanceError) {
+      console.error("Error fetching attendance:", attendanceError);
+      return NextResponse.json({ error: "Failed to fetch attendance" }, { status: 500 });
+    }
+    
+    // Get feedback submissions count
+    const { count: feedbackCount, error: feedbackError } = await supabase
+      .from("event_feedback")
+      .select("*", { count: 'exact', head: true })
+      .eq('user_id', user.id);
+      
+    if (feedbackError) {
+      console.error("Error fetching feedback:", feedbackError);
+      return NextResponse.json({ error: "Failed to fetch feedback" }, { status: 500 });
+    }
+    
+    // Get completed one-on-one sessions count
+    const { count: sessionsCount, error: sessionsError } = await supabase
+      .from("sessions")
+      .select("*", { count: 'exact', head: true })
+      .eq("student_id", user.id)
+      .eq("status", "completed");
+      
+    if (sessionsError) {
+      console.error("Error fetching sessions:", sessionsError);
+      return NextResponse.json({ error: "Failed to fetch sessions" }, { status: 500 });
+    }
+
+    // Get existing internship request if any
+    const { data: existingRequest, error: requestError } = await supabase
       .from("internship_requests")
-      .select("*, users!approved_by(fname, lname)")
-      .eq("user_id", userId)
+      .select("*")
+      .eq("user_id", user.id)
       .order("request_date", { ascending: false })
       .limit(1)
       .single();
-      
-    if (requestError && requestError.code !== "PGRST116") {
-      console.error("Error fetching internship request:", requestError);
-      return NextResponse.json({ error: "Failed to fetch internship request" }, { status: 500 });
+
+    if (requestError && requestError.code !== 'PGRST116') { // Ignore "no rows returned" error
+      console.error("Error fetching existing request:", requestError);
+      return NextResponse.json({ error: "Failed to fetch existing request" }, { status: 500 });
     }
+
+    // Format the requirements data with completion status
+    const formattedData = {
+      request: existingRequest || null,
+      stats: {
+        totalAttendance: attendanceCount || 0,
+        completedSessions: sessionsCount || 0,
+        totalFeedback: feedbackCount || 0
+      },
+      requirements: [
+        {
+          id: 1,
+          description: "Career services workshops/events attendance",
+          total: attendanceCount || 0,
+          details: `Total workshop attendances (minimum ${MINIMUM_REQUIREMENTS.WORKSHOPS} required)`,
+          completed: (attendanceCount || 0) >= MINIMUM_REQUIREMENTS.WORKSHOPS
+        },
+        {
+          id: 2,
+          description: "Workshop feedback submissions",
+          total: feedbackCount || 0,
+          details: `Total feedback submissions (minimum ${MINIMUM_REQUIREMENTS.FEEDBACK} required)`,
+          completed: (feedbackCount || 0) >= MINIMUM_REQUIREMENTS.FEEDBACK
+        },
+        {
+          id: 3,
+          description: "1-on-1 sessions completed",
+          total: sessionsCount || 0,
+          details: `Total completed sessions (minimum ${MINIMUM_REQUIREMENTS.SESSIONS} required)`,
+          completed: (sessionsCount || 0) >= MINIMUM_REQUIREMENTS.SESSIONS
+        }
+      ]
+    };
     
-    // Get student's year group from student ID (assuming format XXXX20XX)
-    const yearGroup = studentId ? Number(studentId.substring(0, 4)) : null;
-    
-    // Get requirements for student's year group
-    const { data: requirementsData, error: requirementsError } = await supabase
-      .from("requirement_groups")
-      .select(`
-        *,
-        requirements:requirement_items(
-          id, description, is_required
-        )
-      `)
-      .eq("year_group", yearGroup)
-      .single();
-      
-    if (requirementsError && requirementsError.code !== "PGRST116") {
-      console.error("Error fetching requirements:", requirementsError);
-      return NextResponse.json({ error: "Failed to fetch requirements" }, { status: 500 });
-    }
-    
-    // Get completed requirements for this student
-    const { data: completedReqs, error: completedError } = await supabase
-      .from("student_requirements")
-      .select("requirement_id, completed_date, details")
-      .eq("student_id", userId);
-      
-    if (completedError) {
-      console.error("Error fetching completed requirements:", completedError);
-      return NextResponse.json({ error: "Failed to fetch completed requirements" }, { status: 500 });
-    }
-    
-    // Transform requirements to include completion status
-    let formattedRequirements = [];
-    if (requirementsData && requirementsData.requirements) {
-      formattedRequirements = requirementsData.requirements.map(req => {
-        const completed = completedReqs?.find(cr => cr.requirement_id === req.id);
-        return {
-          id: req.id,
-          description: req.description,
-          is_required: req.is_required,
-          completed: !!completed,
-          details: completed?.details || null,
-          completed_date: completed?.completed_date || null
-        };
-      });
-    }
-    
-    // Get document if request exists
-    let document = null;
-    if (requestData) {
-      const { data: docData, error: docError } = await supabase
-        .from("documents")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("id", requestData.document_id)
-        .single();
-        
-      if (docError && docError.code !== "PGRST116") {
-        console.error("Error fetching document:", docError);
-      } else {
-        document = docData;
-      }
-    }
-    
-    return NextResponse.json({
-      request: requestData || null,
-      requirements: formattedRequirements,
-      document: document,
-      requirementsGroup: requirementsData || null
-    });
+    return NextResponse.json(formattedData);
   } catch (error) {
     console.error("Error in GET internship request:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -145,7 +140,7 @@ export async function GET(req) {
 /**
  * POST handler for creating or updating internship requests
  * 
- * @param {Object} req Request object with document file data
+ * @param {Object} req Request object with internship details
  * @return {Object} Created or updated internship request
  * @throws {Error} If unauthorized or database error occurs
  */
@@ -161,17 +156,11 @@ export async function POST(req) {
     const studentId = session.user.student_id;
     
     // Parse request body
-    const formData = await req.formData();
-    const file = formData.get("file");
+    const body = await req.json();
+    const { details } = body;
     
-    if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-    }
-    
-    // Validate file type
-    const fileType = file.type;
-    if (!["application/pdf", "image/jpeg", "image/png"].includes(fileType)) {
-      return NextResponse.json({ error: "Invalid file type. Please upload a PDF or image file." }, { status: 400 });
+    if (!details) {
+      return NextResponse.json({ error: "Internship details are required" }, { status: 400 });
     }
     
     // Check if user has completed all required requirements
@@ -219,43 +208,6 @@ export async function POST(req) {
       }, { status: 400 });
     }
     
-    // Upload file to storage
-    const fileName = `${userId}_${Date.now()}_${file.name}`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("documents")
-      .upload(`validation-passes/${fileName}`, file);
-      
-    if (uploadError) {
-      console.error("Error uploading file:", uploadError);
-      return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
-    }
-    
-    // Get file URL
-    const { data: urlData } = await supabase.storage
-      .from("documents")
-      .getPublicUrl(`validation-passes/${fileName}`);
-      
-    const fileUrl = urlData?.publicUrl;
-    
-    // Create document record
-    const { data: documentData, error: documentError } = await supabase
-      .from("documents")
-      .insert([
-        {
-          file_type: fileType.includes("pdf") ? "pdf" : "image",
-          file_url: fileUrl,
-          uploaded_by: userId,
-          user_id: userId
-        }
-      ])
-      .select()
-      .single();
-      
-    if (documentError) {
-      console.error("Error creating document record:", documentError);
-      return NextResponse.json({ error: "Failed to create document record" }, { status: 500 });
-    }
-    
     // Create or update internship request
     const { data: existingRequest, error: existingError } = await supabase
       .from("internship_requests")
@@ -272,14 +224,14 @@ export async function POST(req) {
       }, { status: 400 });
     }
     
-    // Create new request
+    // Create new request with details in jsonb column
     const { data: requestData, error: requestError } = await supabase
       .from("internship_requests")
       .insert([
         {
           user_id: userId,
           status: "pending",
-          document_id: documentData.id
+          details: details
         }
       ])
       .select()
@@ -288,6 +240,24 @@ export async function POST(req) {
     if (requestError) {
       console.error("Error creating internship request:", requestError);
       return NextResponse.json({ error: "Failed to create internship request" }, { status: 500 });
+    }
+    
+    // Create notification for admin
+    const { error: notificationError } = await supabase
+      .from("notifications")
+      .insert([
+        {
+          user_id: userId,
+          type: "internship_request",
+          title: "New Internship Request",
+          message: "A new internship request has been submitted and requires your review.",
+          admin_notification: true
+        }
+      ]);
+      
+    if (notificationError) {
+      console.error("Error creating notification:", notificationError);
+      // Don't return error as this is not critical
     }
     
     return NextResponse.json({

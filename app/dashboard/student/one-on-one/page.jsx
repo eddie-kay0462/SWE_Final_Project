@@ -14,8 +14,207 @@ import { format } from "@/lib/date-utils"
 import { useToast } from "@/hooks/use-toast"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { getUserSessions, bookSession, cancelSession, getAdvisors, getBookingStatus } from "@/utils/supabase/sessions"
 import { Input } from "@/components/ui/input"
+import { createClient } from "@/utils/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
+
+// Supabase client functions
+const getUserSessions = async () => {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  const { data: sessionsData } = await supabase
+    .from("sessions")
+    .select(`
+      *,
+      advisor:advisor_id (
+        id,
+        fname,
+        lname,
+        email
+      )
+    `)
+    .eq("student_id", user.id)
+    .order("date", { ascending: true })
+
+  if (!sessionsData) return { upcomingSessions: [], pastSessions: [] }
+
+  // Separate into upcoming and past sessions
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const upcomingSessions = sessionsData.filter((session) => {
+    if (session.status === "cancelled") return false
+    const sessionDate = new Date(session.date)
+    return sessionDate >= today && session.status === "scheduled"
+  })
+
+  const pastSessions = sessionsData.filter((session) => {
+    const sessionDate = new Date(session.date)
+    return sessionDate < today || session.status === "completed" || session.status === "cancelled"
+  })
+
+  return { upcomingSessions, pastSessions }
+}
+
+const getBookingStatus = async (advisorId = null) => {
+  const supabase = createClient()
+  
+  try {
+    // If advisorId is provided, get personal booking status
+    if (advisorId) {
+      const { data } = await supabase
+        .from("session_settings")
+        .select("is_booking_enabled")
+        .eq("advisor_id", advisorId)
+        .order("id", { ascending: false })
+        .limit(1)
+        .single()
+      
+      return data?.is_booking_enabled ?? true
+    }
+    
+    // Get global booking status
+    const { data } = await supabase
+      .from("session_settings")
+      .select("is_booking_enabled")
+      .is("advisor_id", null)
+      .order("id", { ascending: false })
+      .limit(1)
+      .single()
+    
+    return data?.is_booking_enabled ?? true
+  } catch (error) {
+    console.error("Error getting booking status:", error)
+    return true // Default to enabled if error
+  }
+}
+
+const getAdvisors = async () => {
+  const supabase = createClient()
+  
+  const { data: advisors } = await supabase
+    .from("users")
+    .select("id, fname, lname, email")
+    .eq("role_id", 2) // Assuming role_id 2 is for advisors
+    .order("lname", { ascending: true })
+  
+  return advisors || []
+}
+
+const bookSession = async (formData) => {
+  const supabase = createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  try {
+    // First, get the user's ID from the public.users table using email
+    const { data: userData, error: userDataError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', user.email)
+      .single()
+
+    if (userDataError) throw new Error('Failed to get user data')
+
+    // Calculate end time (1 hour after start time)
+    const [hours, minutes] = formData.get("time").split(":").map(Number)
+    const endHours = (hours + 1) % 24
+    const endTime = `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
+
+    // Check for double booking
+    const { data: existingSession } = await supabase
+      .from("sessions")
+      .select("id")
+      .eq("advisor_id", formData.get("advisor_id"))
+      .eq("date", formData.get("date"))
+      .eq("time", formData.get("time"))
+      .eq("status", "scheduled")
+      .limit(1)
+
+    if (existingSession && existingSession.length > 0) {
+      return { success: false, message: "This time slot is already booked" }
+    }
+
+    // Create the session
+    const { data: newSession, error: sessionError } = await supabase
+      .from("sessions")
+      .insert({
+        student_id: userData.id, // Use the ID from public.users table
+        advisor_id: formData.get("advisor_id"),
+        date: formData.get("date"),
+        time: formData.get("time"),
+        end_time: endTime,
+        location: formData.get("location"),
+        status: "scheduled",
+      })
+      .select()
+      .single()
+
+    if (sessionError) throw sessionError
+
+    // Create notifications for both student and advisor
+    const notifications = [
+      {
+        user_id: userData.id, // Student notification
+        type: 'session',
+        title: 'Session Booked',
+        message: `Your career advising session has been scheduled for ${formData.get("date")} at ${formData.get("time")}.`,
+        metadata: { session_id: newSession.id }
+      },
+      {
+        user_id: formData.get("advisor_id"), // Advisor notification
+        type: 'session',
+        title: 'New Session Booking',
+        message: `A new career advising session has been scheduled for ${formData.get("date")} at ${formData.get("time")}.`,
+        metadata: { session_id: newSession.id }
+      }
+    ]
+
+    // Insert notifications
+    const { error: notificationError } = await supabase
+      .from('notifications')
+      .insert(notifications)
+
+    if (notificationError) {
+      console.error('Error creating notifications:', notificationError)
+      // Don't fail the booking if notifications fail
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error booking session:", error)
+    return { success: false, message: error.message }
+  }
+}
+
+const cancelSession = async (sessionId, reason) => {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  try {
+    const { error } = await supabase
+      .from("sessions")
+      .update({
+        status: "cancelled",
+        cancellation_reason: reason,
+        cancelled_by: user.id,
+      })
+      .eq("id", sessionId)
+
+    if (error) throw error
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error cancelling session:", error)
+    return { success: false, message: error.message }
+  }
+}
 
 export default function OneOnOnePage() {
   const { toast } = useToast()
@@ -28,6 +227,7 @@ export default function OneOnOnePage() {
   const [location, setLocation] = useState("Career Center, Room 203")
   const [advisorId, setAdvisorId] = useState("")
   const [advisors, setAdvisors] = useState([])
+  const [availableAdvisors, setAvailableAdvisors] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState("upcoming")
   const [sessions, setSessions] = useState({ upcomingSessions: [], pastSessions: [] })
@@ -64,12 +264,29 @@ export default function OneOnOnePage() {
         // Get advisors
         const advisorsData = await getAdvisors()
         console.log("Fetched advisors:", advisorsData)
-        setAdvisors(advisorsData)
 
-        if (advisorsData && advisorsData.length > 0) {
-          const firstAdvisorId = advisorsData[0].id.toString()
-          setAdvisorId(firstAdvisorId)
-          console.log("Set initial advisorId:", firstAdvisorId)
+        // Check availability for each advisor
+        const advisorsWithAvailability = await Promise.all(
+          advisorsData.map(async (advisor) => {
+            const isAvailable = await getBookingStatus(advisor.id)
+            return { ...advisor, isAvailable }
+          }),
+        )
+
+        setAdvisors(advisorsWithAvailability)
+
+        // Filter only available advisors
+        const onlyAvailableAdvisors = advisorsWithAvailability.filter((advisor) => advisor.isAvailable)
+        setAvailableAdvisors(onlyAvailableAdvisors)
+
+        if (onlyAvailableAdvisors.length > 0) {
+          // Set the first available advisor as selected
+          const firstAvailableAdvisorId = onlyAvailableAdvisors[0].id.toString()
+          setAdvisorId(firstAvailableAdvisorId)
+          console.log("Set initial advisorId to first available:", firstAvailableAdvisorId)
+        } else {
+          // Reset advisor ID if no advisors are available
+          setAdvisorId("")
         }
       } catch (error) {
         console.error("Error fetching data:", error)
@@ -91,6 +308,17 @@ export default function OneOnOnePage() {
       toast({
         title: "Missing Information",
         description: "Please select a date, time, and advisor for your session.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if the selected advisor is available
+    const advisor = advisors.find((a) => a.id.toString() === advisorId.toString())
+    if (!advisor || !advisor.isAvailable) {
+      toast({
+        title: "Advisor Unavailable",
+        description: `The selected advisor is not currently accepting bookings. Please select another advisor.`,
         variant: "destructive",
       })
       return
@@ -209,15 +437,14 @@ export default function OneOnOnePage() {
   // Get advisor name by ID
   const getAdvisorName = (id) => {
     const advisor = advisors.find((a) => a.id.toString() === id.toString())
-    console.log(`Looking for advisor with id ${id}:`, advisor) // Debugging
-    return advisor ? `Dr. ${advisor.fname} ${advisor.lname}` : "Select an advisor"
+    return advisor ? `${advisor.fname} ${advisor.lname}` : "Select an advisor"
   }
 
-  // Filter advisors based on search query
+  // Filter advisors based on search query - ONLY from available advisors
   const filteredAdvisors =
     searchQuery === ""
-      ? advisors
-      : advisors.filter((advisor) => {
+      ? availableAdvisors
+      : availableAdvisors.filter((advisor) => {
           const fullName = `${advisor.fname} ${advisor.lname}`.toLowerCase()
           return fullName.includes(searchQuery.toLowerCase())
         })
@@ -244,6 +471,9 @@ export default function OneOnOnePage() {
     )
   }
 
+  // Check if there are any available advisors
+  const hasAvailableAdvisors = availableAdvisors.length > 0
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
@@ -251,7 +481,7 @@ export default function OneOnOnePage() {
           <h1 className="text-2xl font-serif font-medium">1-on-1 Sessions</h1>
           <p className="text-muted-foreground mt-1">Book and manage your career advising sessions</p>
         </div>
-        <Button onClick={() => setIsBookingDialogOpen(true)} disabled={!isBookingEnabled}>
+        <Button onClick={() => setIsBookingDialogOpen(true)} disabled={!isBookingEnabled || !hasAvailableAdvisors}>
           Book New Session
         </Button>
       </div>
@@ -263,6 +493,16 @@ export default function OneOnOnePage() {
           <AlertDescription>
             Session booking is currently disabled by the Career Services team. Please check back later or contact your
             advisor.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isBookingEnabled && !hasAvailableAdvisors && (
+        <Alert variant="warning">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Advisors Available</AlertTitle>
+          <AlertDescription>
+            There are currently no advisors available for booking. Please check back later.
           </AlertDescription>
         </Alert>
       )}
@@ -311,7 +551,7 @@ export default function OneOnOnePage() {
                           {format(new Date(session.date), "MMMM d, yyyy")} at {formatTimeForDisplay(session.time)}
                         </h3>
                         <p className="text-muted-foreground">
-                          With Dr. {session.advisor.fname} {session.advisor.lname}
+                          With {session.advisor.fname} {session.advisor.lname}
                         </p>
 
                         <div className="mt-4 space-y-2">
@@ -340,7 +580,11 @@ export default function OneOnOnePage() {
             <Card>
               <CardContent className="p-6 text-center">
                 <p className="text-muted-foreground">You have no upcoming sessions scheduled.</p>
-                <Button className="mt-4" onClick={() => setIsBookingDialogOpen(true)} disabled={!isBookingEnabled}>
+                <Button
+                  className="mt-4"
+                  onClick={() => setIsBookingDialogOpen(true)}
+                  disabled={!isBookingEnabled || !hasAvailableAdvisors}
+                >
                   Book a Session
                 </Button>
               </CardContent>
@@ -380,7 +624,7 @@ export default function OneOnOnePage() {
                           </span>
                         </div>
                         <p className="text-muted-foreground">
-                          With Dr. {session.advisor.fname} {session.advisor.lname}
+                          With {session.advisor.fname} {session.advisor.lname}
                         </p>
 
                         <div className="mt-4 space-y-2">
@@ -427,138 +671,153 @@ export default function OneOnOnePage() {
             </p>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="advisor">Select Advisor</Label>
-                <Select
-                  value={advisorId}
-                  onValueChange={(value) => {
-                    console.log("Selected advisorId:", value) // Debugging
-                    setAdvisorId(value)
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    {advisorId ? (
-                      <span>{getAdvisorName(advisorId)}</span>
-                    ) : (
-                      <span className="text-muted-foreground">Select an advisor</span>
-                    )}
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    <div className="p-2 border-b">
-                      <Input
-                        placeholder="Search advisor..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="max-h-[200px] overflow-auto">
-                      {filteredAdvisors.length > 0 ? (
-                        filteredAdvisors.map((advisor) => (
-                          <SelectItem
-                            key={advisor.id}
-                            value={advisor.id.toString()}
-                            className="flex items-center justify-between cursor-pointer"
-                          >
-                            <span>
-                              Dr. {advisor.fname} {advisor.lname}
-                            </span>
-                            {advisor.id.toString() === advisorId && <Check className="h-4 w-4 ml-2" />}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <div className="p-2 text-center text-muted-foreground">No advisor found.</div>
-                      )}
-                    </div>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-medium">Select Date</h3>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                      style={{ minWidth: "100%" }}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, "PPP") : "Select a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto p-0 bg-white border rounded-md shadow-md"
-                    style={{ minWidth: "300px" }}
+          {hasAvailableAdvisors ? (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="advisor">Select Advisor</Label>
+                  <Select
+                    value={advisorId}
+                    onValueChange={(value) => {
+                      console.log("Selected advisorId:", value)
+                      setAdvisorId(value)
+                    }}
                   >
-                    <div className="p-2 border-b">
-                      <h4 className="font-medium text-sm">Select an available date</h4>
-                      <p className="text-xs text-muted-foreground">Weekends are not available</p>
-                    </div>
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      disabled={(date) => {
-                        // Disable past dates, weekends, and dates more than 2 months in the future
-                        const today = new Date()
-                        today.setHours(0, 0, 0, 0)
+                    <SelectTrigger className="w-full">
+                      {advisorId ? (
+                        <span>{getAdvisorName(advisorId)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">Select an advisor</span>
+                      )}
+                    </SelectTrigger>
 
-                        const twoMonthsFromNow = new Date()
-                        twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2)
+                    <SelectContent className="max-h-[300px]">
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search advisor..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="max-h-[200px] overflow-auto">
+                        {filteredAdvisors.length > 0 ? (
+                          filteredAdvisors.map((advisor) => (
+                            <SelectItem
+                              key={advisor.id}
+                              value={advisor.id.toString()}
+                              className="flex items-center justify-between cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span>
+                                  {advisor.fname} {advisor.lname}
+                                </span>
+                              </div>
+                              {advisor.id.toString() === advisorId && <Check className="h-4 w-4 ml-2" />}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-center text-muted-foreground">No advisor found.</div>
+                        )}
+                      </div>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                        return date < today || date > twoMonthsFromNow || date.getDay() === 0 || date.getDay() === 6
-                      }}
-                      className="rounded-md border-0"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+                <div className="space-y-2">
+                  <h3 className="font-medium">Select Date</h3>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                        style={{ minWidth: "100%" }}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date ? format(date, "PPP") : "Select a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto p-0 bg-white border rounded-md shadow-md"
+                      style={{ minWidth: "300px" }}
+                    >
+                      <div className="p-2 border-b">
+                        <h4 className="font-medium text-sm">Select an available date</h4>
+                        <p className="text-xs text-muted-foreground">Weekends are not available</p>
+                      </div>
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        disabled={(date) => {
+                          // Disable past dates, weekends, and dates more than 2 months in the future
+                          const today = new Date()
+                          today.setHours(0, 0, 0, 0)
 
-              <div className="space-y-2">
-                <h3 className="font-medium">Select Time</h3>
-                <Select value={time} onValueChange={setTime}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a time">
-                      {time ? formatTimeForDisplay(time) : "Select a time"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px] overflow-y-auto">
-                    <div className="p-2 border-b">
-                      <h4 className="font-medium text-sm">Available time slots</h4>
-                    </div>
-                    {timeSlots.map((slot) => (
-                      <SelectItem key={slot} value={slot} className="cursor-pointer hover:bg-gray-100">
-                        {formatTimeForDisplay(slot)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                          const twoMonthsFromNow = new Date()
+                          twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2)
 
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>{location}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px] overflow-y-auto">
-                    <SelectItem value="Career Center, Room 203">Career Center, Room 203</SelectItem>
-                    <SelectItem value="Career Center, Room 204">Career Center, Room 204</SelectItem>
-                    <SelectItem value="Online (Zoom)">Online (Zoom)</SelectItem>
-                  </SelectContent>
-                </Select>
+                          return date < today || date > twoMonthsFromNow || date.getDay() === 0 || date.getDay() === 6
+                        }}
+                        className="rounded-md border-0"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="font-medium">Select Time</h3>
+                  <Select value={time} onValueChange={setTime}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a time">
+                        {time ? formatTimeForDisplay(time) : "Select a time"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] overflow-y-auto">
+                      <div className="p-2 border-b">
+                        <h4 className="font-medium text-sm">Available time slots</h4>
+                      </div>
+                      {timeSlots.map((slot) => (
+                        <SelectItem key={slot} value={slot} className="cursor-pointer hover:bg-gray-100">
+                          {formatTimeForDisplay(slot)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Select value={location} onValueChange={setLocation}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue>{location}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] overflow-y-auto">
+                      <SelectItem value="Career Center, Room 203">Career Center, Room 203</SelectItem>
+                      <SelectItem value="Career Center, Room 204">Career Center, Room 204</SelectItem>
+                      <SelectItem value="Online (Zoom)">Online (Zoom)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="py-6">
+              <Alert variant="warning">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>No Advisors Available</AlertTitle>
+                <AlertDescription>
+                  There are currently no advisors available for booking. Please check back later.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleBookSession} disabled={isSubmitting}>
+            <Button onClick={handleBookSession} disabled={isSubmitting || !hasAvailableAdvisors}>
               {isSubmitting ? "Booking..." : "Book Session"}
             </Button>
           </DialogFooter>
@@ -583,7 +842,7 @@ export default function OneOnOnePage() {
                   {formatTimeForDisplay(selectedSession.time)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  With Dr. {selectedSession.advisor.fname} {selectedSession.advisor.lname}
+                  With {selectedSession.advisor.fname} {selectedSession.advisor.lname}
                 </p>
                 <p className="text-sm text-muted-foreground">Location: {selectedSession.location}</p>
               </div>

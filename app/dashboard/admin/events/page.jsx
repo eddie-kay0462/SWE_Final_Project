@@ -347,35 +347,74 @@ export default function AdminEventsPage() {
 
   // Function to handle create event
   const handleCreateEvent = async () => {
-    if (!newEvent.title || !newEvent.date || !newEvent.start_time || !newEvent.end_time || !newEvent.location || !newEvent.description) {
-      toast.error("Please fill in all required fields")
-      return
+    // Validate all required fields
+    if (!newEvent.title?.trim()) {
+      toast.error("Please enter an event title");
+      return;
     }
+
+    if (!eventDate) {
+      toast.error("Please select an event date");
+      return;
+    }
+
+    if (!newEvent.start_time) {
+      toast.error("Please select a start time");
+      return;
+    }
+
+    if (!newEvent.end_time) {
+      toast.error("Please select an end time");
+      return;
+    }
+
+    if (!newEvent.location?.trim() && eventType !== "online") {
+      toast.error("Please enter an event location");
+      return;
+    }
+
+    if (!newEvent.description?.trim()) {
+      toast.error("Please enter an event description");
+      return;
+    }
+
+    // Format the date to ISO string format
+    const formattedDate = format(eventDate, "yyyy-MM-dd");
+
     if (!validateTime(newEvent.start_time) || !validateTime(newEvent.end_time)) {
-      toast.error("Times must be between 9:00 AM and 5:00 PM")
-      return
+      toast.error("Times must be between 9:00 AM and 5:00 PM");
+      return;
     }
-    setIsCreatingEvent(true)
+
+    setIsCreatingEvent(true);
     try {
-      const isEditing = newEvent.id !== undefined
+      const isEditing = newEvent.id !== undefined;
       const url = isEditing 
         ? `/api/dashboard/admin/events/${newEvent.id}`
-        : "/api/dashboard/admin/events"
-      const method = isEditing ? "PUT" : "POST"
+        : "/api/dashboard/admin/events";
+      const method = isEditing ? "PUT" : "POST";
+
+      const eventData = {
+        ...newEvent,
+        date: formattedDate,
+        location: eventType === "online" ? "Online" : newEvent.location
+      };
 
       const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...newEvent,
-        }),
-      })
-      const data = await response.json()
+        body: JSON.stringify(eventData),
+      });
+
+      const data = await response.json();
+      
       if (!response.ok) {
-        throw new Error(data.error || `Failed to ${isEditing ? 'update' : 'create'} event`)
+        throw new Error(data.error || `Failed to ${isEditing ? 'update' : 'create'} event`);
       }
+
+      // Reset form
       setNewEvent({
         title: "",
         date: "",
@@ -383,29 +422,29 @@ export default function AdminEventsPage() {
         end_time: "",
         location: "",
         description: "",
-      })
-      setCreateEventDialogOpen(false)
+      });
+      setEventDate(null);
+      setCreateEventDialogOpen(false);
       
-      // Update local state instead of reloading the page
+      // Update local state
       if (isEditing) {
-        const updatedEvent = { ...data, status: newEvent.status }
+        const updatedEvent = { ...data, status: newEvent.status };
         if (updatedEvent.status === "upcoming") {
-          setUpcomingEvents(upcomingEvents.map(e => e.id === updatedEvent.id ? updatedEvent : e))
+          setUpcomingEvents(upcomingEvents.map(e => e.id === updatedEvent.id ? updatedEvent : e));
         } else {
-          setPastEvents(pastEvents.map(e => e.id === updatedEvent.id ? updatedEvent : e))
+          setPastEvents(pastEvents.map(e => e.id === updatedEvent.id ? updatedEvent : e));
         }
-        toast.success("Event updated successfully!")
+        toast.success("Event updated successfully!");
       } else {
-        // If creating new event, add to upcoming events
-        setUpcomingEvents([...upcomingEvents, data])
-        toast.success("Event created successfully!")
+        setUpcomingEvents([...upcomingEvents, data]);
+        toast.success("Event created successfully!");
       }
     } catch (error) {
-      toast.error(error.message || "Failed to save event. Please try again.")
+      toast.error(error.message || "Failed to save event. Please try again.");
     } finally {
-      setIsCreatingEvent(false)
+      setIsCreatingEvent(false);
     }
-  }
+  };
 
   // Helper to format time for display
   function formatTimeForDisplay(time) {
