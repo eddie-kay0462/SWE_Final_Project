@@ -77,7 +77,7 @@ export const DesktopSidebar = ({
     <>
       <motion.div
         className={cn(
-          "h-screen sticky top-0 hidden md:flex md:flex-col bg-white dark:bg-background border-r border-neutral-200 dark:border-border relative",
+          "h-screen sticky top-0 hidden md:flex md:flex-col bg-white dark:bg-[hsl(var(--sidebar))] border-r border-border relative",
           className
         )}
         animate={{
@@ -139,7 +139,7 @@ export const MobileSidebar = ({
       {/* Mobile Header with Menu Button */}
       <div
         className={cn(
-          "sticky top-0 z-50 h-16 md:hidden bg-white dark:bg-background border-b border-neutral-200 dark:border-border",
+          "sticky top-0 z-50 h-16 md:hidden bg-white dark:bg-[hsl(var(--sidebar))] border-b border-border",
           className
         )}
         {...props}
@@ -172,12 +172,12 @@ export const MobileSidebar = ({
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={cn(
-                "fixed inset-y-0 left-0 z-50 w-[280px] bg-white dark:bg-background border-r border-neutral-200 dark:border-border flex flex-col md:hidden",
+                "fixed inset-y-0 left-0 z-50 w-[280px] bg-white dark:bg-[hsl(var(--sidebar))] border-r border-border flex flex-col md:hidden",
                 className
               )}
             >
               {/* Sidebar Header */}
-              <div className="flex h-16 items-center justify-between px-4 border-b border-neutral-200 dark:border-[#262626]">
+              <div className="flex h-16 items-center justify-between px-4 border-b border-border">
                 <div className="flex items-center gap-2">
                   <GraduationCap className="h-8 w-8 text-[#A91827]" />
                   <span className="text-xl font-bold">CSOFT</span>
