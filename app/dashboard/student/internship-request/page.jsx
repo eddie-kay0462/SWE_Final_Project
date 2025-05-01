@@ -23,12 +23,12 @@ export default function InternshipRequestPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
-    fullName: "",
-    yearGroup: "",
-    major: "",
+    companyName: "",
     companyAddress: "",
     employerName: "",
     internshipDuration: "",
+    skillsRequired: "",
+    preferredStartDate: "",
   })
 
   // Mock data - in a real app, this would come from your API
@@ -36,14 +36,14 @@ export default function InternshipRequestPage() {
     {
       id: 1,
       description: "Attended at least 3 career services workshops/events",
-      completed: true,
-      details: "Completed 3/3 workshops",
+      completed: false,
+      details: "0/3 workshops",
     },
     {
       id: 2,
       description: "Completed feedback form for all attended workshops",
-      completed: true,
-      details: "All feedback forms submitted",
+      completed: false,
+      details: "No feedback forms submitted",
     },
     {
       id: 3,
@@ -66,7 +66,7 @@ export default function InternshipRequestPage() {
     })
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!allRequirementsMet) {
       toast({
         title: "Requirements Not Met",
@@ -78,7 +78,7 @@ export default function InternshipRequestPage() {
     }
 
     // Validate form data
-    const requiredFields = ["fullName", "yearGroup", "major", "companyAddress", "employerName", "internshipDuration"]
+    const requiredFields = ["companyName", "companyAddress", "employerName", "internshipDuration"]
     const missingFields = requiredFields.filter((field) => !formData[field])
 
     if (missingFields.length > 0) {
@@ -92,16 +92,37 @@ export default function InternshipRequestPage() {
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setIsDialogOpen(false)
+    try {
+      const response = await fetch("/api/dashboard/student/internship-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          details: formData,
+        }),
+      })
 
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to submit internship request")
+      }
+
+      setIsDialogOpen(false)
       toast({
         title: "Request Submitted",
         description: "Your internship request has been successfully submitted.",
       })
-    }, 1500)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -158,7 +179,7 @@ export default function InternshipRequestPage() {
               )}
               disabled={!allRequirementsMet}
             >
-              {allRequirementsMet ? "Submit Internship Request" : "Complete All Requirements"}
+              {allRequirementsMet ? "Apply for Letter" : "Complete All Requirements"}
             </Button>
             {!allRequirementsMet && (
               <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
@@ -196,42 +217,13 @@ export default function InternshipRequestPage() {
             <>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="companyName">Company Name</Label>
                   <input
-                    id="fullName"
-                    name="fullName"
+                    id="companyName"
+                    name="companyName"
                     type="text"
                     className="w-full p-2 border rounded-md"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="yearGroup">Year Group</Label>
-                  <select
-                    id="yearGroup"
-                    name="yearGroup"
-                    className="w-full p-2 border rounded-md"
-                    value={formData.yearGroup}
-                    onChange={handleInputChange}
-                  >
-                    <option value="">Select Year Group</option>
-                    <option value="2025">2025</option>
-                    <option value="2026">2026</option>
-                    <option value="2027">2027</option>
-                    <option value="2028">2028</option>
-                  </select>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="major">Major</Label>
-                  <input
-                    id="major"
-                    name="major"
-                    type="text"
-                    className="w-full p-2 border rounded-md"
-                    value={formData.major}
+                    value={formData.companyName}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -268,6 +260,32 @@ export default function InternshipRequestPage() {
                     className="w-full p-2 border rounded-md"
                     placeholder="e.g., 3 months (June - August 2025)"
                     value={formData.internshipDuration}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="skillsRequired">Skills Required (Optional)</Label>
+                  <input
+                    id="skillsRequired"
+                    name="skillsRequired"
+                    type="text"
+                    className="w-full p-2 border rounded-md"
+                    placeholder="e.g., JavaScript, React, Node.js"
+                    value={formData.skillsRequired}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="preferredStartDate">Preferred Start Date (Optional)</Label>
+                  <input
+                    id="preferredStartDate"
+                    name="preferredStartDate"
+                    type="text"
+                    className="w-full p-2 border rounded-md"
+                    placeholder="e.g., June 1, 2025"
+                    value={formData.preferredStartDate}
                     onChange={handleInputChange}
                   />
                 </div>
