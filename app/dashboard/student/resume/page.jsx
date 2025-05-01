@@ -4,7 +4,7 @@
  * <p>Allows students to upload, view and manage their resume documents with drag & drop
  * support, file validation, and status tracking.</p>
  *
- * @author Resume Team
+ * @author Nana Amoako
  * @version 1.0.0
  */
 

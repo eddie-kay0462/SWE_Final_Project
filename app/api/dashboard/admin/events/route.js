@@ -222,4 +222,126 @@ export async function GET() {
   }
 }
 
+/**
+ * POST handler for creating a new event
+ * 
+ * @returns {Promise<NextResponse>} JSON response with the created event data
+ */
+export async function POST(request) {
+  try {
+    const supabase = await createClient();
+    
+    // Get the current user from the session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get the public user ID using the auth email
+    const { data: publicUser, error: publicUserError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', user.email)
+      .single();
+
+    if (publicUserError || !publicUser) {
+      console.error('Error getting public user:', publicUserError);
+      return NextResponse.json(
+        { error: 'User not found in public.users table' },
+        { status: 404 }
+      );
+    }
+
+    // Get the request body
+    const eventData = await request.json();
+
+    // Generate a unique session ID
+    const sessionId = await generateUniqueSessionId(supabase);
+
+    // Generate a QR code token (you can customize this as needed)
+    const qrCodeToken = `${sessionId}-${Date.now()}`;
+
+    // Insert the new event using the public user ID
+    const { data: newEvent, error: insertError } = await supabase
+      .from('career_sessions')
+      .insert([
+        {
+          session_id: sessionId,
+          title: eventData.title,
+          date: eventData.date,
+          start_time: eventData.start_time,
+          end_time: eventData.end_time,
+          location: eventData.location,
+          description: eventData.description,
+          created_by: publicUser.id, // Use the public user ID here
+          qr_code: qrCodeToken
+        }
+      ])
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error creating event:', insertError);
+      return NextResponse.json(
+        { error: 'Failed to create event' },
+        { status: 500 }
+      );
+    }
+
+    // Create an entry in the event_qr_codes table
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 1); // QR code expires in 24 hours
+
+    const { error: qrError } = await supabase
+      .from('event_qr_codes')
+      .insert([
+        {
+          event_id: sessionId,
+          token: qrCodeToken,
+          expires_at: expiryDate.toISOString()
+        }
+      ]);
+
+    if (qrError) {
+      console.error('Error creating QR code entry:', qrError);
+      // Don't fail the request, just log the error
+    }
+
+    // Format the response
+    const formattedEvent = {
+      id: newEvent.session_id,
+      title: newEvent.title,
+      date: new Date(newEvent.date).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }),
+      start_time: newEvent.start_time,
+      end_time: newEvent.end_time,
+      location: newEvent.location,
+      description: newEvent.description,
+      attendees: 0,
+      tags: ['Career Development'],
+      status: 'upcoming',
+      feedbackCount: 0,
+      averageRating: 0,
+      feedback: [],
+      qrCode: qrCodeToken
+    };
+
+    return NextResponse.json(formattedEvent);
+
+  } catch (error) {
+    console.error('Error in create event API:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 // ... rest of the code remains the same ...

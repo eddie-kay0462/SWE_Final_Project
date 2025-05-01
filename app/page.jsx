@@ -7,13 +7,29 @@ import Link from "next/link"
 import { GraduationCap, MoveRight, Menu } from "lucide-react" 
 import { useState, useCallback } from "react"
 import Image from "next/image"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { authUser, userProfile } = useAuth();
   
   const toggleMobileMenu = useCallback(() => {
     setMobileMenuOpen(prev => !prev);
   }, []);
+
+  // Function to determine dashboard URL based on user role
+  const getDashboardUrl = () => {
+    if (!userProfile) return "/dashboard/student";
+    switch (userProfile.role_id) {
+      case 1:
+        return "/dashboard/superadmin";
+      case 2:
+        return "/dashboard/admin";
+      case 3:
+      default:
+        return "/dashboard/student";
+    }
+  };
 
   return (
     <main className="min-h-screen flex flex-col bg-[#f3f1ea]">
@@ -48,12 +64,23 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center gap-3 ml-6">
-              <Link href="/auth/login" className="text-sm font-medium text-black px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                Sign In
-              </Link>
-              <Link href="/auth/signup" className="text-sm font-medium px-4 py-2 bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors">
-                Get Started
-              </Link>
+              {authUser ? (
+                <Link 
+                  href={getDashboardUrl()} 
+                  className="text-sm font-medium px-4 py-2 bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors"
+                >
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link href="/auth/login" className="text-sm font-medium text-black px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                    Sign In
+                  </Link>
+                  <Link href="/auth/signup" className="text-sm font-medium px-4 py-2 bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors">
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
 
@@ -83,20 +110,32 @@ export default function LandingPage() {
                   About Us
                 </Link>
                 <div className="flex flex-col gap-2 mt-4 pt-4 border-t">
-                  <Link 
-                    href="/auth/login" 
-                    className="py-2 text-sm font-medium text-black text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                    onClick={toggleMobileMenu}
-                  >
-                    Sign In
-                  </Link>
-                  <Link 
-                    href="/auth/signup" 
-                    className="py-2 text-sm font-medium text-center bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors"
-                    onClick={toggleMobileMenu}
-                  >
-                    Get Started
-                  </Link>
+                  {authUser ? (
+                    <Link 
+                      href={getDashboardUrl()}
+                      className="py-2 text-sm font-medium text-center bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors"
+                      onClick={toggleMobileMenu}
+                    >
+                      Go to Dashboard
+                    </Link>
+                  ) : (
+                    <>
+                      <Link 
+                        href="/auth/login" 
+                        className="py-2 text-sm font-medium text-black text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        onClick={toggleMobileMenu}
+                      >
+                        Sign In
+                      </Link>
+                      <Link 
+                        href="/auth/signup" 
+                        className="py-2 text-sm font-medium text-center bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90 transition-colors"
+                        onClick={toggleMobileMenu}
+                      >
+                        Get Started
+                      </Link>
+                    </>
+                  )}
                 </div>
               </nav>
             </div>

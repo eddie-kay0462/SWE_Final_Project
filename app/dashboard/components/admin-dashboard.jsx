@@ -12,11 +12,11 @@ const AdminDashboard = ({ mockData, loading, greeting }) => {
       {/* Upcoming Career Sessions & Internship Letter Requests */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upcoming Career Sessions */}
-        <div className="bg-white dark:bg-[#1c1c1c] rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
+        <div className="bg-white dark:bg-card rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
           <h3 className="text-lg font-medium mb-4 dark:text-neutral-100">Upcoming Career Sessions</h3>
           <div className="space-y-4">
             {mockData.upcomingSessions.map((session) => (
-              <div key={session.id} className="bg-gray-50 dark:bg-[#161616] rounded-lg p-4">
+              <div key={session.id} className="bg-gray-50 dark:bg-background rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
                     <h4 className="font-medium dark:text-neutral-100">{session.title}</h4>
@@ -40,7 +40,7 @@ const AdminDashboard = ({ mockData, loading, greeting }) => {
         </div>
 
         {/* Internship Letter Requests Chart */}
-        <div className="bg-white dark:bg-[#1c1c1c] rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
+        <div className="bg-white dark:bg-card rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
           <h3 className="text-lg font-medium mb-4 dark:text-neutral-100">Internship Letter Requests</h3>
           <div className="flex items-center mb-6">
             <div>
@@ -48,7 +48,7 @@ const AdminDashboard = ({ mockData, loading, greeting }) => {
               <h3 className="text-2xl font-bold mt-1 dark:text-neutral-100">{mockData.pendingRequests}</h3>
             </div>
           </div>
-          <div className="h-40 bg-gray-50 dark:bg-[#161616] rounded-lg flex items-center justify-center">
+          <div className="h-40 bg-gray-50 dark:bg-background rounded-lg flex items-center justify-center">
             <p className="text-gray-500 dark:text-neutral-400">Monthly Letter Requests Chart</p>
           </div>
           <div className="mt-6">

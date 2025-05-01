@@ -10,11 +10,11 @@ import { useRouter } from 'next/navigation'
 
 // Memoized components to prevent unnecessary re-renders
 const StatusCard = memo(({ title, count, icon: Icon, color }) => (
-  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+  <div className="bg-gray-50 dark:bg-background/60 rounded-lg p-4">
     <div className="flex items-center justify-between">
       <div>
         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-        <h3 className="text-2xl font-bold mt-1">{count}</h3>
+        <h3 className="text-2xl font-bold mt-1 dark:text-gray-100">{count}</h3>
       </div>
       <div className={`h-10 w-10 ${color} rounded-full flex items-center justify-center`}>
         <Icon className="h-5 w-5" />
@@ -24,10 +24,10 @@ const StatusCard = memo(({ title, count, icon: Icon, color }) => (
 ))
 
 const SessionCard = memo(({ session }) => (
-  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+  <div className="bg-gray-50 dark:bg-background/60 rounded-lg p-4">
     <div className="flex items-start justify-between">
       <div>
-        <h4 className="font-medium">{session.title}</h4>
+        <h4 className="font-medium dark:text-gray-100">{session.title}</h4>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {session.date} • {session.location}
         </p>
@@ -38,7 +38,7 @@ const SessionCard = memo(({ session }) => (
 ))
 
 const NotificationCard = memo(({ notification }) => (
-  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 flex items-start">
+  <div className="bg-gray-50 dark:bg-background/60 rounded-lg p-4 flex items-start">
     <div
       className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${
         notification.type === "status"

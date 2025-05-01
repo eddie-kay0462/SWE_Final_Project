@@ -366,33 +366,63 @@ export default function ResourcesPage() {
       return
     }
 
+    const toastId = toast.loading("Submitting your resource request...")
+
     try {
       setIsSubmitting(true)
 
-      // First get the public.users ID
+      // First get the public.users ID and user details
       const { data: userData, error: userError } = await supabase
         .from("users")
-        .select("id")
+        .select("id, fname, lname")
         .eq("email", authUser.email)
         .single()
 
       if (userError || !userData) throw userError
 
       // Insert resource request
-      const { error } = await supabase.from("resource_requests").insert([
-        {
-          resource_title: requestForm.resourceTitle,
-          reason: requestForm.reason,
-          importance: requestForm.importance,
-          user_id: userData.id,
-        },
-      ])
+      const { data: requestData, error: requestError } = await supabase
+        .from("resource_requests")
+        .insert([
+          {
+            resource_title: requestForm.resourceTitle,
+            reason: requestForm.reason,
+            importance: requestForm.importance,
+            user_id: userData.id,
+            status: 'pending', // Add status field
+            created_at: new Date().toISOString()
+          },
+        ])
+        .select()
+        .single()
 
-      if (error) throw error
+      if (requestError) throw requestError
 
-      toast({
-        title: "Request Submitted",
-        description: "Your resource request has been submitted. We'll notify you when it's available.",
+      // Create notification for admin
+      const { error: notificationError } = await supabase
+        .from("notifications")
+        .insert([
+          {
+            type: "request",
+            title: "New Resource Request",
+            message: `${userData.fname} ${userData.lname} has requested a resource: ${requestForm.resourceTitle}`,
+            admin_notification: true,
+            metadata: {
+              requestId: requestData.id,
+              resourceTitle: requestForm.resourceTitle,
+              importance: requestForm.importance,
+              reason: requestForm.reason,
+              studentId: userData.id,
+              studentName: `${userData.fname} ${userData.lname}`
+            }
+          },
+        ])
+
+      if (notificationError) throw notificationError
+
+      toast.success("Request submitted successfully!", {
+        id: toastId,
+        description: "We'll notify you when the resource becomes available.",
       })
 
       // Reset form
@@ -404,10 +434,9 @@ export default function ResourcesPage() {
       setShowRequestModal(false)
     } catch (error) {
       console.error("[Resources] Request submit error:", error)
-      toast({
-        title: "Request failed",
+      toast.error("Failed to submit request", {
+        id: toastId,
         description: error.message,
-        variant: "destructive",
       })
     } finally {
       setIsSubmitting(false)

@@ -12,7 +12,7 @@ const ThemeToggle = () => {
   return (
     <button
       onClick={toggleDarkMode}
-      className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-neutral-200/50 dark:hover:bg-[#262626] hover:shadow-sm"
+      className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-neutral-200/50 dark:hover:bg-muted hover:shadow-sm"
     >
       {darkMode ? (
         <>
