@@ -1,4 +1,4 @@
-// "use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { CalendarIcon, Clock, MapPin, Plus, Settings, User, Search, AlertCircle, PenLine } from "lucide-react"
@@ -46,6 +46,9 @@ export default function AdminOneOnOnePage() {
   const [showStudentDropdown, setShowStudentDropdown] = useState(false)
   const [formError, setFormError] = useState("")
   const [isPersonalBookingEnabled, setIsPersonalBookingEnabled] = useState(true)
+  const [allSessions, setAllSessions] = useState({ upcomingSessions: [], pastSessions: [] })
+  const [viewMode, setViewMode] = useState("personal") // "personal" or "all"
+  const [advisors, setAdvisors] = useState([])
   const supabase = createClient()
 
   // Time slots
@@ -120,11 +123,18 @@ export default function AdminOneOnOnePage() {
       setIsBookingEnabled(globalSettings?.is_booking_enabled ?? true)
 
       // Get personal booking status
-      const { data: userData } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from("users")
         .select("id")
         .eq("email", authUser.email)
         .single()
+
+      if (userError) {
+        console.error("Error fetching user data:", userError)
+        return
+      }
+
+      console.log("Current advisor ID:", userData?.id)
 
       if (userData) {
         const { data: personalSettings } = await supabase
@@ -138,8 +148,19 @@ export default function AdminOneOnOnePage() {
         setIsPersonalBookingEnabled(personalSettings?.is_booking_enabled ?? true)
       }
 
-      // Get sessions
-      const { data: sessionsData } = await supabase
+      // Get all advisors
+      const { data: advisorsData } = await supabase
+        .from("users")
+        .select("id, fname, lname, email")
+        .eq("role_id", 2) // Assuming role_id 2 is for advisors
+        .order("lname", { ascending: true })
+
+      if (advisorsData) {
+        setAdvisors(advisorsData)
+      }
+
+      // Get personal sessions
+      const { data: personalSessionsData, error: personalSessionsError } = await supabase
         .from("sessions")
         .select(`
           *,
@@ -154,23 +175,58 @@ export default function AdminOneOnOnePage() {
         .eq("advisor_id", userData.id)
         .order("date", { ascending: true })
 
-      if (sessionsData) {
+      // Get all sessions with advisor details
+      const { data: allSessionsData, error: allSessionsError } = await supabase
+        .from("sessions")
+        .select(`
+          *,
+          student:student_id (
+            id,
+            fname,
+            lname,
+            email,
+            student_id
+          ),
+          advisor:advisor_id (
+            id,
+            fname,
+            lname,
+            email
+          )
+        `)
+        .order("date", { ascending: true })
+
+      if (personalSessionsData && allSessionsData) {
         // Separate into upcoming and past sessions
         const today = new Date()
         today.setHours(0, 0, 0, 0)
 
-        const upcomingSessions = sessionsData.filter((session) => {
+        // Process personal sessions
+        const personalUpcoming = personalSessionsData.filter((session) => {
           if (session.status === "cancelled") return false
           const sessionDate = new Date(session.date)
           return sessionDate >= today && session.status === "scheduled"
         })
 
-        const pastSessions = sessionsData.filter((session) => {
+        const personalPast = personalSessionsData.filter((session) => {
           const sessionDate = new Date(session.date)
           return sessionDate < today || session.status === "completed" || session.status === "cancelled"
         })
 
-        setSessions({ upcomingSessions, pastSessions })
+        // Process all sessions
+        const allUpcoming = allSessionsData.filter((session) => {
+          if (session.status === "cancelled") return false
+          const sessionDate = new Date(session.date)
+          return sessionDate >= today && session.status === "scheduled"
+        })
+
+        const allPast = allSessionsData.filter((session) => {
+          const sessionDate = new Date(session.date)
+          return sessionDate < today || session.status === "completed" || session.status === "cancelled"
+        })
+
+        setSessions({ upcomingSessions: personalUpcoming, pastSessions: personalPast })
+        setAllSessions({ upcomingSessions: allUpcoming, pastSessions: allPast })
       }
 
       // Get students
@@ -536,6 +592,26 @@ export default function AdminOneOnOnePage() {
         </div>
       </div>
 
+      {/* View Mode Toggle */}
+      <div className="flex justify-end mb-4">
+        <div className="inline-flex rounded-md border p-1">
+          <Button
+            variant={viewMode === "personal" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("personal")}
+          >
+            My Sessions
+          </Button>
+          <Button
+            variant={viewMode === "all" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("all")}
+          >
+            All Sessions
+          </Button>
+        </div>
+      </div>
+
       {!isBookingEnabled && (
         <Alert variant="warning">
           <AlertCircle className="h-4 w-4" />
@@ -564,21 +640,21 @@ export default function AdminOneOnOnePage() {
             className={`px-4 py-2 font-medium ${activeTab === "upcoming" ? "border-b-2 border-primary" : ""}`}
             onClick={() => setActiveTab("upcoming")}
           >
-            Upcoming Sessions
+            {viewMode === "personal" ? "My Upcoming Sessions" : "All Upcoming Sessions"}
           </button>
           <button
             className={`px-4 py-2 font-medium ${activeTab === "past" ? "border-b-2 border-primary" : ""}`}
             onClick={() => setActiveTab("past")}
           >
-            Past Sessions
+            {viewMode === "personal" ? "My Past Sessions" : "All Past Sessions"}
           </button>
         </div>
 
         {activeTab === "upcoming" && (
           <div className="mt-6">
-            {sessions.upcomingSessions.length > 0 ? (
+            {(viewMode === "personal" ? sessions.upcomingSessions : allSessions.upcomingSessions).length > 0 ? (
               <div className="space-y-4">
-                {sessions.upcomingSessions.map((session) => (
+                {(viewMode === "personal" ? sessions.upcomingSessions : allSessions.upcomingSessions).map((session) => (
                   <Card key={session.id}>
                     <CardContent className="p-6 pt-6">
                       <div className="flex items-start justify-between">
@@ -587,9 +663,14 @@ export default function AdminOneOnOnePage() {
                             {format(new Date(session.date), "MMMM d, yyyy")} at {formatTimeForDisplay(session.time)}
                           </h3>
                           <p className="text-muted-foreground">
-                            With {session.student.fname} {session.student.lname}
+                            Student: {session.student.fname} {session.student.lname}
                             {session.student.student_id && ` (ID: ${session.student.student_id})`}
                           </p>
+                          {viewMode === "all" && (
+                            <p className="text-muted-foreground">
+                              Advisor: {session.advisor.fname} {session.advisor.lname}
+                            </p>
+                          )}
 
                           <div className="mt-4 space-y-2">
                             <div className="flex items-center gap-2">
@@ -603,41 +684,43 @@ export default function AdminOneOnOnePage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedSession(session)
-                              setAddNotesDialogOpen(true)
-                              setSessionNotes(session.notes || "")
-                            }}
-                          >
-                            <PenLine className="h-3.5 w-3.5 mr-1" />
-                            Add Notes
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedSession(session)
-                              setCompleteSessionDialogOpen(true)
-                              setSessionNotes(session.notes || "")
-                            }}
-                          >
-                            Complete
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedSession(session)
-                              setCancelSessionDialogOpen(true)
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
+                        {viewMode === "personal" && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedSession(session)
+                                setAddNotesDialogOpen(true)
+                                setSessionNotes(session.notes || "")
+                              }}
+                            >
+                              <PenLine className="h-3.5 w-3.5 mr-1" />
+                              Add Notes
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedSession(session)
+                                setCompleteSessionDialogOpen(true)
+                                setSessionNotes(session.notes || "")
+                              }}
+                            >
+                              Complete
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedSession(session)
+                                setCancelSessionDialogOpen(true)
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -646,10 +729,16 @@ export default function AdminOneOnOnePage() {
             ) : (
               <Card>
                 <CardContent className="p-6 text-center">
-                  <p className="text-muted-foreground">No upcoming sessions scheduled.</p>
-                  <Button className="mt-4" onClick={() => setCreateSessionDialogOpen(true)}>
-                    Create a Session
-                  </Button>
+                  <p className="text-muted-foreground">
+                    {viewMode === "personal" 
+                      ? "No upcoming sessions scheduled."
+                      : "No upcoming sessions scheduled by any advisor."}
+                  </p>
+                  {viewMode === "personal" && (
+                    <Button className="mt-4" onClick={() => setCreateSessionDialogOpen(true)}>
+                      Create a Session
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -658,9 +747,9 @@ export default function AdminOneOnOnePage() {
 
         {activeTab === "past" && (
           <div className="mt-6">
-            {sessions.pastSessions.length > 0 ? (
+            {(viewMode === "personal" ? sessions.pastSessions : allSessions.pastSessions).length > 0 ? (
               <div className="space-y-4">
-                {sessions.pastSessions.map((session) => (
+                {(viewMode === "personal" ? sessions.pastSessions : allSessions.pastSessions).map((session) => (
                   <Card key={session.id}>
                     <CardContent className="p-6 pt-6">
                       <div className="flex items-start justify-between">
@@ -687,9 +776,14 @@ export default function AdminOneOnOnePage() {
                             </span>
                           </div>
                           <p className="text-muted-foreground">
-                            With {session.student.fname} {session.student.lname}
+                            Student: {session.student.fname} {session.student.lname}
                             {session.student.student_id && ` (ID: ${session.student.student_id})`}
                           </p>
+                          {viewMode === "all" && (
+                            <p className="text-muted-foreground">
+                              Advisor: {session.advisor.fname} {session.advisor.lname}
+                            </p>
+                          )}
 
                           <div className="mt-4 space-y-2">
                             <div className="flex items-center gap-2">
@@ -718,7 +812,11 @@ export default function AdminOneOnOnePage() {
             ) : (
               <Card>
                 <CardContent className="p-6 text-center">
-                  <p className="text-muted-foreground">No past sessions.</p>
+                  <p className="text-muted-foreground">
+                    {viewMode === "personal" 
+                      ? "No past sessions."
+                      : "No past sessions found."}
+                  </p>
                 </CardContent>
               </Card>
             )}
