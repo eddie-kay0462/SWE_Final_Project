@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Check, X, AlertCircle } from "lucide-react"
+import { Check, X, AlertCircle, Download } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -18,6 +18,13 @@ import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
+import dynamic from 'next/dynamic'
+
+// Dynamically import the InternshipLetter component
+const InternshipLetter = dynamic(() => import('@/components/InternshipLetter'), {
+  ssr: false,
+  loading: () => <p>Loading letter preview...</p>
+})
 
 export default function InternshipRequestPage() {
   const { toast } = useToast()
@@ -172,7 +179,7 @@ export default function InternshipRequestPage() {
   }
 
   // Show existing request status if there is one
-  if (existingRequest && existingRequest.status !== 'rejected') {
+  if (existingRequest) {
     return (
       <div className="space-y-6">
         <div className="mb-6">
@@ -182,59 +189,67 @@ export default function InternshipRequestPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Request Status: {existingRequest.status.charAt(0).toUpperCase() + existingRequest.status.slice(1)}</CardTitle>
+            <CardTitle>Request Submitted</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <Alert variant={existingRequest.status === 'approved' ? 'default' : 'warning'}>
+              <Alert variant={existingRequest.letter_document_id ? "success" : "info"}>
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>
-                  {existingRequest.status === 'approved' 
-                    ? 'Request Approved' 
-                    : 'Request Pending'}
+                  {existingRequest.letter_document_id ? "Letter Generated" : "Request Under Review"}
                 </AlertTitle>
                 <AlertDescription>
-                  {existingRequest.status === 'approved'
-                    ? 'Your internship request has been approved. You can proceed with your internship.'
-                    : 'Your internship request is currently under review. We will notify you once it has been processed.'}
+                  {existingRequest.letter_document_id 
+                    ? "Your internship letter has been generated and is ready for download." 
+                    : "Your internship request has been submitted and is currently under review. We will notify you once it has been processed."}
                 </AlertDescription>
               </Alert>
 
-              {existingRequest.details && (
-                <div className="mt-6 space-y-4">
-                  <h3 className="font-medium">Request Details</h3>
-                  <div className="grid gap-2">
-                    <div>
-                      <Label>Company Name</Label>
-                      <p className="text-sm text-muted-foreground">{existingRequest.details.companyName}</p>
-                    </div>
-                    <div>
-                      <Label>Company Address</Label>
-                      <p className="text-sm text-muted-foreground">{existingRequest.details.companyAddress}</p>
-                    </div>
-                    <div>
-                      <Label>Employer Name</Label>
-                      <p className="text-sm text-muted-foreground">{existingRequest.details.employerName}</p>
-                    </div>
-                    <div>
-                      <Label>Internship Duration</Label>
-                      <p className="text-sm text-muted-foreground">{existingRequest.details.internshipDuration}</p>
-                    </div>
-                    {existingRequest.details.skillsRequired && (
-                      <div>
-                        <Label>Skills Required</Label>
-                        <p className="text-sm text-muted-foreground">{existingRequest.details.skillsRequired}</p>
-                      </div>
-                    )}
-                    {existingRequest.details.preferredStartDate && (
-                      <div>
-                        <Label>Preferred Start Date</Label>
-                        <p className="text-sm text-muted-foreground">{existingRequest.details.preferredStartDate}</p>
-                      </div>
-                    )}
-                  </div>
+              {existingRequest.letter_document_id && (
+                <div className="mt-4">
+                  <Button
+                    onClick={() => router.push(`/dashboard/internship-letter?requestId=${existingRequest.id}`)}
+                    className="w-full bg-[#A91827] hover:bg-[#A91827]/90"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    View Letter
+                  </Button>
                 </div>
               )}
+
+              <div className="mt-6 space-y-4">
+                <h3 className="font-medium">Request Details</h3>
+                <div className="grid gap-4">
+                  <div>
+                    <Label>Company Name</Label>
+                    <p className="text-sm text-muted-foreground">{existingRequest.details.companyName}</p>
+                  </div>
+                  <div>
+                    <Label>Company Address</Label>
+                    <p className="text-sm text-muted-foreground">{existingRequest.details.companyAddress}</p>
+                  </div>
+                  <div>
+                    <Label>Employer/Recruiter Name</Label>
+                    <p className="text-sm text-muted-foreground">{existingRequest.details.employerName}</p>
+                  </div>
+                  <div>
+                    <Label>Internship Duration</Label>
+                    <p className="text-sm text-muted-foreground">{existingRequest.details.internshipDuration}</p>
+                  </div>
+                  {existingRequest.details.skillsRequired && (
+                    <div>
+                      <Label>Skills Required</Label>
+                      <p className="text-sm text-muted-foreground">{existingRequest.details.skillsRequired}</p>
+                    </div>
+                  )}
+                  {existingRequest.details.preferredStartDate && (
+                    <div>
+                      <Label>Preferred Start Date</Label>
+                      <p className="text-sm text-muted-foreground">{existingRequest.details.preferredStartDate}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -243,7 +258,7 @@ export default function InternshipRequestPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-4 space-y-4">
       <div className="mb-6">
         <h1 className="text-2xl font-serif font-medium">Internship Request</h1>
         <p className="text-muted-foreground mt-1">Complete all requirements to submit your internship request</p>
@@ -314,8 +329,8 @@ export default function InternshipRequestPage() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="sticky top-0 bg-white z-10 pb-4">
             <DialogTitle>Submit Internship Request</DialogTitle>
             <DialogDescription>
               Please provide the following information to generate your internship introductory letter.
@@ -407,7 +422,8 @@ export default function InternshipRequestPage() {
                   />
                 </div>
               </div>
-              <DialogFooter>
+
+              <DialogFooter className="sticky bottom-0 bg-white pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>

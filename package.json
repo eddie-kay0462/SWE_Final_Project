@@ -47,6 +47,7 @@
     "critters": "^0.0.23",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.6.2",
+    "html2pdf.js": "^0.10.3",
     "html5-qrcode": "^2.3.8",
     "input-otp": "^1.4.2",
     "js-cookie": "^3.0.5",

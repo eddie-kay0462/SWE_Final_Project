@@ -146,14 +146,31 @@ export async function GET(req) {
  */
 export async function POST(req) {
   try {
-    // Verify authentication
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+    // Create Supabase client
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("Auth error:", userError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = session.user.id;
-    const studentId = session.user.student_id;
+    const userId = user.id;
+    
+    // Get user details from users table
+    const { data: userData, error: userDataError } = await supabase
+      .from('users')
+      .select('student_id')
+      .eq('email', user.email)
+      .single();
+
+    if (userDataError) {
+      console.error("Error fetching user data:", userDataError);
+      return NextResponse.json({ error: "Failed to fetch user data" }, { status: 500 });
+    }
+
+    const studentId = userData.student_id;
     
     // Parse request body
     const body = await req.json();
@@ -178,9 +195,74 @@ export async function POST(req) {
       .eq("year_group", yearGroup)
       .single();
       
-    if (requirementsError) {
+    if (requirementsError && requirementsError.code !== 'PGRST116') {
       console.error("Error fetching requirements:", requirementsError);
       return NextResponse.json({ error: "Failed to fetch requirements" }, { status: 500 });
+    }
+
+    // If no requirements group exists, assume no requirements are needed
+    if (!requirementsData) {
+      // Get existing internship request if any
+      const { data: existingRequest, error: requestError } = await supabase
+        .from("internship_requests")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("request_date", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (requestError && requestError.code !== 'PGRST116') { // Ignore "no rows returned" error
+        console.error("Error fetching existing request:", requestError);
+        return NextResponse.json({ error: "Failed to fetch existing request" }, { status: 500 });
+      }
+
+      // If there's an existing request, don't allow another one
+      if (existingRequest) {
+        return NextResponse.json({ 
+          error: "You already have an internship request submitted." 
+        }, { status: 400 });
+      }
+
+      // Create new request with details in jsonb column
+      const { data: requestData, error: insertError } = await supabase
+        .from("internship_requests")
+        .insert([
+          {
+            user_id: userId,
+            details: details
+          }
+        ])
+        .select()
+        .single();
+        
+      if (insertError) {
+        console.error("Error creating internship request:", insertError);
+        return NextResponse.json({ error: "Failed to create internship request" }, { status: 500 });
+      }
+      
+      // Create notification for admin
+      const { error: notificationError } = await supabase
+        .from("notifications")
+        .insert([
+          {
+            user_id: userId,
+            type: "internship_request",
+            title: "New Internship Request",
+            message: "A new internship request has been submitted and requires your review.",
+            admin_notification: true
+          }
+        ]);
+        
+      if (notificationError) {
+        console.error("Error creating notification:", notificationError);
+        // Don't return error as this is not critical
+      }
+      
+      return NextResponse.json({
+        success: true,
+        message: "Internship request submitted successfully",
+        request: requestData
+      });
     }
     
     // Get completed requirements
@@ -208,37 +290,41 @@ export async function POST(req) {
       }, { status: 400 });
     }
     
-    // Create or update internship request
-    const { data: existingRequest, error: existingError } = await supabase
+    // Get existing internship request if any
+    const { data: existingRequest, error: requestError } = await supabase
       .from("internship_requests")
-      .select("id, status")
-      .eq("user_id", userId)
+      .select("*")
+      .eq("user_id", user.id)
       .order("request_date", { ascending: false })
       .limit(1)
       .single();
-      
-    // If there's an existing request that's not rejected, return error
-    if (!existingError && existingRequest && existingRequest.status !== "rejected") {
+
+    if (requestError && requestError.code !== 'PGRST116') { // Ignore "no rows returned" error
+      console.error("Error fetching existing request:", requestError);
+      return NextResponse.json({ error: "Failed to fetch existing request" }, { status: 500 });
+    }
+
+    // If there's an existing request, don't allow another one
+    if (existingRequest) {
       return NextResponse.json({ 
-        error: "You already have a pending or approved internship request." 
+        error: "You already have an internship request submitted." 
       }, { status: 400 });
     }
-    
+
     // Create new request with details in jsonb column
-    const { data: requestData, error: requestError } = await supabase
+    const { data: requestData, error: insertError } = await supabase
       .from("internship_requests")
       .insert([
         {
           user_id: userId,
-          status: "pending",
           details: details
         }
       ])
       .select()
       .single();
       
-    if (requestError) {
-      console.error("Error creating internship request:", requestError);
+    if (insertError) {
+      console.error("Error creating internship request:", insertError);
       return NextResponse.json({ error: "Failed to create internship request" }, { status: 500 });
     }
     
@@ -280,13 +366,17 @@ export async function POST(req) {
  */
 export async function PATCH(req) {
   try {
-    // Verify authentication
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+    // Create Supabase client
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("Auth error:", userError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
     
     // Parse request body
     const body = await req.json();
