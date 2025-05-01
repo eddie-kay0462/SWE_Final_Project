@@ -14,8 +14,166 @@ import { format } from "@/lib/date-utils"
 import { useToast } from "@/hooks/use-toast"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { getUserSessions, bookSession, cancelSession, getAdvisors, getBookingStatus } from "@/utils/supabase/sessions"
 import { Input } from "@/components/ui/input"
+import { createClient } from "@/utils/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
+
+// Supabase client functions
+const getUserSessions = async () => {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  const { data: sessionsData } = await supabase
+    .from("sessions")
+    .select(`
+      *,
+      advisor:advisor_id (
+        id,
+        fname,
+        lname,
+        email
+      )
+    `)
+    .eq("student_id", user.id)
+    .order("date", { ascending: true })
+
+  if (!sessionsData) return { upcomingSessions: [], pastSessions: [] }
+
+  // Separate into upcoming and past sessions
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const upcomingSessions = sessionsData.filter((session) => {
+    if (session.status === "cancelled") return false
+    const sessionDate = new Date(session.date)
+    return sessionDate >= today && session.status === "scheduled"
+  })
+
+  const pastSessions = sessionsData.filter((session) => {
+    const sessionDate = new Date(session.date)
+    return sessionDate < today || session.status === "completed" || session.status === "cancelled"
+  })
+
+  return { upcomingSessions, pastSessions }
+}
+
+const getBookingStatus = async (advisorId = null) => {
+  const supabase = createClient()
+  
+  try {
+    // If advisorId is provided, get personal booking status
+    if (advisorId) {
+      const { data } = await supabase
+        .from("session_settings")
+        .select("is_booking_enabled")
+        .eq("advisor_id", advisorId)
+        .order("id", { ascending: false })
+        .limit(1)
+        .single()
+      
+      return data?.is_booking_enabled ?? true
+    }
+    
+    // Get global booking status
+    const { data } = await supabase
+      .from("session_settings")
+      .select("is_booking_enabled")
+      .is("advisor_id", null)
+      .order("id", { ascending: false })
+      .limit(1)
+      .single()
+    
+    return data?.is_booking_enabled ?? true
+  } catch (error) {
+    console.error("Error getting booking status:", error)
+    return true // Default to enabled if error
+  }
+}
+
+const getAdvisors = async () => {
+  const supabase = createClient()
+  
+  const { data: advisors } = await supabase
+    .from("users")
+    .select("id, fname, lname, email")
+    .eq("role_id", 2) // Assuming role_id 2 is for advisors
+    .order("lname", { ascending: true })
+  
+  return advisors || []
+}
+
+const bookSession = async (formData) => {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  try {
+    // Calculate end time (1 hour after start time)
+    const [hours, minutes] = formData.get("time").split(":").map(Number)
+    const endHours = (hours + 1) % 24
+    const endTime = `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
+
+    // Check for double booking
+    const { data: existingSession } = await supabase
+      .from("sessions")
+      .select("id")
+      .eq("advisor_id", formData.get("advisor_id"))
+      .eq("date", formData.get("date"))
+      .eq("time", formData.get("time"))
+      .eq("status", "scheduled")
+      .limit(1)
+
+    if (existingSession && existingSession.length > 0) {
+      return { success: false, message: "This time slot is already booked" }
+    }
+
+    // Create the session
+    const { error } = await supabase.from("sessions").insert({
+      student_id: user.id,
+      advisor_id: formData.get("advisor_id"),
+      date: formData.get("date"),
+      time: formData.get("time"),
+      end_time: endTime,
+      location: formData.get("location"),
+      status: "scheduled",
+    })
+
+    if (error) throw error
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error booking session:", error)
+    return { success: false, message: error.message }
+  }
+}
+
+const cancelSession = async (sessionId, reason) => {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  try {
+    const { error } = await supabase
+      .from("sessions")
+      .update({
+        status: "cancelled",
+        cancellation_reason: reason,
+        cancelled_by: user.id,
+      })
+      .eq("id", sessionId)
+
+    if (error) throw error
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error cancelling session:", error)
+    return { success: false, message: error.message }
+  }
+}
 
 export default function OneOnOnePage() {
   const { toast } = useToast()
@@ -238,7 +396,7 @@ export default function OneOnOnePage() {
   // Get advisor name by ID
   const getAdvisorName = (id) => {
     const advisor = advisors.find((a) => a.id.toString() === id.toString())
-    return advisor ? `Dr. ${advisor.fname} ${advisor.lname}` : "Select an advisor"
+    return advisor ? `${advisor.fname} ${advisor.lname}` : "Select an advisor"
   }
 
   // Filter advisors based on search query - ONLY from available advisors
@@ -352,7 +510,7 @@ export default function OneOnOnePage() {
                           {format(new Date(session.date), "MMMM d, yyyy")} at {formatTimeForDisplay(session.time)}
                         </h3>
                         <p className="text-muted-foreground">
-                          With Dr. {session.advisor.fname} {session.advisor.lname}
+                          With {session.advisor.fname} {session.advisor.lname}
                         </p>
 
                         <div className="mt-4 space-y-2">
@@ -425,7 +583,7 @@ export default function OneOnOnePage() {
                           </span>
                         </div>
                         <p className="text-muted-foreground">
-                          With Dr. {session.advisor.fname} {session.advisor.lname}
+                          With {session.advisor.fname} {session.advisor.lname}
                         </p>
 
                         <div className="mt-4 space-y-2">
@@ -511,7 +669,7 @@ export default function OneOnOnePage() {
                             >
                               <div className="flex items-center gap-2">
                                 <span>
-                                  Dr. {advisor.fname} {advisor.lname}
+                                  {advisor.fname} {advisor.lname}
                                 </span>
                               </div>
                               {advisor.id.toString() === advisorId && <Check className="h-4 w-4 ml-2" />}
@@ -643,7 +801,7 @@ export default function OneOnOnePage() {
                   {formatTimeForDisplay(selectedSession.time)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  With Dr. {selectedSession.advisor.fname} {selectedSession.advisor.lname}
+                  With {selectedSession.advisor.fname} {selectedSession.advisor.lname}
                 </p>
                 <p className="text-sm text-muted-foreground">Location: {selectedSession.location}</p>
               </div>

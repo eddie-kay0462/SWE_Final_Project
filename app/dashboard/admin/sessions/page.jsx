@@ -1,4 +1,4 @@
-"use client"
+// "use client"
 
 import { useState, useEffect } from "react"
 import { CalendarIcon, Clock, MapPin, Plus, Settings, User, Search, AlertCircle, PenLine } from "lucide-react"
@@ -13,20 +13,15 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { format } from "@/lib/date-utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  getUserSessions,
-  getStudents,
-  updateBookingStatus,
-  createSessionForStudent,
-  cancelSession,
-  markSessionCompleted,
-  addSessionNotes,
-  getBookingStatus,
-  getCurrentUserId,
-} from "@/utils/supabase/sessions"
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { createClient } from "@/utils/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 
 export default function AdminOneOnOnePage() {
+  const router = useRouter()
+  const { authUser, loading: authLoading } = useAuth()
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("upcoming")
   const [isBookingEnabled, setIsBookingEnabled] = useState(true)
@@ -51,6 +46,7 @@ export default function AdminOneOnOnePage() {
   const [showStudentDropdown, setShowStudentDropdown] = useState(false)
   const [formError, setFormError] = useState("")
   const [isPersonalBookingEnabled, setIsPersonalBookingEnabled] = useState(true)
+  const supabase = createClient()
 
   // Time slots
   const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"]
@@ -64,44 +60,143 @@ export default function AdminOneOnOnePage() {
     return `${formattedHour}:${minutes || "00"} ${ampm}`
   }
 
-  // Fetch sessions and students on component mount
+  // Check if user is authenticated and has admin role
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true)
-
-        // Get global booking status (for display only)
-        const bookingStatus = await getBookingStatus()
-        setIsBookingEnabled(bookingStatus)
-
-        // Get personal booking status
-        const userId = await getCurrentUserId()
-        const personalBookingStatus = await getBookingStatus(userId)
-        setIsPersonalBookingEnabled(personalBookingStatus)
-
-        // Get sessions
-        const sessionsData = await getUserSessions()
-        setSessions(sessionsData)
-
-        // Get students
-        const studentsData = await getStudents()
-        console.log("Fetched students:", studentsData)
-        setStudents(studentsData)
-      } catch (error) {
-        console.error("Error fetching data:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load sessions. Please try again later.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
+    if (!authLoading && !authUser) {
+      console.log('[AdminDashboard] No authenticated user, redirecting to login')
+      router.push('/auth/login')
+      return
     }
 
-    fetchData()
-  }, [toast])
+    // Check if user has admin role
+    if (authUser && !authLoading) {
+      checkAdminRole()
+    }
+  }, [authUser, authLoading, router])
 
+  // Check admin role
+  const checkAdminRole = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role_id')
+        .eq('email', authUser.email)
+        .single()
+
+      if (error) throw error
+      
+      if (data.role_id !== 2) {
+        toast.error("You don't have permission to access this page")
+        router.push('/')
+      }
+    } catch (error) {
+      console.error('[AdminDashboard] Role check error:', error)
+      toast.error('Failed to verify permissions')
+      router.push('/')
+    }
+  }
+
+  // Fetch data on component mount
+  useEffect(() => {
+    if (authUser) {
+      fetchData()
+    }
+  }, [authUser])
+
+  // Fetch all necessary data
+  const fetchData = async () => {
+    try {
+      setIsLoading(true)
+
+      // Get booking status
+      const { data: globalSettings } = await supabase
+        .from("session_settings")
+        .select("is_booking_enabled")
+        .is("advisor_id", null)
+        .order("id", { ascending: false })
+        .limit(1)
+        .single()
+      
+      setIsBookingEnabled(globalSettings?.is_booking_enabled ?? true)
+
+      // Get personal booking status
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", authUser.email)
+        .single()
+
+      if (userData) {
+        const { data: personalSettings } = await supabase
+          .from("session_settings")
+          .select("is_booking_enabled")
+          .eq("advisor_id", userData.id)
+          .order("id", { ascending: false })
+          .limit(1)
+          .single()
+
+        setIsPersonalBookingEnabled(personalSettings?.is_booking_enabled ?? true)
+      }
+
+      // Get sessions
+      const { data: sessionsData } = await supabase
+        .from("sessions")
+        .select(`
+          *,
+          student:student_id (
+            id,
+            fname,
+            lname,
+            email,
+            student_id
+          )
+        `)
+        .eq("advisor_id", userData.id)
+        .order("date", { ascending: true })
+
+      if (sessionsData) {
+        // Separate into upcoming and past sessions
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        const upcomingSessions = sessionsData.filter((session) => {
+          if (session.status === "cancelled") return false
+          const sessionDate = new Date(session.date)
+          return sessionDate >= today && session.status === "scheduled"
+        })
+
+        const pastSessions = sessionsData.filter((session) => {
+          const sessionDate = new Date(session.date)
+          return sessionDate < today || session.status === "completed" || session.status === "cancelled"
+        })
+
+        setSessions({ upcomingSessions, pastSessions })
+      }
+
+      // Get students
+      const { data: studentsData } = await supabase
+        .from("users")
+        .select("id, fname, lname, email, student_id")
+        .eq("role_id", 3)
+        .order("lname", { ascending: true })
+
+      if (studentsData) {
+        setStudents(studentsData)
+      }
+
+    } catch (error) {
+      console.error("Error fetching data:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load data. Please try again later.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Filter students based on search query
   const filteredStudents = () => {
     if (!searchQuery.trim()) return students
 
@@ -115,11 +210,10 @@ export default function AdminOneOnOnePage() {
     )
   }
 
+  // Handle session creation
   const handleCreateSession = async () => {
-    // Clear previous errors
     setFormError("")
 
-    // Validate form
     if (!selectedStudent) {
       setFormError("Please select a student")
       return
@@ -138,68 +232,71 @@ export default function AdminOneOnOnePage() {
     setIsSubmitting(true)
 
     try {
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", authUser.email)
+        .single()
+
+      if (!userData) throw new Error("User not found")
+
       // Format date to ISO string (YYYY-MM-DD)
       const formattedDate = format(selectedDate, "yyyy-MM-dd")
 
-      // Create form data
-      const formData = new FormData()
-      formData.append("student_id", selectedStudent)
-      formData.append("date", formattedDate)
-      formData.append("time", selectedTime)
-      formData.append("location", selectedLocation)
+      // Calculate end time (1 hour after start time)
+      const [hours, minutes] = selectedTime.split(":").map(Number)
+      const endHours = (hours + 1) % 24
+      const endTime = `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
 
-      console.log("Creating session with data:", {
-        studentId: selectedStudent,
+      // Check for double booking
+      const { data: existingSession } = await supabase
+        .from("sessions")
+        .select("id")
+        .eq("advisor_id", userData.id)
+        .eq("date", formattedDate)
+        .eq("time", selectedTime)
+        .eq("status", "scheduled")
+        .limit(1)
+
+      if (existingSession && existingSession.length > 0) {
+        throw new Error("This time slot is already booked")
+      }
+
+      // Create the session
+      const { error } = await supabase.from("sessions").insert({
+        student_id: selectedStudent,
+        advisor_id: userData.id,
         date: formattedDate,
         time: selectedTime,
+        end_time: endTime,
         location: selectedLocation,
+        status: "scheduled",
       })
 
-      // Submit the form
-      const result = await createSessionForStudent(formData)
-      console.log("Creation result:", result)
+      if (error) throw error
 
-      if (result.success) {
-        toast({
-          title: "Session Created",
-          description: `1-on-1 session with ${selectedStudentName} has been scheduled for ${format(selectedDate, "MMMM d, yyyy")} at ${formatTimeForDisplay(selectedTime)}.`,
-        })
+      toast({
+        title: "Session Created",
+        description: `1-on-1 session with ${selectedStudentName} has been scheduled for ${format(selectedDate, "MMMM d, yyyy")} at ${formatTimeForDisplay(selectedTime)}.`,
+      })
 
-        // Reset form
-        setCreateSessionDialogOpen(false)
-        setSelectedStudent(null)
-        setSelectedStudentName("")
-        setSelectedDate(null)
-        setSelectedTime("")
-        setSearchQuery("")
+      // Reset form
+      setCreateSessionDialogOpen(false)
+      setSelectedStudent(null)
+      setSelectedStudentName("")
+      setSelectedDate(null)
+      setSelectedTime("")
+      setSearchQuery("")
 
-        // Force page refresh to show the new session
-        window.location.reload()
-      } else {
-        // Show the specific error message from the server
-        setFormError(result.message || "Failed to create session. Please try again.")
+      // Refresh data
+      fetchData()
 
-        // If it's an authentication error, suggest logging in again
-        if (result.message && result.message.includes("authentication")) {
-          toast({
-            title: "Authentication Error",
-            description: "Your session may have expired. Please try logging out and back in.",
-            variant: "destructive",
-          })
-        } else {
-          toast({
-            title: "Creation Failed",
-            description: result.message || "Failed to create session. Please try again.",
-            variant: "destructive",
-          })
-        }
-      }
     } catch (error) {
       console.error("Error creating session:", error)
-      setFormError("An unexpected error occurred. Please try again.")
+      setFormError(error.message || "Failed to create session. Please try again.")
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Creation Failed",
+        description: error.message || "Failed to create session. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -207,33 +304,33 @@ export default function AdminOneOnOnePage() {
     }
   }
 
+  // Handle session completion
   const handleCompleteSession = async () => {
     setIsSubmitting(true)
 
     try {
-      const result = await markSessionCompleted(selectedSession.id, sessionNotes)
-
-      if (result.success) {
-        toast({
-          title: "Session Completed",
-          description: "The session has been marked as completed and notes have been saved.",
+      const { error } = await supabase
+        .from("sessions")
+        .update({
+          status: "completed",
+          notes: sessionNotes,
         })
+        .eq("id", selectedSession.id)
 
-        // Refresh the sessions
-        const sessionsData = await getUserSessions()
-        setSessions(sessionsData)
+      if (error) throw error
 
-        // Reset form
-        setCompleteSessionDialogOpen(false)
-        setSelectedSession(null)
-        setSessionNotes("")
-      } else {
-        toast({
-          title: "Completion Failed",
-          description: result.message,
-          variant: "destructive",
-        })
-      }
+      toast({
+        title: "Session Completed",
+        description: "The session has been marked as completed and notes have been saved.",
+      })
+
+      // Refresh data
+      fetchData()
+
+      // Reset form
+      setCompleteSessionDialogOpen(false)
+      setSelectedSession(null)
+      setSessionNotes("")
     } catch (error) {
       console.error("Error completing session:", error)
       toast({
@@ -246,33 +343,30 @@ export default function AdminOneOnOnePage() {
     }
   }
 
+  // Handle adding notes
   const handleAddNotes = async () => {
     setIsSubmitting(true)
 
     try {
-      const result = await addSessionNotes(selectedSession.id, sessionNotes)
+      const { error } = await supabase
+        .from("sessions")
+        .update({ notes: sessionNotes })
+        .eq("id", selectedSession.id)
 
-      if (result.success) {
-        toast({
-          title: "Notes Added",
-          description: "Session notes have been successfully added.",
-        })
+      if (error) throw error
 
-        // Refresh the sessions
-        const sessionsData = await getUserSessions()
-        setSessions(sessionsData)
+      toast({
+        title: "Notes Added",
+        description: "Session notes have been successfully added.",
+      })
 
-        // Reset form
-        setAddNotesDialogOpen(false)
-        setSelectedSession(null)
-        setSessionNotes("")
-      } else {
-        toast({
-          title: "Failed to Add Notes",
-          description: result.message,
-          variant: "destructive",
-        })
-      }
+      // Refresh data
+      fetchData()
+
+      // Reset form
+      setAddNotesDialogOpen(false)
+      setSelectedSession(null)
+      setSessionNotes("")
     } catch (error) {
       console.error("Error adding notes:", error)
       toast({
@@ -285,6 +379,7 @@ export default function AdminOneOnOnePage() {
     }
   }
 
+  // Handle session cancellation
   const handleCancelSession = async () => {
     if (!cancelReason.trim()) {
       toast({
@@ -298,29 +393,37 @@ export default function AdminOneOnOnePage() {
     setIsSubmitting(true)
 
     try {
-      const result = await cancelSession(selectedSession.id, cancelReason)
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", authUser.email)
+        .single()
 
-      if (result.success) {
-        toast({
-          title: "Session Cancelled",
-          description: "The 1-on-1 session has been cancelled. The student has been notified.",
+      if (!userData) throw new Error("User not found")
+
+      const { error } = await supabase
+        .from("sessions")
+        .update({
+          status: "cancelled",
+          cancellation_reason: cancelReason,
+          cancelled_by: userData.id,
         })
+        .eq("id", selectedSession.id)
 
-        // Refresh the sessions
-        const sessionsData = await getUserSessions()
-        setSessions(sessionsData)
+      if (error) throw error
 
-        // Reset form
-        setCancelSessionDialogOpen(false)
-        setSelectedSession(null)
-        setCancelReason("")
-      } else {
-        toast({
-          title: "Cancellation Failed",
-          description: result.message,
-          variant: "destructive",
-        })
-      }
+      toast({
+        title: "Session Cancelled",
+        description: "The 1-on-1 session has been cancelled. The student has been notified.",
+      })
+
+      // Refresh data
+      fetchData()
+
+      // Reset form
+      setCancelSessionDialogOpen(false)
+      setSelectedSession(null)
+      setCancelReason("")
     } catch (error) {
       console.error("Error cancelling session:", error)
       toast({
@@ -333,15 +436,62 @@ export default function AdminOneOnOnePage() {
     }
   }
 
-  const handleOpenCreateDialog = () => {
-    setSelectedStudent(null)
-    setSelectedStudentName("")
-    setSelectedDate(null)
-    setSelectedTime("")
-    setSelectedLocation("Career Center, Room 203")
-    setSearchQuery("")
-    setFormError("")
-    setCreateSessionDialogOpen(true)
+  // Handle updating booking status
+  const handleUpdateBookingStatus = async () => {
+    try {
+      setIsSubmitting(true)
+
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", authUser.email)
+        .single()
+
+      if (!userData) throw new Error("User not found")
+
+      // Check if a record already exists
+      const { data: existingSettings } = await supabase
+        .from("session_settings")
+        .select("id")
+        .eq("advisor_id", userData.id)
+        .limit(1)
+
+      if (existingSettings && existingSettings.length > 0) {
+        // Update existing record
+        const { error } = await supabase
+          .from("session_settings")
+          .update({ is_booking_enabled: isPersonalBookingEnabled })
+          .eq("id", existingSettings[0].id)
+
+        if (error) throw error
+      } else {
+        // Create new record
+        const { error } = await supabase.from("session_settings").insert({
+          advisor_id: userData.id,
+          is_booking_enabled: isPersonalBookingEnabled,
+        })
+
+        if (error) throw error
+      }
+
+      toast({
+        title: isPersonalBookingEnabled ? "Booking Enabled" : "Booking Disabled",
+        description: isPersonalBookingEnabled
+          ? "Students can now book 1-on-1 sessions with you."
+          : "Students cannot book 1-on-1 sessions with you until you enable it again.",
+      })
+
+      setSettingsDialogOpen(false)
+    } catch (error) {
+      console.error("Error updating booking status:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update booking status. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // Render loading state
@@ -379,7 +529,7 @@ export default function AdminOneOnOnePage() {
             <Settings className="h-4 w-4 mr-2" />
             Settings
           </Button>
-          <Button onClick={handleOpenCreateDialog}>
+          <Button onClick={() => setCreateSessionDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Create Session
           </Button>
@@ -497,7 +647,7 @@ export default function AdminOneOnOnePage() {
               <Card>
                 <CardContent className="p-6 text-center">
                   <p className="text-muted-foreground">No upcoming sessions scheduled.</p>
-                  <Button className="mt-4" onClick={handleOpenCreateDialog}>
+                  <Button className="mt-4" onClick={() => setCreateSessionDialogOpen(true)}>
                     Create a Session
                   </Button>
                 </CardContent>
@@ -606,41 +756,7 @@ export default function AdminOneOnOnePage() {
               Cancel
             </Button>
             <Button
-              onClick={async () => {
-                try {
-                  setIsSubmitting(true)
-                  const userId = await getCurrentUserId()
-                  console.log("Updating booking status for user:", userId, "to:", isPersonalBookingEnabled)
-
-                  const result = await updateBookingStatus(isPersonalBookingEnabled, userId)
-                  console.log("Update result:", result)
-
-                  if (result.success) {
-                    toast({
-                      title: isPersonalBookingEnabled ? "Booking Enabled" : "Booking Disabled",
-                      description: isPersonalBookingEnabled
-                        ? "Students can now book 1-on-1 sessions with you."
-                        : "Students cannot book 1-on-1 sessions with you until you enable it again.",
-                    })
-                    setSettingsDialogOpen(false)
-                  } else {
-                    toast({
-                      title: "Error",
-                      description: "Failed to update booking status. Please try again.",
-                      variant: "destructive",
-                    })
-                  }
-                } catch (error) {
-                  console.error("Error updating booking status:", error)
-                  toast({
-                    title: "Error",
-                    description: "An unexpected error occurred. Please try again.",
-                    variant: "destructive",
-                  })
-                } finally {
-                  setIsSubmitting(false)
-                }
-              }}
+              onClick={handleUpdateBookingStatus}
               disabled={isSubmitting}
             >
               {isSubmitting ? "Saving..." : "Save Settings"}
