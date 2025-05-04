@@ -13,12 +13,13 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { GraduationCap, Eye, EyeOff } from "lucide-react"
+import { GraduationCap, Eye, EyeOff, CheckCircle2 } from "lucide-react"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { PasswordStrength } from "@/components/ui/password-strength"
 import { validatePassword } from "@/utils/validation"
 import { createClient } from '@/utils/supabase/client'
+import Confetti from 'react-confetti'
 
 export default function Signup() {
   const [email, setEmail] = useState("")
@@ -30,7 +31,7 @@ export default function Signup() {
   const [role, setRole] = useState("student") // Default to student
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isPageLoading, setIsPageLoading] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [touched, setTouched] = useState({})
@@ -106,72 +107,89 @@ export default function Signup() {
     try {
       const supabase = createClient()
 
-      // First create the user profile in our database
-      const { error: profileError } = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          firstName,
-          lastName,
-          studentId: role === 'student' ? studentId : null,
-          role
-        }),
-      }).then(res => res.json())
-
-      if (profileError) {
-        throw new Error(profileError)
-      }
-
-      // Show page loading before redirect
-      setIsPageLoading(true)
-
-      try {
-        // Then send the OTP email
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: true,
-            data: {
-              first_name: firstName,
-              last_name: lastName,
-              student_id: role === 'student' ? studentId : null,
-              role_id: role === 'student' ? 3 : 2
-            }
-          }
-        })
-
-        if (otpError) {
-          // If we get rate limited, still redirect to OTP page
-          if (otpError.message.includes('seconds')) {
-            console.warn('Rate limited but proceeding:', otpError.message)
-          } else {
-            throw otpError
+      // Sign up the user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            student_id: role === 'student' ? studentId : null,
+            role_id: role === 'student' ? 3 : 2
           }
         }
+      })
 
-        // Navigate to OTP verification page
-        router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
-      } catch (otpError) {
-        // Even if OTP sending fails, redirect to verification page
-        // The user can request a new code there
-        console.error('OTP error but proceeding:', otpError)
-        router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
-      }
+      if (authError) throw authError
+
+      // Create the user profile in our database
+      const { error: profileError } = await supabase.from('users').insert({
+        id: authData.user.id,
+        fname: firstName,
+        lname: lastName,
+        email: email,
+        role_id: role === 'student' ? 3 : 2,
+        student_id: role === 'student' ? studentId : null,
+        password: 'hashed_by_supabase'
+      })
+
+      if (profileError) throw profileError
+
+      // Show success state
+      setShowSuccess(true)
+
+      // Redirect after 5 seconds
+      setTimeout(() => {
+        // Redirect based on role
+        if (role === 'student') {
+          router.push('/student/dashboard')
+        } else {
+          router.push('/admin/dashboard')
+        }
+      }, 5000)
+
     } catch (error) {
       setError(error.message)
       setIsLoading(false)
-      setIsPageLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-[#f3f1ea] flex flex-col">
+      {showSuccess && (
+        <>
+          <Confetti
+            width={window.innerWidth}
+            height={window.innerHeight}
+            recycle={false}
+            numberOfPieces={500}
+            gravity={0.2}
+          />
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center">
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <div className="absolute inset-0 animate-ping rounded-full bg-green-100"></div>
+                  <CheckCircle2 className="h-16 w-16 text-green-500 relative" />
+                </div>
+              </div>
+              <h2 className="text-3xl font-serif font-normal mb-4">
+                Welcome to <span className="font-serif italic">CSOFT!</span>
+              </h2>
+              <p className="text-[#000000]/70 text-lg mb-4">
+                Your account has been successfully created. Redirecting you to the dashboard...
+              </p>
+              <div className="animate-pulse">
+                <LoadingSpinner size="small" />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Full Page Loading Spinner */}
-      {isPageLoading && <LoadingSpinner fullPage size="large" text="Creating your account" />}
+      {isLoading && <LoadingSpinner fullPage size="large" text="Creating your account" />}
       
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
