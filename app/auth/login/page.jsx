@@ -13,7 +13,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { GraduationCap, AlertTriangle } from "lucide-react"
+import { GraduationCap, AlertTriangle, Eye, EyeOff } from "lucide-react"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
@@ -23,6 +23,7 @@ export default function Login() {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isPageLoading, setIsPageLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
 
   /**
@@ -191,16 +192,30 @@ export default function Login() {
                   <label className="block text-[#000000]/70 text-lg font-medium mb-2" htmlFor="password">
                     Password
                   </label>
-                  <input
-                    id="password"
-                    type="password"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black"
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A91827] text-lg transition-all bg-white text-black pr-12"
+                      placeholder="••••••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" aria-label="Hide password" />
+                      ) : (
+                        <Eye className="h-5 w-5" aria-label="Show password" />
+                      )}
+                    </button>
+                  </div>
                   <div className="flex justify-end mt-2">
                     <Link href="/auth/forgot-password" className="text-[#A91827] hover:underline text-sm">
                       Forgot password?
