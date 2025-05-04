@@ -1,7 +1,8 @@
-# App Directory
+# CSOFT - Career Services On Your Fingertips
 
 
 [GitHub Repository](https://github.com/eddie-kay0462/SWE_Final_Project/)
+[Video Demo Link](https://ashe.si/3Sj7WNh)
 
 This directory contains the core application logic and user interface components for the SWE Final Project, structured using the Next.js App Router.
 
