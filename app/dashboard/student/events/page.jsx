@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Calendar, Clock, MapPin, Users, ChevronRight, CheckCircle, MessageSquare, X, QrCode } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, ChevronRight, CheckCircle, MessageSquare, X, QrCode, Video, Building2 } from 'lucide-react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -15,6 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 // Helper to format time for display
 function formatTimeForDisplay(time) {
@@ -38,6 +41,7 @@ export default function EventsPage() {
   const [pastEvents, setPastEvents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
 
   // Fetch events from the API
   useEffect(() => {
@@ -87,6 +91,11 @@ export default function EventsPage() {
   const handleOpenQRDialog = (event) => {
     // Redirect to the take-attendance page
     window.location.href = `https://csoft-vert.vercel.app/take-attendance/${event.id}`;
+  };
+
+  const handleOpenDetailsDialog = (event) => {
+    setSelectedEvent(event);
+    setDetailsDialogOpen(true);
   };
 
   const handleSubmitFeedback = async () => {
@@ -206,13 +215,14 @@ export default function EventsPage() {
             ))}
           </div>
           <div className="flex justify-between items-center">
-            <Link
-              href={`/events/${event.id}`}
-              className="inline-flex items-center text-primary hover:text-primary/80 font-medium"
+            <Button
+              onClick={() => handleOpenDetailsDialog(event)}
+              variant="ghost"
+              className="inline-flex items-center text-primary hover:text-primary/80 font-medium p-0 h-auto"
             >
               View details
               <ChevronRight className="ml-1 h-4 w-4" />
-            </Link>
+            </Button>
             
             <div className="flex gap-2">
               
@@ -327,6 +337,115 @@ export default function EventsPage() {
     );
   };
 
+  const renderDetailsDialog = () => {
+    if (!detailsDialogOpen || !selectedEvent) return null;
+
+    return (
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-2xl p-0 rounded-2xl overflow-hidden border-none bg-white/95 backdrop-blur-sm dark:bg-gray-950/95">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-6"
+          >
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-semibold">Event Details</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Comprehensive information about this career development event.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-6 space-y-6">
+              {/* Event Header */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold">{selectedEvent.title}</h2>
+                  <Badge
+                    variant={selectedEvent.location === "Online" ? "secondary" : "default"}
+                    className={cn(
+                      "mt-2 rounded-full px-3 py-1 text-xs font-medium",
+                      selectedEvent.location === "Online"
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                        : "bg-[#A91827]/10 text-[#A91827]"
+                    )}
+                  >
+                    {selectedEvent.location === "Online" ? (
+                      <div className="flex items-center gap-1.5">
+                        <Video className="h-3 w-3" />
+                        <span>Online</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <Building2 className="h-3 w-3" />
+                        <span>In-Person</span>
+                      </div>
+                    )}
+                  </Badge>
+                </div>
+                <Badge variant={selectedEvent.status === "upcoming" ? "default" : "secondary"}>
+                  {selectedEvent.status === "upcoming" ? "Upcoming" : "Past"}
+                </Badge>
+              </div>
+
+              {/* Event Details */}
+              <Card className="p-4 space-y-3">
+                <h3 className="font-medium">Event Information</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center text-muted-foreground">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <span>{selectedEvent.date}</span>
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <Clock className="h-4 w-4 mr-2" />
+                    <span>
+                      {formatTimeForDisplay(selectedEvent.start_time)} - {formatTimeForDisplay(selectedEvent.end_time)}
+                    </span>
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    <span>{selectedEvent.location}</span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Description */}
+              <div className="space-y-3">
+                <h3 className="font-medium">Description</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedEvent.description}</p>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex flex-wrap gap-3 pt-4">
+                <Button
+                  onClick={() => {
+                    setDetailsDialogOpen(false);
+                    handleOpenQRDialog(selectedEvent);
+                  }}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <QrCode className="h-4 w-4" />
+                  View Attendance Page
+                </Button>
+                <Button
+                  onClick={() => {
+                    setDetailsDialogOpen(false);
+                    handleOpenFeedbackDialog(selectedEvent);
+                  }}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  {selectedEvent.hasFeedback ? "View/Edit Feedback" : "Provide Feedback"}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Tabs */}
@@ -352,6 +471,9 @@ export default function EventsPage() {
 
       {/* Feedback Modal */}
       {renderFeedbackModal()}
+
+      {/* Details Dialog */}
+      {renderDetailsDialog()}
     </div>
   )
 }

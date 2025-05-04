@@ -54,11 +54,11 @@ export async function GET(request) {
       if (!roleError && userData) {
         switch (userData.role_id) {
           case 1:
-            return NextResponse.redirect(new URL('/superadmin/dashboard', requestUrl.origin))
+            return NextResponse.redirect(new URL('/dashboard/super-admin', requestUrl.origin))
           case 2:
-            return NextResponse.redirect(new URL('/admin/dashboard', requestUrl.origin))
+            return NextResponse.redirect(new URL('/dashboard/admin', requestUrl.origin))
           case 3:
-            return NextResponse.redirect(new URL('/student/dashboard', requestUrl.origin))
+            return NextResponse.redirect(new URL('/dashboard/student', requestUrl.origin))
           default:
             return response
         }

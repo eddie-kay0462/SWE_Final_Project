@@ -366,10 +366,14 @@ export default function ResourcesPage() {
       return
     }
 
-    const toastId = toast.loading("Submitting your resource request...")
-
     try {
       setIsSubmitting(true)
+
+      // Show initial toast
+      toast({
+        title: "Submitting request...",
+        description: "Please wait while we process your request.",
+      })
 
       // First get the public.users ID and user details
       const { data: userData, error: userError } = await supabase
@@ -378,7 +382,13 @@ export default function ResourcesPage() {
         .eq("email", authUser.email)
         .single()
 
-      if (userError || !userData) throw userError
+      if (userError) {
+        throw new Error(userError.message || "Failed to fetch user data")
+      }
+
+      if (!userData) {
+        throw new Error("User data not found")
+      }
 
       // Insert resource request
       const { data: requestData, error: requestError } = await supabase
@@ -389,24 +399,39 @@ export default function ResourcesPage() {
             reason: requestForm.reason,
             importance: requestForm.importance,
             user_id: userData.id,
-            status: 'pending', // Add status field
-            created_at: new Date().toISOString()
+            status: 'pending',
+            submitted_at: new Date().toISOString()
           },
         ])
         .select()
         .single()
 
-      if (requestError) throw requestError
+      if (requestError) {
+        throw new Error(requestError.message || "Failed to create resource request")
+      }
+
+      if (!requestData) {
+        throw new Error("Failed to create resource request - no data returned")
+      }
+
+      // Get admin users to send notifications to
+      const { data: { user: adminUser }, error: adminAuthError } = await supabase.auth.getUser()
+
+      if (adminAuthError) {
+        throw new Error(adminAuthError.message || "Failed to fetch admin user")
+      }
 
       // Create notification for admin
       const { error: notificationError } = await supabase
         .from("notifications")
         .insert([
           {
+            user_id: adminUser.id,
             type: "request",
             title: "New Resource Request",
             message: `${userData.fname} ${userData.lname} has requested a resource: ${requestForm.resourceTitle}`,
-            admin_notification: true,
+            read: false,
+            created_at: new Date().toISOString(),
             metadata: {
               requestId: requestData.id,
               resourceTitle: requestForm.resourceTitle,
@@ -414,15 +439,20 @@ export default function ResourcesPage() {
               reason: requestForm.reason,
               studentId: userData.id,
               studentName: `${userData.fname} ${userData.lname}`
-            }
+            },
+            admin_notification: true
           },
         ])
 
-      if (notificationError) throw notificationError
+      if (notificationError) {
+        throw new Error(notificationError.message || "Failed to create notification")
+      }
 
-      toast.success("Request submitted successfully!", {
-        id: toastId,
+      // Show success toast
+      toast({
+        title: "Request submitted successfully!",
         description: "We'll notify you when the resource becomes available.",
+        variant: "default",
       })
 
       // Reset form
@@ -434,9 +464,10 @@ export default function ResourcesPage() {
       setShowRequestModal(false)
     } catch (error) {
       console.error("[Resources] Request submit error:", error)
-      toast.error("Failed to submit request", {
-        id: toastId,
-        description: error.message,
+      toast({
+        title: "Failed to submit request",
+        description: error.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
       })
     } finally {
       setIsSubmitting(false)

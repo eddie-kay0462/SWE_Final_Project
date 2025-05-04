@@ -34,7 +34,7 @@ export default function EventsPage() {
       title: "Interview Skills Session",
       date: "March 5, 2025",
       time: "1:00 PM - 3:00 PM",
-      location: "Online (Zoom)",
+    location: "Online (Zoom)",
       attendees: 67,
       description: "Practice answering common interview questions and receive feedback from career advisors to improve your interviewing skills.",
       tags: ["Workshop", "Virtual"]

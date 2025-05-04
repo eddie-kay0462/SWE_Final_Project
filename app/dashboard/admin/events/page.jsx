@@ -21,6 +21,7 @@ import {
   Share2,
   Star,
   ChevronDown,
+  Eye,
 } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { toast } from "sonner"
@@ -79,6 +80,7 @@ export default function AdminEventsPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(9)
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
 
   // Create event form state
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false)
@@ -614,7 +616,24 @@ export default function AdminEventsPage() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            {/* Generate check-in QR code */}
+                            <Button
+                              onClick={() => handleOpenDetailsDialog(event)}
+                              variant="outline" 
+                              className="flex items-center gap-2 rounded-xl h-9 px-3 border-muted-foreground/20 hover:bg-muted-foreground/5 whitespace-nowrap"
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span className="hidden sm:inline">View Details</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View event details</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
                             <Button
                               onClick={() => {
                                 setSelectedEvent(event);
@@ -629,26 +648,6 @@ export default function AdminEventsPage() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Generate check-in QR code</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              onClick={() => handleViewAttendance(event)}
-                              variant="outline"
-                              className="flex items-center gap-2 rounded-xl h-9 px-3 border-muted-foreground/20 hover:bg-muted-foreground/5 whitespace-nowrap"
-                            >
-                              <Users className="h-4 w-4" />
-                              <span className="hidden sm:inline">
-                                View Attendance ({event.attendees || 0})
-                              </span>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>View attendance records</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -1191,6 +1190,163 @@ export default function AdminEventsPage() {
     window.location.href = `/dashboard/admin/events/${event.id}/attendance`;
   };
 
+  const handleOpenDetailsDialog = (event) => {
+    setSelectedEvent(event);
+    setDetailsDialogOpen(true);
+  };
+
+  const renderDetailsDialog = () => {
+    if (!detailsDialogOpen) return null;
+
+    return (
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-3xl p-0 rounded-2xl overflow-hidden border-none bg-white/95 backdrop-blur-sm dark:bg-gray-950/95">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-6">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-semibold">Event Details</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Comprehensive information about this event.
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedEvent && (
+              <div className="mt-6 space-y-6">
+                {/* Event Header */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold">{selectedEvent.title}</h2>
+                    <Badge
+                      variant={selectedEvent.location === "Online" ? "secondary" : "default"}
+                      className={cn(
+                        "mt-2 rounded-full px-3 py-1 text-xs font-medium",
+                        selectedEvent.location === "Online"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                          : "bg-[#A91827]/10 text-[#A91827]"
+                      )}
+                    >
+                      {selectedEvent.location === "Online" ? (
+                        <div className="flex items-center gap-1.5">
+                          <Video className="h-3 w-3" />
+                          <span>Online</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="h-3 w-3" />
+                          <span>In-Person</span>
+                        </div>
+                      )}
+                    </Badge>
+                  </div>
+                  <Badge variant={selectedEvent.status === "upcoming" ? "default" : "secondary"}>
+                    {selectedEvent.status === "upcoming" ? "Upcoming" : "Past"}
+                  </Badge>
+                </div>
+
+                {/* Event Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card className="p-4 space-y-3">
+                    <h3 className="font-medium">Event Information</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center text-muted-foreground">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        <span>{selectedEvent.date}</span>
+                      </div>
+                      <div className="flex items-center text-muted-foreground">
+                        <Clock className="h-4 w-4 mr-2" />
+                        <span>
+                          {formatTimeForDisplay(selectedEvent.start_time)} - {formatTimeForDisplay(selectedEvent.end_time)}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-muted-foreground">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        <span>{selectedEvent.location}</span>
+                      </div>
+                      <div className="flex items-center text-muted-foreground">
+                        <Users className="h-4 w-4 mr-2" />
+                        <span>{selectedEvent.attendees} registered attendees</span>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="p-4 space-y-3">
+                    <h3 className="font-medium">Feedback Overview</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Total Feedback:</span>
+                        <span>{selectedEvent.feedbackCount}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Average Rating:</span>
+                        <div className="flex items-center">
+                          <span className="mr-2">{selectedEvent.averageRating.toFixed(1)}</span>
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`h-3 w-3 ${
+                                  star <= selectedEvent.averageRating
+                                    ? "text-yellow-400 fill-yellow-400"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-3">
+                  <h3 className="font-medium">Description</h3>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedEvent.description}</p>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="flex flex-wrap gap-3 pt-4">
+                  <Button
+                    onClick={() => {
+                      setDetailsDialogOpen(false);
+                      setQRDialogOpen(true);
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Generate QR Code
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setDetailsDialogOpen(false);
+                      handleViewAttendance(selectedEvent);
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Users className="h-4 w-4" />
+                    View Attendance
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setDetailsDialogOpen(false);
+                      handleOpenFeedbackDialog(selectedEvent);
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    View Feedback
+                  </Button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   const renderAttendanceDialog = () => {
     if (!attendanceDialogOpen) return null;
 
@@ -1517,6 +1673,9 @@ export default function AdminEventsPage() {
 
       {/* Attendance Dialog */}
       {renderAttendanceDialog()}
+
+      {/* Details Dialog */}
+      {renderDetailsDialog()}
     </div>
   )
 }

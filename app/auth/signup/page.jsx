@@ -143,9 +143,9 @@ export default function Signup() {
       setTimeout(() => {
         // Redirect based on role
         if (role === 'student') {
-          router.push('/student/dashboard')
+          router.push('/dashboard/student')
         } else {
-          router.push('/admin/dashboard')
+          router.push('/dashboard/admin')
         }
       }, 5000)
 
