@@ -18,7 +18,7 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { PasswordStrength } from "@/components/ui/password-strength"
 import { validatePassword } from "@/utils/validation"
-import { createBrowserClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from '@/utils/supabase/client'
 
 export default function Signup() {
   const [email, setEmail] = useState("")
@@ -104,10 +104,7 @@ export default function Signup() {
     }
 
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      )
+      const supabase = createClient()
 
       // First create the user profile in our database
       const { error: profileError } = await fetch('/api/auth/signup', {
@@ -129,31 +126,41 @@ export default function Signup() {
         throw new Error(profileError)
       }
 
-      // Then send the OTP email
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            student_id: role === 'student' ? studentId : null,
-            role_id: role === 'student' ? 3 : 2
-          }
-        }
-      })
-
-      if (otpError) {
-        throw new Error(otpError.message)
-      }
-
       // Show page loading before redirect
       setIsPageLoading(true)
-      
-      // Navigate to OTP verification page
-      setTimeout(() => {
+
+      try {
+        // Then send the OTP email
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: true,
+            data: {
+              first_name: firstName,
+              last_name: lastName,
+              student_id: role === 'student' ? studentId : null,
+              role_id: role === 'student' ? 3 : 2
+            }
+          }
+        })
+
+        if (otpError) {
+          // If we get rate limited, still redirect to OTP page
+          if (otpError.message.includes('seconds')) {
+            console.warn('Rate limited but proceeding:', otpError.message)
+          } else {
+            throw otpError
+          }
+        }
+
+        // Navigate to OTP verification page
         router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
-      }, 500)
+      } catch (otpError) {
+        // Even if OTP sending fails, redirect to verification page
+        // The user can request a new code there
+        console.error('OTP error but proceeding:', otpError)
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
+      }
     } catch (error) {
       setError(error.message)
       setIsLoading(false)

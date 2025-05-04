@@ -15,7 +15,7 @@ import Link from "next/link"
 import { GraduationCap } from "lucide-react"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { createBrowserClient } from "@supabase/ssr"
+import { createClient } from '@/utils/supabase/client'
 
 export default function VerifyOTP() {
   const [otp, setOtp] = useState("")
@@ -23,13 +23,12 @@ export default function VerifyOTP() {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isPageLoading, setIsPageLoading] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [isResending, setIsResending] = useState(false)
   
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
+  const supabase = createClient()
 
   useEffect(() => {
     // Get email from URL params
@@ -40,6 +39,58 @@ export default function VerifyOTP() {
       setError("No email provided. Please try signing up again.")
     }
   }, [searchParams])
+
+  useEffect(() => {
+    // Countdown timer for resend cooldown
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => {
+        setResendCooldown(prev => prev - 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendCooldown])
+
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0) return
+    
+    setIsResending(true)
+    setError(null)
+
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false
+        }
+      })
+
+      if (otpError) {
+        if (otpError.message.includes('seconds')) {
+          // Extract wait time from error message
+          const seconds = parseInt(otpError.message.match(/\d+/)[0])
+          setResendCooldown(seconds)
+          setError(`Please wait ${seconds} seconds before requesting a new code.`)
+        } else {
+          throw otpError
+        }
+      } else {
+        // Success - start 60s cooldown and show success message
+        setResendCooldown(60)
+        setError(null)
+        // Show success message in green
+        const successDiv = document.createElement('div')
+        successDiv.className = 'mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg'
+        successDiv.textContent = 'New code sent! Please check your email.'
+        document.querySelector('form').insertBefore(successDiv, document.querySelector('form').firstChild)
+        // Remove success message after 5 seconds
+        setTimeout(() => successDiv.remove(), 5000)
+      }
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setIsResending(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -61,7 +112,7 @@ export default function VerifyOTP() {
       
       // Redirect to success page
       setTimeout(() => {
-        router.push("/auth/account-confirmed")
+        router.push("/auth/signup-success")
       }, 500)
     } catch (error) {
       setError(error.message)
@@ -110,7 +161,11 @@ export default function VerifyOTP() {
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-[#A91827] rounded-lg">
+              <div className={`mb-6 p-4 rounded-lg ${
+                error.includes('Please wait') 
+                  ? 'bg-yellow-50 border border-yellow-200 text-yellow-700'
+                  : 'bg-red-50 border border-red-200 text-[#A91827]'
+              }`}>
                 {error}
               </div>
             )}
@@ -155,9 +210,20 @@ export default function VerifyOTP() {
               <div className="text-center text-[#000000]/70">
                 <p>
                   Didn't receive the code?{" "}
-                  <Link href="/auth/signup" className="text-[#A91827] hover:underline">
-                    Try signing up again
-                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={resendCooldown > 0 || isResending}
+                    className={`text-[#A91827] hover:underline ${(resendCooldown > 0 || isResending) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {isResending ? (
+                      "Sending..."
+                    ) : resendCooldown > 0 ? (
+                      `Resend in ${resendCooldown}s`
+                    ) : (
+                      "Resend code"
+                    )}
+                  </button>
                 </p>
               </div>
             </form>

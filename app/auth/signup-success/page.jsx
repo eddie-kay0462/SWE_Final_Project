@@ -1,72 +1,112 @@
-    "use client"
+"use client"
 
 /**
  * Signup Success Page
  * 
- * Displays a successful signup message and instructions for email verification
+ * Displays a successful signup message and instructions for next steps
+ * Includes celebratory animations and clear CTAs
  * 
- * @page.jsx Renders after successful user registration to indicate next steps
+ * @page.jsx Renders after successful user registration and OTP verification
  */
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { CheckCircle2, GraduationCap, ArrowLeft } from "lucide-react"
+import { GraduationCap, CheckCircle2, ArrowLeft } from "lucide-react"
+import Confetti from 'react-confetti'
+import { useRouter } from "next/navigation"
 
 export default function SignupSuccess() {
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0
+  })
+  const [showConfetti, setShowConfetti] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+    }
+
+    window.addEventListener('resize', handleResize)
+    
+    // Stop confetti after 5 seconds
+    const timer = setTimeout(() => {
+      setShowConfetti(false)
+    }, 5000)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      clearTimeout(timer)
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#f3f1ea] flex flex-col">
+      {showConfetti && (
+        <Confetti
+          width={windowSize.width}
+          height={windowSize.height}
+          recycle={false}
+          numberOfPieces={500}
+          gravity={0.2}
+        />
+      )}
+      
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b bg-white">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <GraduationCap className="h-6 w-6 text-[#A91827]" />
-            <span className="text-xl font-bold">CSOFT</span>
+            <span className="text-xl font-bold text-black">CSOFT</span>
           </Link>
-          <nav className="hidden md:flex gap-6">
-            <Link href="/" className="text-sm font-medium hover:text-[#A91827] transition-colors">
-              Home
-            </Link>
-            <Link href="/#features" className="text-sm font-medium hover:text-[#A91827] transition-colors">
-              Services
-            </Link>
-            <Link href="/#benefits" className="text-sm font-medium hover:text-[#A91827] transition-colors">
-              About Us
-            </Link>
-          </nav>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto p-4 md:p-8 flex items-center justify-center">
         <div className="w-full max-w-xl animate-appear opacity-0">
-          <div className="bg-white rounded-xl overflow-hidden shadow-xl p-10 text-center">
+          <div className="bg-white rounded-xl overflow-hidden shadow-xl p-8 text-center">
             <div className="flex justify-center mb-6">
-              <CheckCircle2 className="h-16 w-16 text-green-500" />
+              <div className="relative">
+                <div className="absolute inset-0 animate-ping rounded-full bg-green-100"></div>
+                <CheckCircle2 className="h-16 w-16 text-green-500 relative" />
+              </div>
             </div>
             
-            <h2 className="text-3xl font-serif font-normal mb-3">
-              Account <span className="font-serif italic">Created</span>
+            <h2 className="text-3xl font-serif font-normal mb-4">
+              Welcome to the <span className="font-serif italic">Community!</span>
             </h2>
             
-            <p className="text-[#000000]/70 text-lg mb-6">
-              Thank you for signing up. We've sent a confirmation email to your Ashesi email address.
+            <p className="text-[#000000]/70 text-lg mb-8">
+              Your account has been successfully created and verified. You're now ready to access all our career services!
             </p>
             
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-5 text-left mb-8">
-              <h3 className="text-lg font-medium text-blue-800 mb-2">Next Steps:</h3>
-              <ol className="space-y-2 text-blue-700">
-                <li className="flex gap-2">
-                  <span className="font-bold">1.</span>
-                  <span>Check your Ashesi email inbox for a verification link</span>
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-6 text-left mb-8">
+              <h3 className="text-lg font-medium text-blue-800 mb-4">What's Next?</h3>
+              <ul className="space-y-3 text-blue-700">
+                <li className="flex items-start gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-medium">
+                    1
+                  </span>
+                  <span>Log in to your account using your email and password</span>
                 </li>
-                <li className="flex gap-2">
-                  <span className="font-bold">2.</span>
-                  <span>Click the verification link to activate your account</span>
+                <li className="flex items-start gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-medium">
+                    2
+                  </span>
+                  <span>Complete your profile with additional information</span>
                 </li>
-                <li className="flex gap-2">
-                  <span className="font-bold">3.</span>
-                  <span>Return to the login page to sign in after verification</span>
+                <li className="flex items-start gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-medium">
+                    3
+                  </span>
+                  <span>Start exploring career opportunities and services</span>
                 </li>
-              </ol>
+              </ul>
             </div>
             
             <div className="flex flex-col gap-4">
@@ -74,7 +114,7 @@ export default function SignupSuccess() {
                 href="/auth/login"
                 className="w-full bg-[#A91827] hover:bg-[#A91827]/90 text-white font-medium py-3 px-4 rounded-lg transition-all text-lg inline-flex items-center justify-center gap-2"
               >
-                Go to Login Page
+                Continue to Login
               </Link>
               
               <Link 
@@ -95,7 +135,7 @@ export default function SignupSuccess() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
               <GraduationCap className="h-6 w-6 text-[#A91827]" />
-              <span className="text-xl font-bold">CSOFT</span>
+              <span className="text-xl font-bold text-black">CSOFT</span>
             </div>
             <div className="text-center md:text-right">
               <p className="text-sm text-[#000000]/70">

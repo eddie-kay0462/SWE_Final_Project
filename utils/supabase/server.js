@@ -9,7 +9,7 @@ import { cookies } from 'next/headers'
  * @returns {Object} Supabase client instance configured for server-side use
  */
 export async function createClient(reqCookies = null, customKey = null) {
-    const cookieStore = await cookies()
+    const cookieStore = cookies()
     
     return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -31,6 +31,18 @@ const publicPaths = [
   '/favicon.ico',
   '/auth/login',
   '/auth/signup',
+  '/auth/verify-otp',
+  '/auth/confirm',
+  '/auth/callback',
+  '/_next/static',
+  '/_next/image',
+  '/images',
+  '.ico',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.svg',
 ]
 
 /**
@@ -62,7 +74,10 @@ const createClient = (cookies) => {
  * @returns {boolean} Whether path should bypass auth
  */
 const isPublicPath = (path) => {
-  return publicPaths.some(publicPath => path.startsWith(publicPath))
+  return publicPaths.some(publicPath => 
+    path.startsWith(publicPath) || 
+    path.match(/\.(ico|png|jpg|jpeg|gif|svg)$/)
+  )
 }
 
 /**
@@ -89,10 +104,19 @@ export async function middleware(request) {
       return response
     }
 
-    // For protected routes, check authentication
-    const supabase = createClient(request.cookies)
+    // For protected routes, check authentication using getUser for better security
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          get: (name) => request.cookies.get(name)?.value,
+          set: () => {}, // No-op in middleware
+          remove: () => {}, // No-op in middleware
+        },
+      }
+    )
     
-    // Use getUser() instead of getSession() for better security
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -102,32 +126,21 @@ export async function middleware(request) {
       return NextResponse.redirect(redirectUrl)
     }
 
-    // First get the user's email from auth.users
-    const userEmail = user.email
-
-    // Then find the corresponding user in public.users table using the email
+    // Get user role from the database
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('role_id')
-      .eq('email', userEmail)
+      .eq('email', user.email)
       .single()
 
-    if (userError) {
+    if (userError || !userData?.role_id) {
       console.error('Error fetching user role:', userError)
-      console.error('User email:', userEmail)
-      console.error('Error details:', userError.message, userError.details)
       return NextResponse.redirect(new URL('/auth/login', request.url))
     }
 
-    const roleId = userData?.role_id
+    const roleId = userData.role_id
 
-    // Validate role_id exists
-    if (roleId === undefined || roleId === null) {
-      console.error('Invalid role_id for user:', userEmail)
-      return NextResponse.redirect(new URL('/auth/login', request.url))
-    }
-
-    // Handle role-specific route protection with early returns
+    // Handle role-specific route protection
     if (studentRoutes.some(route => pathname.startsWith(route)) && roleId !== 3) {
       return NextResponse.redirect(new URL('/', request.url))
     }
@@ -143,8 +156,6 @@ export async function middleware(request) {
     return response
   } catch (error) {
     console.error('Middleware error:', error)
-    console.error('Error stack:', error.stack)
-    console.error('Request path:', request.nextUrl.pathname)
     
     const { pathname } = request.nextUrl
     if (protectedRoutes.some(route => pathname.startsWith(route))) {
@@ -157,12 +168,14 @@ export async function middleware(request) {
 // Configure middleware matcher
 export const config = {
   matcher: [
-    '/',
+    /*
+     * Match specific paths that need authentication
+     * Exclude static files and public routes
+     */
     '/dashboard/:path*',
     '/student/:path*',
     '/admin/:path*',
     '/superadmin/:path*',
-    '/auth/:path*',
-    '/(api(?!/public).*)'
+    '/(api|trpc)/:path*'
   ]
 }
