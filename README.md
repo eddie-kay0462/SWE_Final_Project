@@ -2,6 +2,7 @@
 
 
 [Video Demo Link](https://ashe.si/3Sj7WNh)
+[Deployed Link](https://csoft-vert.vercel.app/)
 
 This directory contains the core application logic and user interface components for the SWE Final Project, structured using the Next.js App Router.
 
