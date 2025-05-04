@@ -63,8 +63,9 @@ export async function GET(request) {
             );
         }
 
-        // Get today's date for filtering
+        // Get today's date and first day of current month for filtering
         const today = getTodayDateString();
+        const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
         // Fetch upcoming events/sessions
         const { data: events, error: eventsError } = await supabase
@@ -116,6 +117,35 @@ export async function GET(request) {
             .select('*', { count: 'exact', head: true })
             .eq('role_id', 3); // Student role
 
+        // Get session analytics
+        const { data: sessionAnalytics, error: analyticsError } = await supabase
+            .from('attendance')
+            .select(`
+                career_sessions!inner(
+                    session_id,
+                    date
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        // Get this month's new students
+        const { count: newStudentsThisMonth, error: newStudentsError } = await supabase
+            .from('users')
+            .select('*', { count: 'exact', head: true })
+            .eq('role_id', 3)
+            .gte('created_at', firstDayOfMonth);
+
+        // Get location statistics
+        const { data: locationStats, error: locationError } = await supabase
+            .from('career_sessions')
+            .select('location')
+            .order('created_at', { ascending: false });
+
+        // Get active students (those who attended at least one session)
+        const { data: activeStudents, error: activeStudentsError } = await supabase
+            .from('attendance')
+            .select('user_id', { distinct: true });
+
         // Structure and return dashboard data
         return NextResponse.json({
             user: {
@@ -128,7 +158,17 @@ export async function GET(request) {
             stats: {
                 totalSessions: totalSessions || 0,
                 totalStudents: totalStudents || 0,
-                upcomingEvents: events?.length || 0
+                upcomingEvents: events?.length || 0,
+                newStudentsThisMonth: newStudentsThisMonth || 0,
+                activeStudents: activeStudents?.length || 0,
+                totalAttendance: sessionAnalytics?.length || 0,
+                averageAttendance: sessionAnalytics?.length && totalSessions 
+                    ? Math.round((sessionAnalytics.length / totalSessions) * 10) / 10 
+                    : 0,
+                locationBreakdown: locationStats?.reduce((acc, curr) => {
+                    acc[curr.location] = (acc[curr.location] || 0) + 1;
+                    return acc;
+                }, {}) || {}
             },
             events: events || [],
             notifications: notifications || [],

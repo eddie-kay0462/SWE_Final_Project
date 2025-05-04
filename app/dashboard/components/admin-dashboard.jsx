@@ -1,4 +1,13 @@
-import { CheckCircle, Clock, XCircle, Calendar, ArrowUp, FileText, Users } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { 
+    Users, 
+    Calendar, 
+    TrendingUp, 
+    MapPin, 
+    UserCheck, 
+    UserPlus,
+    BarChart2
+} from "lucide-react"
 import Link from "next/link"
 
 const AdminDashboard = ({ data, loading, greeting }) => {
@@ -6,79 +15,121 @@ const AdminDashboard = ({ data, loading, greeting }) => {
     return null;
   }
 
-  const { stats, events, user } = data;
+  const { stats, events, notifications } = data;
 
   return (
-    <div
-      className={`space-y-6 transition-all duration-500 ease-in-out ${loading ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}
-    >
-      {/* Greeting */}
-      <h2 className="text-2xl font-medium text-gray-800 dark:text-neutral-100 mb-6">{greeting}</h2>
-
-      {/* Upcoming Career Sessions & Events */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming Events */}
-        <div className="bg-white dark:bg-card rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
-          <h3 className="text-lg font-medium mb-4 dark:text-neutral-100">Upcoming Events</h3>
-          <div className="space-y-4">
-            {events && events.length > 0 ? events.map((event) => (
-              <div key={event.session_id} className="bg-gray-50 dark:bg-background rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-medium dark:text-neutral-100">{event.title}</h4>
-                    <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">{new Date(event.date).toLocaleDateString()}</p>
-                    <p className="text-sm text-gray-500 dark:text-neutral-400">{event.location}</p>
-                  </div>
-                  <div className="bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded text-xs font-medium text-blue-800 dark:text-blue-300">
-                    {event.attendance?.count || 0} RSVPs
-                  </div>
-                </div>
-              </div>
-            )) : (
-              <div className="text-center text-gray-500 dark:text-neutral-400 py-4">
-                No upcoming events
-              </div>
-            )}
-          </div>
-          <div className="mt-6">
-            <Link href="/dashboard/admin/events">
-              <button className="text-sm text-[#A91827] hover:text-[#A91827]/80 font-medium flex items-center">
-                View all events
-                <ArrowUp className="h-4 w-4 ml-1 rotate-45" />
-              </button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="bg-white dark:bg-card rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1">
-          <h3 className="text-lg font-medium mb-4 dark:text-neutral-100">Quick Stats</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 dark:bg-background rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-neutral-400">Total Events</p>
-                  <h3 className="text-2xl font-bold mt-1 dark:text-neutral-100">{stats?.totalSessions || 0}</h3>
-                </div>
-                <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                  <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-50 dark:bg-background rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-neutral-400">Total Students</p>
-                  <h3 className="text-2xl font-bold mt-1 dark:text-neutral-100">{stats?.totalStudents || 0}</h3>
-                </div>
-                <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                  <Users className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
+    <div className="p-8">
+      <h1 className="text-4xl font-bold mb-8">{greeting}</h1>
+      
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card className="p-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+          <div className="flex items-center space-x-4">
+            <Users className="w-8 h-8 text-blue-500" />
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Total Students</p>
+              <h3 className="text-2xl font-bold">{stats.totalStudents}</h3>
             </div>
           </div>
-        </div>
+        </Card>
+
+        <Card className="p-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+          <div className="flex items-center space-x-4">
+            <Calendar className="w-8 h-8 text-green-500" />
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Total Sessions</p>
+              <h3 className="text-2xl font-bold">{stats.totalSessions}</h3>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+          <div className="flex items-center space-x-4">
+            <UserCheck className="w-8 h-8 text-purple-500" />
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Active Students</p>
+              <h3 className="text-2xl font-bold">{stats.activeStudents}</h3>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+          <div className="flex items-center space-x-4">
+            <UserPlus className="w-8 h-8 text-orange-500" />
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">New Students (Month)</p>
+              <h3 className="text-2xl font-bold">{stats.newStudentsThisMonth}</h3>
+            </div>
+          </div>
+        </Card>
       </div>
+
+      {/* Detailed Analytics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <Card className="p-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <TrendingUp className="w-5 h-5 mr-2 text-blue-500" />
+            Attendance Analytics
+          </h3>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Total Attendance</p>
+              <p className="text-xl font-bold">{stats.totalAttendance}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Average Per Session</p>
+              <p className="text-xl font-bold">{stats.averageAttendance}</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <MapPin className="w-5 h-5 mr-2 text-green-500" />
+            Location Distribution
+          </h3>
+          <div className="space-y-2">
+            {Object.entries(stats.locationBreakdown).map(([location, count]) => (
+              <div key={location} className="flex justify-between items-center">
+                <span className="text-sm text-gray-500 dark:text-gray-400">{location}</span>
+                <span className="font-semibold">{count}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <BarChart2 className="w-5 h-5 mr-2 text-purple-500" />
+            Upcoming Events
+          </h3>
+          <div className="space-y-2">
+            {events.slice(0, 3).map((event) => (
+              <div key={event.session_id} className="text-sm">
+                <p className="font-semibold">{event.title}</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                  {new Date(event.date).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Notifications Section */}
+      <Card className="p-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+        <h3 className="text-lg font-semibold mb-4">Recent Notifications</h3>
+        <div className="space-y-4">
+          {notifications.map((notification) => (
+            <div key={notification.id} className="border-b pb-2 last:border-0">
+              <p className="text-sm">{notification.message}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {new Date(notification.created_at).toLocaleString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   )
 }
