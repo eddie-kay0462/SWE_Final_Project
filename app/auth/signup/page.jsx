@@ -18,6 +18,7 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { PasswordStrength } from "@/components/ui/password-strength"
 import { validatePassword } from "@/utils/validation"
+import { createBrowserClient } from "@supabase/auth-helpers-nextjs"
 
 export default function Signup() {
   const [email, setEmail] = useState("")
@@ -103,8 +104,13 @@ export default function Signup() {
     }
 
     try {
-      // Call the backend API
-      const response = await fetch('/api/auth/signup', {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      )
+
+      // First create the user profile in our database
+      const { error: profileError } = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,21 +123,37 @@ export default function Signup() {
           studentId: role === 'student' ? studentId : null,
           role
         }),
+      }).then(res => res.json())
+
+      if (profileError) {
+        throw new Error(profileError)
+      }
+
+      // Then send the OTP email
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            student_id: role === 'student' ? studentId : null,
+            role_id: role === 'student' ? 3 : 2
+          }
+        }
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create account')
+      if (otpError) {
+        throw new Error(otpError.message)
       }
 
       // Show page loading before redirect
       setIsPageLoading(true)
       
-      // Navigate to success page
+      // Navigate to OTP verification page
       setTimeout(() => {
-        router.push("/auth/signup-success")
-      }, 500) // Short delay to show the loading state
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
+      }, 500)
     } catch (error) {
       setError(error.message)
       setIsLoading(false)
