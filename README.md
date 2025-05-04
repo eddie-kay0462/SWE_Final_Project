@@ -9,6 +9,38 @@ This directory contains the core application logic and user interface components
 
 The `app` directory organizes the application by feature routes and includes global layout files, styling, and utility components.
 
+## Key Design Patterns
+
+This application utilizes several key software design patterns to ensure maintainability, scalability, and efficient state management:
+
+-   **Observer Pattern (Theme Management):**
+    -   **Purpose:** To allow components to react dynamically to changes in the application's theme (e.g., switching between light and dark mode).
+    -   **Implementation:** A central theme provider (likely using React Context API or a similar state management solution like Zustand or Redux) acts as the 'subject'. Components interested in theme changes 'subscribe' to this provider. When the theme is updated (e.g., by user action), the provider notifies all subscribed components, causing them to re-render with the new theme styles. This decouples theme logic from individual components.
+
+-   **Singleton Pattern (e.g., Supabase Client):**
+    -   **Purpose:** To ensure that only one instance of a specific resource, such as the Supabase client, is created and used throughout the application.
+    -   **Implementation:** A utility module (e.g., within `utils/supabase/`) typically initializes the Supabase client. Subsequent requests for the client receive the same, single instance. This conserves resources, prevents conflicting states, and centralizes the configuration and management of the database connection.
+
+-   **Provider Pattern (React Context API):**
+    -   **Purpose:** To manage global state (like user authentication, theme, etc.) and provide it down the component tree without prop drilling.
+    -   **Implementation:** Context providers (like those potentially in `providers.jsx`) wrap parts of the application, making state and functions available to consuming components via hooks (`useContext`).
+
+-   **Module Pattern (Utilities & API Handlers):**
+    -   **Purpose:** To encapsulate related functions and data, promoting code organization and reusability.
+    -   **Implementation:** Files within `utils/` or API route handlers in `app/api/` often group related functionalities, exporting only the necessary public interface.
+
+-   **Factory Pattern (e.g., Component/Object Creation):**
+    -   **Purpose:** To abstract the process of object creation, allowing the creation of different types of objects based on varying parameters or conditions without exposing the complex creation logic to the client.
+    -   **Implementation:** While less common in a typical React/Next.js frontend directly, this pattern could be used in utility functions or backend services (e.g., a function that creates different types of notification objects based on the event type, or different UI component variants based on props).
+
+-   **Strategy Pattern (e.g., Data Fetching/Handling):**
+    -   **Purpose:** To define a family of algorithms, encapsulate each one, and make them interchangeable. This allows the algorithm to vary independently from clients that use it.
+    -   **Implementation:** This could be applied to situations where multiple data fetching approaches exist (e.g., fetching from cache vs. network, using different Supabase query methods based on user role or data complexity) or different ways to handle user input validation based on the context. The specific strategy could be selected at runtime.
+
+-   **Middleware Pattern (Next.js Middleware):**
+    -   **Purpose:** To intercept requests before they reach their destination (e.g., API route or page) to perform cross-cutting concerns like authentication, authorization, logging, or redirects.
+    -   **Implementation:** Next.js provides built-in support for middleware (`middleware.js` or `middleware.ts` in the root or `src/` directory). This function runs on the edge and can modify requests/responses or route users based on conditions (e.g., checking for a valid session cookie managed by Supabase Auth).
+
 ## Key Files and Directories
 
 -   **`layout.js`**: Defines the root layout shared across all pages.
