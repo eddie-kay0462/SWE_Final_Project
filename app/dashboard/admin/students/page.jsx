@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { createClient } from '@/utils/supabase/client'
+import { useRouter } from "next/navigation"
 
 export default function AdminStudentProfilesPage() {
   const { toast } = useToast()
@@ -30,6 +31,7 @@ export default function AdminStudentProfilesPage() {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [yearGroups, setYearGroups] = useState([])
+  const router = useRouter()
 
   // Initialize Supabase client
   const supabase = createClient()
@@ -52,69 +54,76 @@ export default function AdminStudentProfilesPage() {
     return `202${lastDigit}`
   }
 
-  useEffect(() => {
-    // Fetch student data from Supabase
-    async function fetchStudents() {
-      try {
-        setLoading(true)
-        const { data, error } = await supabase
-          .from('users')
-          .select(`
-            id,
-            student_id,
-            fname,
-            lname,
-            email,
-            profilepic,
-            role_id,
-            created_at
-          `)
-          .eq('role_id', 3) // Assuming role_id 3 is for students
+  const fetchStudents = async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          student_id,
+          fname,
+          lname,
+          email,
+          profilepic,
+          role_id,
+          created_at,
+          documents:documents(*)
+        `)
+        .eq('role_id', 3) // Assuming role_id 3 is for students
 
-        if (error) {
-          throw error
-        }
-
-        // Transform the data to match the component's expected format
-        const transformedData = data.map(student => {
-          const yearGroup = extractYearGroup(student.student_id)
-          return {
-            id: student.student_id,
-            firstName: student.fname,
-            lastName: student.lname,
-            email: student.email,
-            profilePicture: student.profilepic,
-            yearGroup,
-            major: "Computer Science", // You might want to add this field to your database
-            gpa: "3.5", // You might want to add this field to your database
-            resumeUploaded: false,
-            eventsAttended: 0,
-            careerRoadmap: {
-              goals: ["Complete internship", "Learn new technologies"],
-              progress: 50
-            }
-          }
-        })
-
-        // Extract unique year groups and sort them
-        const uniqueYearGroups = [...new Set(transformedData.map(student => student.yearGroup))]
-          .filter(year => year !== "Unknown")
-          .sort((a, b) => a - b)
-
-        setYearGroups(uniqueYearGroups)
-        setStudents(transformedData)
-      } catch (error) {
-        console.error("Error fetching students:", error)
-        toast({
-          title: "Error",
-          description: "Failed to fetch student data. Please try again later.",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
+      if (error) {
+        throw error
       }
-    }
 
+      // Transform the data to match the component's expected format
+      const transformedData = data.map(student => {
+        const yearGroup = extractYearGroup(student.student_id)
+        // Find the most recent resume document if any exists
+        const resume = student.documents?.find(doc => 
+          doc.file_type === 'pdf' || doc.file_type === 'docx'
+        )
+        
+        return {
+          id: student.student_id,
+          firstName: student.fname,
+          lastName: student.lname,
+          email: student.email,
+          profilePicture: student.profilepic,
+          yearGroup,
+          major: "Computer Science", // You might want to add this field to your database
+          gpa: "3.5", // You might want to add this field to your database
+          resumeUploaded: !!resume,
+          resumeStatus: resume?.status || "No Resume",
+          resumeId: resume?.id,
+          eventsAttended: 0,
+          careerRoadmap: {
+            goals: ["Complete internship", "Learn new technologies"],
+            progress: 50
+          }
+        }
+      })
+
+      // Extract unique year groups and sort them
+      const uniqueYearGroups = [...new Set(transformedData.map(student => student.yearGroup))]
+        .filter(year => year !== "Unknown")
+        .sort((a, b) => a - b)
+
+      setYearGroups(uniqueYearGroups)
+      setStudents(transformedData)
+    } catch (error) {
+      console.error("Error fetching students:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch student data. Please try again later.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchStudents()
   }, [])
 
@@ -187,12 +196,26 @@ export default function AdminStudentProfilesPage() {
 
   // Filter students based on search query and selected year group
   const filteredStudents = students.filter(
-    (student) =>
-      (selectedYearGroup === "All" || student.yearGroup === selectedYearGroup) &&
-      (searchQuery === "" ||
-        student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.id.includes(searchQuery))
+    (student) => {
+      // First check if we have a valid student object
+      if (!student) return false;
+      
+      // Check year group filter
+      const yearGroupMatch = selectedYearGroup === "All" || student.yearGroup === selectedYearGroup;
+      
+      // If no search query, just return year group match
+      if (!searchQuery) return yearGroupMatch;
+      
+      // Convert search query to lowercase for case-insensitive comparison
+      const query = searchQuery.toLowerCase();
+      
+      // Safely check each field with null checks
+      const firstNameMatch = student.firstName ? student.firstName.toLowerCase().includes(query) : false;
+      const lastNameMatch = student.lastName ? student.lastName.toLowerCase().includes(query) : false;
+      const idMatch = student.id ? student.id.toString().includes(searchQuery) : false;
+      
+      return yearGroupMatch && (firstNameMatch || lastNameMatch || idMatch);
+    }
   )
 
   const handleSelectYearGroup = (yearGroup) => {
@@ -396,12 +419,29 @@ export default function AdminStudentProfilesPage() {
                       <div className="flex items-center justify-between">
                         <h3 className="font-medium">Resume</h3>
                         {selectedStudent.resumeUploaded ? (
-                          <Button variant="outline" size="sm">
-                            <FileText className="h-4 w-4 mr-2" />
-                            View Resume
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm px-2 py-1 rounded-full bg-amber-100 text-amber-800">
+                              {selectedStudent.resumeStatus}
+                            </span>
+                            <button
+                              onClick={() => router.push('/dashboard/admin/resume')}
+                              className="flex items-center gap-2 px-4 py-2 bg-[#A91827] text-white rounded-md hover:bg-[#A91827]/90 transition-colors"
+                            >
+                              <FileText className="h-4 w-4" />
+                              View in Resume Dashboard
+                            </button>
+                          </div>
                         ) : (
-                          <span className="text-sm text-red-500">No resume uploaded</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-red-500">No resume uploaded</span>
+                            <button
+                              onClick={() => router.push('/dashboard/admin/resume')}
+                              className="flex items-center gap-2 px-4 py-2 bg-[#A91827] text-white rounded-md hover:bg-[#A91827]/90 transition-colors"
+                            >
+                              <FileText className="h-4 w-4" />
+                              View in Resume Dashboard
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>

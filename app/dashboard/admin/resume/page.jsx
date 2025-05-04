@@ -9,7 +9,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { 
   FileText, Download, CheckCircle, Clock, AlertCircle, 
   Search, Filter, ChevronDown, ChevronUp, ArrowUpDown, 
@@ -47,6 +47,9 @@ export default function AdvisorDashboardPage() {
     needsEdits: 0
   })
   const supabase = createClient()
+  const [showResumeModal, setShowResumeModal] = useState(false)
+  const [activeResume, setActiveResume] = useState(null)
+  const pdfViewerRef = useRef(null)
 
   /**
    * Checks if user is authenticated as advisor and redirects if not
@@ -350,6 +353,12 @@ export default function AdvisorDashboardPage() {
     }
   }
 
+  // Add new handler for row click
+  const handleRowClick = (resume) => {
+    setActiveResume(resume)
+    setShowResumeModal(true)
+  }
+
   if (authLoading) {
     return <div className="container mx-auto p-8 flex justify-center">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#A91827]"></div>
@@ -520,7 +529,11 @@ export default function AdvisorDashboardPage() {
                 </tr>
               ) : (
                 filteredResumes.map((resume) => (
-                  <tr key={resume.id} className="hover:bg-gray-50 dark:hover:bg-[#161616]">
+                  <tr 
+                    key={resume.id} 
+                    className="hover:bg-gray-50 dark:hover:bg-[#161616] cursor-pointer"
+                    onClick={() => handleRowClick(resume)}
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-gray-400 dark:text-neutral-500" />
@@ -582,6 +595,125 @@ export default function AdvisorDashboardPage() {
           </table>
         </div>
       </div>
+
+      {/* New Resume View Modal */}
+      {showResumeModal && activeResume && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-[#1c1c1c] rounded-xl shadow-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
+            <div className="p-4 border-b border-gray-200 dark:border-[#262626] flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-neutral-100">
+                  Resume Review: {activeResume.name}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-neutral-400">
+                  Submitted by {activeResume.users?.fname} {activeResume.users?.lname}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowResumeModal(false)}
+                className="text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 h-[calc(90vh-5rem)]">
+              {/* Left side - PDF Preview */}
+              <div className="border-r border-gray-200 dark:border-[#262626] h-full">
+                <div className="h-full bg-gray-100 dark:bg-[#161616] p-4">
+                  {activeResume.file_url && (
+                    <iframe
+                      src={`${activeResume.file_url}#toolbar=0`}
+                      className="w-full h-full rounded-lg"
+                      ref={pdfViewerRef}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Right side - Actions and Information */}
+              <div className="p-6 overflow-y-auto">
+                {/* Status Section */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">Status</h4>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(activeResume.status)}
+                    <select
+                      value={activeResume.status}
+                      onChange={(e) => handleStatusChange(activeResume.id, e.target.value)}
+                      className="flex-1 text-sm border border-gray-300 dark:border-[#363636] rounded-lg bg-white dark:bg-[#262626] text-gray-700 dark:text-neutral-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#A91827] focus:border-transparent"
+                    >
+                      <option value="Pending Review">Pending Review</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Needs Edits">Needs Edits</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">Quick Actions</h4>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleViewResume(activeResume.file_url)}
+                      className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#262626] border border-gray-300 dark:border-[#363636] rounded-lg text-gray-700 dark:text-neutral-100 hover:bg-gray-50 dark:hover:bg-[#363636]"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedResume(activeResume)
+                        setFeedbackText(activeResume.feedback || "")
+                        setShowFeedbackModal(true)
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#A91827] text-white rounded-lg hover:bg-[#A91827]/90"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Add Feedback
+                    </button>
+                  </div>
+                </div>
+
+                {/* Submission Details */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">Submission Details</h4>
+                  <div className="bg-gray-50 dark:bg-[#161616] rounded-lg p-4 space-y-2">
+                    <p className="text-sm">
+                      <span className="text-gray-500 dark:text-neutral-400">Submitted on:</span>{" "}
+                      {new Date(activeResume.uploaded_at).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm">
+                      <span className="text-gray-500 dark:text-neutral-400">File type:</span>{" "}
+                      {activeResume.file_type?.toUpperCase()}
+                    </p>
+                    <p className="text-sm">
+                      <span className="text-gray-500 dark:text-neutral-400">Student ID:</span>{" "}
+                      {activeResume.users?.student_id}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Feedback History */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">Current Feedback</h4>
+                  {activeResume.feedback ? (
+                    <div className="bg-gray-50 dark:bg-[#161616] rounded-lg p-4">
+                      <p className="text-sm text-gray-700 dark:text-neutral-300 whitespace-pre-wrap">
+                        {activeResume.feedback}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-neutral-400">
+                      No feedback provided yet
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Feedback Modal */}
       {showFeedbackModal && (
