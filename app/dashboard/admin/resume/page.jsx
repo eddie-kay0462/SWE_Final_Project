@@ -226,11 +226,16 @@ export default function AdvisorDashboardPage() {
       
       if (error) throw error
       
-      // Update local state
+      // Update local states
       const updatedResumes = resumes.map(resume => 
         resume.id === resumeId ? { ...resume, status: newStatus } : resume
       )
       setResumes(updatedResumes)
+      
+      // Update active resume if it's the one being modified
+      if (activeResume && activeResume.id === resumeId) {
+        setActiveResume({ ...activeResume, status: newStatus })
+      }
       
       // Update stats
       const stats = {
@@ -266,13 +271,14 @@ export default function AdvisorDashboardPage() {
     
     try {
       const supabase = createClient()
+      const newStatus = feedbackText.trim() ? 'Needs Edits' : 'Pending Review'
       
       // Update document with feedback
       const { error: docError } = await supabase
         .from('documents')
         .update({ 
           feedback: feedbackText,
-          status: feedbackText.trim() ? 'Needs Edits' : 'Pending Review'
+          status: newStatus
         })
         .eq('id', selectedResume.id)
       
@@ -294,7 +300,7 @@ export default function AdvisorDashboardPage() {
           metadata: {
             resumeName: selectedResume.name,
             fullFeedback: feedbackText,
-            status: selectedResume.status
+            status: newStatus
           }
         }])
 
@@ -306,17 +312,26 @@ export default function AdvisorDashboardPage() {
         return
       }
 
-      // Update local state
+      // Update local states
       const updatedResumes = resumes.map(resume => 
         resume.id === selectedResume.id 
           ? { 
               ...resume, 
               feedback: feedbackText,
-              status: feedbackText.trim() ? 'Needs Edits' : 'Pending Review'
+              status: newStatus
             } 
           : resume
       )
       setResumes(updatedResumes)
+      
+      // Update active resume if it's the one being modified
+      if (activeResume && activeResume.id === selectedResume.id) {
+        setActiveResume({
+          ...activeResume,
+          feedback: feedbackText,
+          status: newStatus
+        })
+      }
       
       // Update stats
       const updatedStats = {
