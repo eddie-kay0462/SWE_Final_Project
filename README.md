@@ -141,6 +141,8 @@ The application is deployed on **Vercel**: [https://csoft-vert.vercel.app/](http
 
 It leverages Vercel's integration with Next.js for optimized builds, serverless functions, CDN delivery, environment variable management, and performance/security features.
 
+### API Docs
+Our API Docs can be seen here: [CSOFT API Docs](https://nanaamoako.notion.site/API-Docs-1e925b900e6080ff8217dbbe7c64349e?pvs=4)
 ## Development Methodology
 
 This project was developed using the **Agile methodology**, specifically the **Scrum framework**. Key aspects include:
