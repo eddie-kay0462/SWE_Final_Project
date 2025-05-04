@@ -57,7 +57,7 @@ This application utilizes several key software design patterns to ensure maintai
 -   **`utils/`**: Shared utility functions or helper components used across different parts of the application.
 -   **`error.jsx`**: Defines the error UI boundary for this segment.
 -   **`not-found.jsx`**: Defines the UI for 404 Not Found errors.
--   **`loading-demo.jsx`**: A demo component, possibly related to loading states.
+
 
 
 
