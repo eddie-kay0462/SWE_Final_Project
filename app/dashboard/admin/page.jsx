@@ -7,43 +7,44 @@ import { useLoadingAction } from "@/lib/hooks/use-loading-action"
 import AdminDashboard from "../components/admin-dashboard"
 import { getGreeting } from "@/app/utils/greetings"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-
-// // Mock data for demonstration (you can import this from a shared file)
-// const mockData = {
-//   pendingRequests: 34,
-//   approvedRequests: 98,
-//   rejectedRequests: 24,
-//   upcomingSessions: [
-//     { id: 1, title: "Resume Workshop", date: "2025-03-20", attendees: 45 },
-//     { id: 2, title: "Interview Skills", date: "2025-03-22", attendees: 32 },
-//     { id: 3, title: "LinkedIn Optimization", date: "2025-03-25", attendees: 28 },
-//   ],
-//   studentEngagement: {
-//     thisWeek: 156,
-//     lastWeek: 142,
-//     change: 9.8,
-//   },
-//   urgentNotifications: [
-//     { id: 1, type: "request", message: "New internship request from John Doe" },
-//     { id: 2, type: "session", message: "Resume Workshop RSVP deadline in 2 days" },
-//     { id: 3, type: "followup", message: "Student follow-up reminder: Emily Davis" },
-//   ],
-// }
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function AdminDashboardPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [greeting, setGreeting] = useState("")
+  const [dashboardData, setDashboardData] = useState(null)
   const { startLoading, stopLoading } = useLoading()
   const { isLoading, handleLoadingAction } = useLoadingAction()
 
-  // Simulate data loading
   useEffect(() => {
     const loadDashboard = async () => {
       try {
         startLoading()
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Fetch real data from the API
+        const response = await fetch('/api/dashboard/admin')
+        const data = await response.json()
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            toast.error("Please login to continue")
+            router.push('/auth/login')
+            return
+          }
+          if (response.status === 403) {
+            toast.error("You don't have permission to access this page")
+            router.push('/')
+            return
+          }
+          throw new Error(data.error || 'Failed to fetch dashboard data')
+        }
+
+        setDashboardData(data)
         setGreeting(getGreeting("Admin"))
+      } catch (error) {
+        console.error('Error loading dashboard:', error)
+        toast.error(error.message || "Failed to load dashboard data")
       } finally {
         stopLoading()
         setLoading(false)
@@ -51,7 +52,7 @@ export default function AdminDashboardPage() {
     }
 
     loadDashboard()
-  }, [startLoading, stopLoading])
+  }, [startLoading, stopLoading, router])
 
   if (loading) {
     return (
@@ -68,7 +69,7 @@ export default function AdminDashboardPage() {
       transition={{ duration: 0.4 }}
     >
       <AdminDashboard 
-        mockData={mockData} 
+        data={dashboardData} 
         loading={isLoading} 
         greeting={greeting}
         onAction={(action) => handleLoadingAction(action)}
